@@ -49,7 +49,7 @@ const sizes = (labels: string[]): Choice[] =>
   Object.keys(SIZE_NAMES).map((value, index) => ({ value, label: labels[index], title: SIZE_NAMES[value] }))
 const FONTS: [string, string][] = [
   ['sans-serif', 'Sans-serif'], ['serif', 'Serif'], ['system', 'System'], ['georgia', 'Georgia'], ['palatino', 'Palatino'],
-  ['helvetica', 'Helvetica'], ['verdana', 'Verdana'], ['monospace', 'Monospace'],
+  ['helvetica', 'Helvetica'], ['segoe', 'Segoe UI'], ['verdana', 'Verdana'], ['monospace', 'Monospace'],
 ]
 
 /** A row bound to one preference. */

@@ -29,7 +29,7 @@ def _url_or_empty(v):
 
 
 _SIZES = ("xs", "s", "m", "l", "xl")
-STORY_FONTS = ("sans-serif", "serif", "system", "georgia", "palatino", "helvetica", "verdana", "monospace")
+STORY_FONTS = ("sans-serif", "serif", "system", "georgia", "palatino", "helvetica", "segoe", "verdana", "monospace")
 
 VIEWS = ("original", "feed", "text", "story")
 LAYOUTS = ("full", "split", "list", "grid", "magazine")

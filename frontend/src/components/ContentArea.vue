@@ -51,6 +51,10 @@ const titlesStyle = computed(() => {
 })
 const LAYOUT_LABELS: Record<Layout, string> = { full: 'Full', split: 'Split', list: 'List', magazine: 'Magazine', grid: 'Grid' }
 const VIEW_LABELS: Record<View, string> = { original: 'Original', feed: 'Feed', text: 'Text', story: 'Story' }
+const READ_FILTERS = ['unread', 'all'] as const
+const READ_FILTER_LABELS: Record<(typeof READ_FILTERS)[number], string> = { unread: 'Unread', all: 'All' }
+const ORDERS = ['newest', 'oldest'] as const
+const ORDER_LABELS: Record<(typeof ORDERS)[number], string> = { newest: 'Newest', oldest: 'Oldest' }
 
 function overridden(key: ViewKey): boolean {
   return !!scope.value && settings.stored(scope.value, key) !== undefined
@@ -149,25 +153,27 @@ function dragDivider(event: PointerEvent) {
         </template>
       </div>
       <template v-if="scope">
-        <button
-          class="btn fixed-width" :class="{ override: overridden('read_filter') }" :disabled="stories.isSaved"
-          title="Show unread or all stories (Shift+L). Right-click: use default"
-          @click="setSetting('read_filter', filter === 'unread' ? 'all' : 'unread')" @contextmenu.prevent="useDefault($event, 'read_filter')"
-        >
-          <Icon :name="filter === 'unread' ? 'circle' : 'eye'" /> {{ filter === 'unread' ? 'Unread' : 'All' }}
-        </button>
-        <button
-          class="btn fixed-width" :class="{ override: overridden('order') }" title="Order. Right-click: use default"
-          @click="setSetting('order', order === 'newest' ? 'oldest' : 'newest')" @contextmenu.prevent="useDefault($event, 'order')"
-        >
-          <Icon :name="order === 'newest' ? 'arrow-down' : 'arrow-up'" /> {{ order === 'newest' ? 'Newest' : 'Oldest' }}
-        </button>
         <div class="popover-anchor">
           <button
             class="btn icon-only" :class="{ active: ui.stylePopover === 'list' }" title="List style" data-style-toggle
             @click="ui.stylePopover = ui.stylePopover === 'list' ? null : 'list'"
           ><Icon name="list" /></button>
           <StylePopover v-if="ui.stylePopover === 'list'" part="list" class="below" @close="ui.stylePopover = null" />
+        </div>
+        <div
+          class="segmented" role="group" aria-label="Read filter"
+          title="Show unread or all stories (Shift+L). Right-click: use default" @contextmenu.prevent="useDefault($event, 'read_filter')"
+        >
+          <button
+            v-for="f in READ_FILTERS" :key="f" class="btn" :class="{ active: filter === f, override: filter === f && overridden('read_filter') }"
+            :aria-pressed="filter === f" :disabled="stories.isSaved" @click="filter !== f && setSetting('read_filter', f)"
+          >{{ READ_FILTER_LABELS[f] }}</button>
+        </div>
+        <div class="segmented" role="group" aria-label="Order" title="Order. Right-click: use default" @contextmenu.prevent="useDefault($event, 'order')">
+          <button
+            v-for="o in ORDERS" :key="o" class="btn" :class="{ active: order === o, override: order === o && overridden('order') }"
+            :aria-pressed="order === o" @click="order !== o && setSetting('order', o)"
+          >{{ ORDER_LABELS[o] }}</button>
         </div>
         <div v-if="!stories.isSaved" style="display: inline-flex">
           <button class="btn" title="Mark all as read (Shift+A)" @click="markScopeRead(0, scope, { undoable: true })"><Icon name="check" /> Mark read</button>
