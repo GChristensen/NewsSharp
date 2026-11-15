@@ -56,6 +56,7 @@
   --grid-h: 340px;
   --row-h: 36px;
   --row-pad: 8px;
+  --end-space-keep: 80px; /* pane height the end spacer leaves for the last story */
   --content-max: 720px;
   --toggle-w: 88px;
   --ui-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -242,6 +243,7 @@ select.input { padding-right: 4px; }
 .story-row.list-row .thumb img { position: absolute; inset: 0; object-fit: cover; object-position: center; }
 
 .list-footer { padding: 14px; text-align: center; color: var(--text-dim); }
+.list-end-space { height: max(20px, calc(100% - var(--end-space-keep))); }
 .new-stories {
   position: sticky; top: 0; z-index: 4; display: block; width: 100%; padding: 6px; border: none; cursor: pointer;
   background: var(--accent); color: var(--on-accent); font-weight: 600;

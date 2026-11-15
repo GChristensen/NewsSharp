@@ -22,7 +22,11 @@ const pane = ref<HTMLElement | null>(null)
 const inline = computed(() => props.variant !== 'titles')
 const rows = computed(() => props.variant === 'titles' || props.variant === 'list')
 const west = computed(() => props.variant === 'titles' && settings.prefs.story_pane_anchor === 'west')
-const { onScroll } = usePaneScroll(pane, () => inline.value || settings.prefs.mark_read_on_scroll_titles)
+const markOnScroll = computed(() => inline.value || settings.prefs.mark_read_on_scroll_titles)
+const { onScroll } = usePaneScroll(pane, () => markOnScroll.value)
+// R10.3: the end of the list is only reached once the last story has scrolled up to the top, so
+// reaching it does not mark stories the user has not scrolled through (as NewsBlur pads its end line).
+const endSpace = computed(() => markOnScroll.value && !stories.isSaved && stories.ended && stories.stories.length > 0)
 
 const inlineView = computed(() => {
   const view = effectiveView()
@@ -99,5 +103,6 @@ watch(
       </template>
     </div>
     <ListFooter />
+    <div v-if="endSpace" class="list-end-space" />
   </div>
 </template>
