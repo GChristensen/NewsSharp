@@ -42,7 +42,7 @@ const scopeCount = computed(() => {
   if (scope.value === 'all') return tree.totalUnread
   if (feed.value) return feed.value.unread
   const folder = scope.value.match(/^folder:(\d+)$/)
-  return folder ? tree.folderFeedIds(Number(folder[1])).reduce((sum, id) => sum + (tree.feedById.get(id)?.unread ?? 0), 0) : 0
+  return folder ? tree.folderUnread(Number(folder[1])) : 0
 })
 const anchor = computed(() => settings.prefs.story_pane_anchor)
 const titlesStyle = computed(() => {

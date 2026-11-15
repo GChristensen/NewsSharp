@@ -193,6 +193,7 @@ def tree_payload(user) -> dict:
                 "folder_id": sub.folder_id,
                 "position": sub.position,
                 "unread": counts.get(feed.id, 0),
+                "muted": sub.muted,
                 "favicon_color": feed.favicon_color,
                 "has_icon": feed.id in icons,
                 "icon_version": icons.get(feed.id, 0),

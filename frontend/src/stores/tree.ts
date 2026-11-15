@@ -41,8 +41,9 @@ export const useTree = defineStore('tree', {
       }
       return map
     },
+    /** Unread stories of All Site Stories: muted feeds do not count. */
     totalUnread(state): number {
-      return state.feeds.reduce((sum, f) => sum + f.unread, 0)
+      return state.feeds.reduce((sum, f) => sum + (f.muted ? 0 : f.unread), 0)
     },
     unfetched(state): number {
       return state.feeds.filter((f) => !f.fetched_once && !f.has_exception).length
@@ -107,18 +108,29 @@ export const useTree = defineStore('tree', {
       walk(folderId)
       return ids
     },
-    /** The number shown on a feed row: unread stories, or saved stories in Saved for Later mode. */
+    /**
+     * The number shown on a feed row: unread stories, or saved stories in Saved for Later mode. A
+     * muted feed shows no unread count; its saved stories still count.
+     */
     feedCount(feed: Feed): number {
-      return useSettings().prefs.sidebar_mode === 'saved' ? this.saved.feeds[feed.id] ?? 0 : feed.unread
+      if (useSettings().prefs.sidebar_mode === 'saved') return this.saved.feeds[feed.id] ?? 0
+      return feed.muted ? 0 : feed.unread
     },
     folderCount(folderId: number): number {
       return this.folderFeedIds(folderId).reduce((sum, id) => sum + this.feedCount(this.feedById.get(id)!), 0)
+    },
+    /** Unread stories of a folder's story list, which leaves out muted feeds. */
+    folderUnread(folderId: number): number {
+      return this.folderFeedIds(folderId).reduce((sum, id) => {
+        const feed = this.feedById.get(id)!
+        return sum + (feed.muted ? 0 : feed.unread)
+      }, 0)
     },
     feedVisible(feed: Feed): boolean {
       const filter = useUi().feedFilter.trim().toLowerCase()
       if (filter && !feed.title.toLowerCase().includes(filter)) return false
       const mode = useSettings().prefs.sidebar_mode
-      if (mode === 'unread') return feed.unread > 0 || feed.id === this.openFeedId
+      if (mode === 'unread') return (feed.unread > 0 && !feed.muted) || feed.id === this.openFeedId
       if (mode === 'saved') return (this.saved.feeds[feed.id] ?? 0) > 0
       return true
     },
@@ -177,6 +189,17 @@ export const useTree = defineStore('tree', {
     async renameFeed(feed: Feed, title: string) {
       await api('PATCH', `/api/subscriptions/${feed.id}`, { title })
       await this.reload()
+    },
+    /** Mute or unmute a feed at once; restored on failure. Other tabs reload the tree. */
+    async setMuted(feed: Feed, muted: boolean) {
+      feed.muted = muted
+      try {
+        await api('PATCH', `/api/subscriptions/${feed.id}`, { muted })
+      } catch (error) {
+        feed.muted = !muted
+        useUi().error(`${muted ? 'Muting' : 'Unmuting'} failed: ${errorMessage(error)}`)
+        throw error
+      }
     },
     async renameFolder(folder: Folder, title: string) {
       await api('PATCH', `/api/folders/${folder.id}`, { title })

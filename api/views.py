@@ -216,8 +216,16 @@ def _tree(request, data):
 
 
 def _sub_patch(request, data, feed_id):
-    title = require_str(data, "title", "", 255).strip()
-    updated = tree.live_subs(request.user).filter(feed_id=feed_id).update(user_title=title or None)  # R7.9
+    fields = {}
+    if "title" in data:
+        fields["user_title"] = require_str(data, "title", "", 255).strip() or None  # R7.9
+    if "muted" in data:
+        if not isinstance(data["muted"], bool):
+            raise ApiError(422, "invalid", "'muted' must be true or false.")
+        fields["muted"] = data["muted"]
+    if not fields:
+        raise ApiError(422, "invalid", "Nothing to change.")
+    updated = tree.live_subs(request.user).filter(feed_id=feed_id).update(**fields)
     if not updated:
         raise ApiError(404, "not_found", "Subscription not found.")
     publish_tree(request)
@@ -324,8 +332,10 @@ def _mark_read(request, data):
         if parts[0] == "feed":
             subs = subs.filter(feed_id=int(parts[1]))
         elif parts[0] == "folder":
-            subs = subs.filter(feed_id__in=tree.feeds_in_folder(user, int(parts[1])))
-        elif scope != "all":
+            subs = subs.filter(feed_id__in=tree.feeds_in_folder(user, int(parts[1])), muted=False)
+        elif scope == "all":
+            subs = subs.filter(muted=False)  # a muted feed is marked read only by itself
+        else:
             raise ValueError
     except (ValueError, IndexError):
         raise ApiError(422, "invalid", "Invalid scope.") from None

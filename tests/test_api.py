@@ -229,6 +229,40 @@ def test_rename_and_restore_title(api, user, make_feed, subscribe):
     assert api.get("/api/tree").json()["feeds"][0]["title"] == "Original"
 
 
+def test_muted_feed_is_left_out_of_rivers(api, user, make_feed, make_story, subscribe):
+    folder = Folder.objects.create(user=user, title="News")
+    loud, quiet = make_feed("https://loud.example/feed"), make_feed("https://quiet.example/feed")
+    subscribe(user, loud, folder.id)
+    subscribe(user, quiet, folder.id)
+    make_story(loud)
+    make_story(quiet, title="Hushed headline")
+    patch = lambda data: api.patch(f"/api/subscriptions/{quiet.id}", data=json.dumps(data), content_type="application/json")  # noqa: E731
+    sub = Subscription.objects.get(user=user, feed=quiet)
+    sub.user_title = "Kept"
+    sub.save()
+    assert patch({"muted": True}).status_code == 200
+    assert patch({"muted": "yes"}).status_code == 422
+    feeds = {f["id"]: f for f in api.get("/api/tree").json()["feeds"]}
+    assert feeds[quiet.id]["muted"] is True and feeds[quiet.id]["title"] == "Kept"  # the title is untouched
+    assert feeds[quiet.id]["unread"] == 1  # still counted for the feed itself
+
+    def story_feeds(scope, q=""):
+        return {s["feed_id"] for s in api.get("/api/stories", {"scope": scope, "q": q}).json()["stories"]}
+
+    assert story_feeds("all") == {loud.id}
+    assert story_feeds(f"folder:{folder.id}") == {loud.id}
+    assert story_feeds(f"feed:{quiet.id}") == {quiet.id}
+    assert story_feeds("all", "hushed") == set()
+
+    post(api, "/api/mark-read", {"scope": "all"})
+    assert counts(api) == {str(loud.id): 0, str(quiet.id): 1}
+    post(api, "/api/mark-read", {"scope": f"feed:{quiet.id}"})
+    assert counts(api)[str(quiet.id)] == 0
+
+    patch({"muted": False})
+    assert story_feeds("all", "hushed") == {quiet.id}
+
+
 # ------------------------------------------------------------------ stories, paging, search
 
 

@@ -172,8 +172,8 @@ select.input { padding-right: 4px; }
 .tree-row.folder .title { font-weight: 600; }
 .tree-row.feed + .tree-row.folder { margin-top: 8px; }
 /* Feeds with unread stories carry weight, so empty ones can stay legible in --text-dim. */
-.tree-row.feed:not(.muted) .title { font-weight: 600; }
-.tree-row.muted .title { color: var(--text-dim); }
+.tree-row.feed:not(.empty) .title { font-weight: 600; }
+.tree-row.empty .title { color: var(--text-dim); }
 .tree-row .arrow { color: var(--text-dim); transition: transform var(--transition); }
 .tree-row .arrow.open { transform: rotate(90deg); }
 .tree-row .inline-input { flex: 1; height: 22px; }
@@ -186,6 +186,9 @@ select.input { padding-right: 4px; }
 .count.saved { background: var(--bg-hover); color: var(--text); }
 .count.static { cursor: default; }
 .feed-state { flex: none; color: var(--error); display: inline-flex; }
+/* A muted feed shows this instead of its unread count. */
+.mute-state { flex: none; color: var(--text-dim); display: inline-flex; }
+.mute-state .icon { width: 13px; height: 13px; }
 .spinner {
   width: 12px; height: 12px; flex: none; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent);
   animation: spin 0.8s linear infinite;

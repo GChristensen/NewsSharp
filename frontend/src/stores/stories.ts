@@ -341,10 +341,13 @@ export const useStories = defineStore('stories', {
         if (story.feed_id === feedId && story.story_date <= markReadDate) story.read = true
       }
     },
+    /** Whether the open live scope lists the feed's stories; All and folders leave out muted feeds. */
     inScope(feedId: number): boolean {
       if (!this.scope || this.isSaved) return false
-      if (this.scope === 'all') return useTree().feedById.has(feedId)
       if (this.scope === `feed:${feedId}`) return true
+      const feed = useTree().feedById.get(feedId)
+      if (!feed || feed.muted) return false
+      if (this.scope === 'all') return true
       const folder = this.scope.match(/^folder:(\d+)$/)
       return folder ? useTree().folderFeedIds(Number(folder[1])).includes(feedId) : false
     },

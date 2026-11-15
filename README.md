@@ -186,6 +186,11 @@ tests/      pytest suite
 - The content preview (title only / small / medium / large) and the image preview position are per-scope
   view settings too. The List style popover sets them for the open feed or folder; the preferences
   `show_content_preview` and `image_preview` are the defaults.
+- Feeds can be muted (the feed menu's Mute / Unmute; `PATCH /api/subscriptions/<id> {muted}`), which the
+  requirements drop. A muted feed stays in the tree with a mute icon in place of its unread count. It is
+  left out of All Site Stories and folders (their story lists, search, counts, mark-read and the new
+  stories bar), of Unread mode, and of next-unread navigation. Opened by itself it lists, counts and marks
+  read as usual, and it is still fetched. Saved for Later is unaffected.
 - Marking a whole feed or folder read from the story titles header (the Mark read button, its "Mark all
   as read" entry, `Shift+a`) shows an Undo toast for 10 s (`POST /api/mark-read/undo {undo_token}`).
   Undo restores each feed's read date unless it has changed since, and reopens the feed or folder if

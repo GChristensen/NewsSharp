@@ -22,6 +22,8 @@ class Subscription(models.Model):
     position = models.IntegerField(default=0)
     user_title = models.CharField(max_length=255, null=True, blank=True)
     mark_read_date = models.IntegerField(default=0)
+    # A muted feed stays in the tree but is left out of All Site Stories, folders and their counts.
+    muted = models.BooleanField(default=False)
     created_at = models.IntegerField(default=0)
     deleted_at = models.IntegerField(null=True, blank=True)
 

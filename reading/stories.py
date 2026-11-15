@@ -32,7 +32,8 @@ def image_secret() -> str:
 
 
 def parse_scope(user, scope: str) -> dict:
-    """Resolve a scope string (0.3) into {kind, feed_ids | None, tag}. feed_ids None means all."""
+    """Resolve a scope string (0.3) into {kind, feed_ids | None, tag}. feed_ids None means all.
+    Live `all` and `folder` scopes leave out muted feeds; a muted feed opened by itself is listed."""
     parts = (scope or "").split(":")
     try:
         if parts[0] == "saved":
@@ -185,6 +186,8 @@ def list_stories(user, scope: str, read_filter: str, order: str, query: str, cur
             date_column, id_column, fts = "s.story_date", "s.id", "stories_fts"
             if resolved["feed_ids"] is not None:
                 where.append(f"s.feed_id IN ({_in_list(resolved['feed_ids'])})")
+            if not scope.startswith("feed:"):
+                where.append("NOT sub.muted")
             if read_filter == "unread" and not match_expression:  # R12.5: the filter is ignored while searching
                 where.append("s.story_date > MAX(sub.mark_read_date, %s) AND r.id IS NULL")
                 params.append(cutoff)

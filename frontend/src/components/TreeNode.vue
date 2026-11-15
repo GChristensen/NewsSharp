@@ -73,7 +73,7 @@ const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select()) }
     <div
       v-else
       class="tree-row feed"
-      :class="{ selected: feedSelected(item.feed), muted: tree.feedCount(item.feed) === 0, dragging: ctx.drag.itemKey === key(item) }"
+      :class="{ selected: feedSelected(item.feed), empty: tree.feedCount(item.feed) === 0, dragging: ctx.drag.itemKey === key(item) }"
       :style="{ paddingLeft: 14 + depth * 14 + 'px' }"
       data-tree-kind="feed" :data-tree-id="item.feed.id"
       @pointerdown="ctx.pointerDown($event, item)"
@@ -91,6 +91,10 @@ const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select()) }
       <span v-else-if="item.feed.has_exception" class="feed-state" :title="errorTitle(item.feed)"><Icon name="alert" /></span>
       <span v-if="item.feed.is_push" class="dim" title="Real-time updates"><Icon name="zap" style="width: 11px; height: 11px" /></span>
       <span v-if="settings.prefs.sidebar_mode === 'saved'" class="count saved static">{{ tree.feedCount(item.feed) }}</span>
+      <span
+        v-else-if="item.feed.muted" class="mute-state"
+        :title="item.feed.unread ? `Muted — ${item.feed.unread} unread` : 'Muted'"
+      ><Icon name="volume-off" /></span>
       <button
         v-else-if="item.feed.unread > 0" class="count" title="Mark as read"
         @click.stop="ctx.markRead(item.feed)" @dblclick.stop @pointerdown.stop

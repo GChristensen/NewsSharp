@@ -17,6 +17,8 @@ export interface Feed {
   folder_id: number | null
   position: number
   unread: number
+  /** Left out of All Site Stories, folders and their counts; opened by itself it lists as usual. */
+  muted: boolean
   favicon_color: string
   has_icon: boolean
   icon_version: number

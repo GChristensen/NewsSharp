@@ -2,7 +2,9 @@
      drag and drop (R7.6), fetch progress (R17.9) and the left taskbar (R20.2). -->
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, provide, reactive, ref } from 'vue'
-import { markFeedRead, markScopeRead, openAll, openFeed, openFolder, openInNewTab, openScope, refreshFeed } from '../actions'
+import {
+  markFeedRead, markScopeRead, openAll, openFeed, openFolder, openInNewTab, openScope, refreshFeed, setFeedMuted,
+} from '../actions'
 import { api, errorMessage } from '../api'
 import { useSession } from '../stores/session'
 import { useSettings } from '../stores/settings'
@@ -253,6 +255,9 @@ function feedMenu(event: MouseEvent, feed: Feed) {
     { label: 'Refresh now', icon: 'refresh', action: () => refreshFeed(feed.id) },
     { label: 'Statistics', icon: 'chart', action: () => ui.openDialog('statistics', { feedId: feed.id }) },
     { label: 'Rename', icon: 'edit', action: () => startRename(`feed:${feed.id}`, feed.title) },
+    feed.muted
+      ? { label: 'Unmute', icon: 'volume', action: () => setFeedMuted(feed, false) }
+      : { label: 'Mute', icon: 'volume-off', action: () => setFeedMuted(feed, true) },
     { label: 'Open site', icon: 'external', action: () => openInNewTab(feed.feed_link || feed.feed_address), disabled: !feed.feed_link },
   ]
   if (feed.has_exception) items.push({ label: 'Change address…', icon: 'link', action: () => ui.openDialog('address', { feedId: feed.id }) })

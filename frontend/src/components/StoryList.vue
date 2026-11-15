@@ -44,6 +44,19 @@ function click(story: Story) {
   else selectStory(story)
 }
 
+/** A middle click on a story that is not expanded inline opens its link in a new background tab. */
+function middleClick(event: MouseEvent, story: Story) {
+  if (event.button !== 1) return
+  if (inline.value && stories.selectedKey === story.key) return
+  event.preventDefault()
+  openInNewTab(story.permalink, true)
+}
+
+/** Suppresses the browser's autoscroll on the middle-button press that precedes middleClick. */
+function middleDown(event: MouseEvent, story: Story) {
+  if (event.button === 1 && !(inline.value && stories.selectedKey === story.key)) event.preventDefault()
+}
+
 /** R10.8. */
 function menu(event: MouseEvent, story: Story) {
   const items: MenuItem[] = []
@@ -92,10 +105,12 @@ watch(
           v-if="rows" :story="story" :selected="stories.selectedKey === story.key"
           :list="variant === 'list' || !west" :narrow-pane="west"
           @click="click(story)" @contextmenu.prevent="menu($event, story)"
+          @mousedown="middleDown($event, story)" @auxclick="middleClick($event, story)"
         />
         <StoryCard
           v-else :story="story" :selected="stories.selectedKey === story.key" :magazine="variant === 'magazine'"
           @click="click(story)" @contextmenu.prevent="menu($event, story)"
+          @mousedown="middleDown($event, story)" @auxclick="middleClick($event, story)"
         />
         <div v-if="inline && stories.selectedKey === story.key" class="inline-story" :class="`pos-${position}`">
           <StoryDetail :story="story" :view="inlineView" :show-feed-strip="stories.multiFeed" />

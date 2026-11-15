@@ -129,7 +129,21 @@ function feedsWithUnreadAfter(feedId: number | null, step: 1 | -1, unreadOnly: b
   const order = step === 1 ? tree.feedOrder : [...tree.feedOrder].reverse()
   const start = feedId === null ? -1 : order.findIndex((f) => f.id === feedId)
   const rotated = [...order.slice(start + 1), ...order.slice(0, Math.max(0, start))] // wraps around
-  return unreadOnly ? rotated.filter((f) => f.unread > 0) : rotated
+  return unreadOnly ? rotated.filter((f) => f.unread > 0 && !f.muted) : rotated
+}
+
+/** Mute or unmute a feed; an open river that lists the feed reloads so its stories come or go. */
+export async function setFeedMuted(feed: Feed, muted: boolean) {
+  const stories = useStories()
+  const tree = useTree()
+  const folder = stories.scope?.match(/^folder:(\d+)$/)
+  const river = stories.scope === 'all' || (!!folder && tree.folderFeedIds(Number(folder[1])).includes(feed.id))
+  try {
+    await tree.setMuted(feed, muted)
+  } catch {
+    return
+  }
+  if (river) stories.reload()
 }
 
 /** `n`: the next unread story; continues into the next feed with unread stories (R10.5). */
