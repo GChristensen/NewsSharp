@@ -1,0 +1,48 @@
+"""URL configuration (config/urls.py). Everything outside /api, /img, /push and /admin returns the
+frontend shell (R20.8); /subscribe/<url> is resolved by the client from the raw location (R20.10)."""
+from django.contrib import admin
+from django.urls import path, re_path
+
+from api import events, proxy, push, views, views_async
+
+urlpatterns = [
+    path("api/bootstrap", views.bootstrap),
+    path("api/login", views.login_view),
+    path("api/logout", views.logout_view),
+    path("api/setup", views.setup_view),
+    path("api/password", views.password_view),
+    path("api/instance", views.instance_view),
+    path("api/tree", views.tree_view),
+    path("api/tree/move", views.move_view),
+    path("api/subscriptions", views_async.subscriptions_view),
+    path("api/subscriptions/<int:feed_id>", views.subscription_view),
+    path("api/subscriptions/<int:feed_id>/address", views_async.address_view),
+    path("api/folders", views.folders_view),
+    path("api/folders/<int:folder_id>", views.folder_view),
+    path("api/undo", views.undo_view),
+    path("api/feeds/discover", views_async.discover_view),
+    path("api/feeds/<int:feed_id>/refresh", views.refresh_view),
+    path("api/feeds/<int:feed_id>/icon", views.icon_view),
+    path("api/feeds/<int:feed_id>/statistics", views.statistics_view),
+    path("api/stories", views.stories_view),
+    path("api/stories/<int:story_id>", views.story_view),
+    path("api/stories/<int:story_id>/text", views_async.story_text_view),
+    path("api/read", views.read_view),
+    path("api/unread", views.unread_view),
+    path("api/mark-read", views.mark_read_view),
+    path("api/mark-read/undo", views.mark_read_undo_view),
+    path("api/counts", views.counts_view),
+    path("api/saved", views.saved_view),
+    path("api/saved/<int:saved_id>", views.saved_item_view),
+    path("api/saved/<int:saved_id>/text", views_async.saved_text_view),
+    path("api/view-settings", views.view_settings_view),
+    path("api/preferences", views.preferences_view),
+    path("api/opml", views.opml_view),
+    path("api/frameable", proxy.frameable_view),
+    path("api/events", events.events_view),
+    re_path(r"^api/", views.api_not_found),
+    path("img", proxy.image_proxy),
+    path("push/<int:push_id>/<str:token>", push.callback),
+    path("admin/", admin.site.urls),
+    re_path(r"^.*$", views.index),
+]

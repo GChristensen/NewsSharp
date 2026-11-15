@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+data/
+node_modules/
+frontend/dist/
+.pytest_cache/
+.ruff_cache/
+migration_map.json
+/.idea/
+/CLAUDE.md
+/.env

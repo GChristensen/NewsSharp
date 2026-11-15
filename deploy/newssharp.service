@@ -1,0 +1,34 @@
+# systemd system unit (deploy/newssharp.service). Install with:
+#   sudo cp deploy/newssharp.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now newssharp
+#   journalctl -u newssharp -f          # logs
+#
+# Adjust User, Group and the paths to the installation directory, which holds the code, .env,
+# data/ and the .venv created there by `uv sync`. The service user must own data/.
+
+[Unit]
+Description=NewsSharp RSS reader
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=user
+Group=user
+WorkingDirectory=/home/user/newssharp
+Environment=PYTHONUNBUFFERED=1
+# `serve` applies migrations, then supervises the web and worker processes and restarts them itself.
+ExecStart=/home/user/newssharp/.venv/bin/python manage.py serve
+Restart=on-failure
+RestartSec=2
+# SIGTERM goes to the supervisor only; it forwards it and kills what is left after 15 s.
+# Anything still running after TimeoutStopSec is killed by systemd.
+KillMode=mixed
+TimeoutStopSec=30
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
