@@ -44,6 +44,8 @@ const TABS: Record<string, Field[]> = {
   Appearance: [
     { key: 'theme', label: 'Theme', type: 'select', options: [['dark', 'Dark'], ['light', 'Light'], ['auto', 'Follow the system']] },
     { key: 'feed_size', label: 'Feed list and title size', type: 'select', options: SIZES },
+    { key: 'show_content_preview', label: 'Default content preview', type: 'select', options: [['title', 'Title only'], ['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']] },
+    { key: 'image_preview', label: 'Default image preview', type: 'select', options: [['none', 'No image'], ['small-left', 'Small, left'], ['large-left', 'Large, left'], ['large-right', 'Large, right'], ['small-right', 'Small, right']] },
     { key: 'show_all_site_stories', label: 'All Site Stories in the sidebar', type: 'bool' },
     { key: 'folder_counts', label: 'Unread counts on folders', type: 'bool' },
     { key: 'title_counts', label: 'Unread count in the browser tab title', type: 'bool' },
@@ -141,6 +143,8 @@ onMounted(async () => {
         <button class="btn outline" @click="reset('order', 'The order and read filter')">Reset order and read filter</button>
         <button class="btn outline" @click="reset('read_filter', 'The read filter')">Reset read filter</button>
         <button class="btn outline" @click="reset('grid_columns', 'Stories per row')">Reset stories per row</button>
+        <button class="btn outline" @click="reset('show_content_preview', 'The content preview')">Reset content preview</button>
+        <button class="btn outline" @click="reset('image_preview', 'The image preview')">Reset image preview</button>
       </div>
     </template>
 

@@ -183,6 +183,9 @@ tests/      pytest suite
   takes its feed's icon color.
 - Stories per row in Grid (`grid_columns`, 1–6, default 4) is also a per-scope view setting; there is no
   automatic column count.
+- The content preview (title only / small / medium / large) and the image preview position are per-scope
+  view settings too. The List style popover sets them for the open feed or folder; the preferences
+  `show_content_preview` and `image_preview` are the defaults.
 - Marking a whole feed or folder read from the story titles header (the Mark read button, its "Mark all
   as read" entry, `Shift+a`) shows an Undo toast for 10 s (`POST /api/mark-read/undo {undo_token}`).
   Undo restores each feed's read date unless it has changed since, and reopens the feed or folder if

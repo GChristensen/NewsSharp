@@ -75,7 +75,10 @@ watch(
 </script>
 
 <template>
-  <div ref="pane" :class="[variant === 'titles' ? 'titles-pane' : 'list-pane', { 'grid-pane': variant === 'grid' }]" @scroll.passive="onScroll">
+  <div
+    ref="pane" :class="[variant === 'titles' ? 'titles-pane' : 'list-pane', { 'grid-pane': variant === 'grid' }]"
+    :data-show-content-preview="settings.effective(stories.scope, 'show_content_preview')" @scroll.passive="onScroll"
+  >
     <button v-if="stories.newCount > 0" class="new-stories" @click="stories.reload()">
       {{ stories.newCount }} new {{ stories.newCount === 1 ? 'story' : 'stories' }}
     </button>

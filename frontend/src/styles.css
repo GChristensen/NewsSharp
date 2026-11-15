@@ -79,9 +79,10 @@
 :root[data-grid-height='l'] { --grid-h: 400px; }
 :root[data-grid-height='xl'] { --grid-h: 480px; }
 :root[data-density='compact'] { --row-h: 28px; --row-pad: 4px; }
+/* The content preview is a per-scope setting, so the story list pane carries the attribute. */
 :root { --card-preview-lines: 3; }
-:root[data-show-content-preview='small'] { --card-preview-lines: 2; }
-:root[data-show-content-preview='large'] { --card-preview-lines: 5; }
+[data-show-content-preview='small'] { --card-preview-lines: 2; }
+[data-show-content-preview='large'] { --card-preview-lines: 5; }
 
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; }

@@ -10,6 +10,8 @@ const DEFAULT_KEYS: Record<ViewKey, keyof Prefs> = {
   order: 'default_order',
   read_filter: 'default_read_filter',
   grid_columns: 'grid_columns',
+  show_content_preview: 'show_content_preview',
+  image_preview: 'image_preview',
 }
 
 let saveTimer: number | undefined
@@ -50,7 +52,7 @@ export const useSettings = defineStore('settings', {
       root.dataset.theme = this.dark ? 'dark' : 'light'
       const reduce = !this.prefs.animations || window.matchMedia('(prefers-reduced-motion: reduce)').matches
       root.dataset.animations = reduce ? 'off' : 'on'
-      for (const key of ['story_size', 'story_line_spacing', 'feed_size', 'grid_height', 'density', 'show_content_preview'] as const) {
+      for (const key of ['story_size', 'story_line_spacing', 'feed_size', 'grid_height', 'density'] as const) {
         root.dataset[key.replace(/_(\w)/g, (_, c) => c.toUpperCase())] = String(this.prefs[key])
       }
     },

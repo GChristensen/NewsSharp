@@ -333,6 +333,23 @@ def test_grid_columns_per_scope(api, user, make_feed, subscribe):
     assert bad.status_code == 422
 
 
+def test_story_title_previews_per_scope(api, user, make_feed, subscribe):
+    feed = make_feed()
+    subscribe(user, feed)
+    scope = f"feed:{feed.id}"
+
+    def put(key, value):
+        return api.put("/api/view-settings", data=json.dumps({"scope": scope, "key": key, "value": value}),
+                       content_type="application/json")  # fmt: skip
+
+    put("show_content_preview", "title")
+    stored = put("image_preview", "large-right").json()["view_settings"]
+    assert stored == {scope: {"show_content_preview": "title", "image_preview": "large-right"}}
+    assert put("image_preview", "huge").status_code == 422
+    prefs = api.get("/api/bootstrap").json()["preferences"]
+    assert prefs["show_content_preview"] == "medium" and prefs["image_preview"] == "small-left"  # defaults kept
+
+
 # ------------------------------------------------------------------ OPML (item 15)
 
 OPML = b"""<?xml version="1.0"?><opml version="2.0"><head><title>Feeds</title></head><body>

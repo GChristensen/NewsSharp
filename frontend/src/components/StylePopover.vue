@@ -6,7 +6,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { effectiveLayout, setAnchor } from '../actions'
 import { useSettings } from '../stores/settings'
 import { useStories } from '../stores/stories'
-import type { Prefs } from '../types'
+import type { Prefs, ViewKey } from '../types'
 import Icon from './Icon.vue'
 
 interface Choice {
@@ -61,6 +61,15 @@ function prefRow<K extends keyof Prefs>(key: K, title: string, icon: string, cho
   }
 }
 
+/** A row bound to a view setting of the open scope (R19.3); the preference is the default. */
+function viewRow(key: ViewKey, title: string, icon: string, choices: Choice[]): Row {
+  return {
+    title, icon, choices,
+    current: settings.effective(stories.scope, key),
+    pick: (value) => stories.scope && settings.setView(stories.scope, key, value),
+  }
+}
+
 const listSections = computed<Section[]>(() => {
   const layout = effectiveLayout()
   const sections: Section[] = [
@@ -71,13 +80,13 @@ const listSections = computed<Section[]>(() => {
           { value: 'compact', label: 'Compact', title: 'Compact' },
           { value: 'comfortable', label: 'Comfortable', title: 'Comfortable' },
         ]),
-        prefRow('show_content_preview', 'Content preview', 'preview-m', [
+        viewRow('show_content_preview', 'Content preview (this site)', 'preview-m', [
           { value: 'title', label: 'Title only', title: 'Title only' },
           { value: 'small', icon: 'preview-s', title: 'Small preview' },
           { value: 'medium', icon: 'preview-m', title: 'Medium preview' },
           { value: 'large', icon: 'preview-l', title: 'Large preview' },
         ]),
-        prefRow('image_preview', 'Image preview', 'image', [
+        viewRow('image_preview', 'Image preview (this site)', 'image', [
           { value: 'none', label: 'No image', title: 'No image' },
           { value: 'small-left', icon: 'image-small-left', title: 'Small, left' },
           { value: 'large-left', icon: 'image-large-left', title: 'Large, left' },
@@ -107,13 +116,8 @@ const listSections = computed<Section[]>(() => {
     sections.push({
       title: 'Grid',
       rows: [
-        {
-          // Stories per row is stored for the open scope (R19.3); the preference is the default.
-          title: 'Stories per row (this site)', icon: 'columns',
-          choices: ['1', '2', '3', '4', '5', '6'].map((value) => ({ value, label: value, title: `${value} per row` })),
-          current: settings.effective(stories.scope, 'grid_columns'),
-          pick: (value) => stories.scope && settings.setView(stories.scope, 'grid_columns', value),
-        },
+        viewRow('grid_columns', 'Stories per row (this site)', 'columns',
+          ['1', '2', '3', '4', '5', '6'].map((value) => ({ value, label: value, title: `${value} per row` }))),
         prefRow('grid_height', 'Card height', 'height', sizes(['XS', 'S', 'M', 'L', 'XL'])),
       ],
     })

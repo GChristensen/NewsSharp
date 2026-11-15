@@ -36,6 +36,8 @@ LAYOUTS = ("full", "split", "list", "grid", "magazine")
 ORDERS = ("newest", "oldest")
 READ_FILTERS = ("all", "unread")
 GRID_COLUMNS = ("1", "2", "3", "4", "5", "6")
+CONTENT_PREVIEWS = ("title", "small", "medium", "large")
+IMAGE_PREVIEWS = ("none", "small-left", "small-right", "large-left", "large-right")
 
 # name -> (validator, default)
 CATALOG = {
@@ -51,8 +53,8 @@ CATALOG = {
     "full_width_story": (_bool, False),
     "story_position": (_enum("left", "center", "right", "stretch"), "center"),
     "density": (_enum("compact", "comfortable"), "comfortable"),
-    "show_content_preview": (_enum("title", "small", "medium", "large"), "medium"),
-    "image_preview": (_enum("none", "small-left", "small-right", "large-left", "large-right"), "small-left"),
+    "show_content_preview": (_enum(*CONTENT_PREVIEWS), "medium"),
+    "image_preview": (_enum(*IMAGE_PREVIEWS), "small-left"),
     "grid_columns": (_int(1, 6), 4),
     "grid_height": (_enum(*_SIZES), "m"),
     "story_styling": (_enum(*STORY_FONTS), "sans-serif"),
@@ -90,6 +92,8 @@ VIEW_SETTING_KEYS = {
     "order": ORDERS,
     "read_filter": READ_FILTERS,
     "grid_columns": GRID_COLUMNS,
+    "show_content_preview": CONTENT_PREVIEWS,
+    "image_preview": IMAGE_PREVIEWS,
 }
 
 

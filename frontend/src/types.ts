@@ -76,7 +76,7 @@ export interface MarkReadUndoResult {
 
 export type View = 'original' | 'feed' | 'text' | 'story'
 export type Layout = 'full' | 'split' | 'list' | 'grid' | 'magazine'
-export type ViewKey = 'view' | 'layout' | 'order' | 'read_filter' | 'grid_columns'
+export type ViewKey = 'view' | 'layout' | 'order' | 'read_filter' | 'grid_columns' | 'show_content_preview' | 'image_preview'
 export type Size = 'xs' | 's' | 'm' | 'l' | 'xl'
 
 export interface Prefs {

@@ -26,7 +26,7 @@ export function useStoryItem(story: () => Story, card: boolean) {
     date: computed(() => shortDate(stories.isSaved ? story().saved_at ?? story().story_date : story().story_date, settings.prefs.timezone, settings.hour12)),
     titleHtml: computed(() => highlight(displayTitle(story().title, story().preview, story().permalink), stories.terms)),
     previewHtml: computed(() => {
-      const text = previewText(story().preview, story().title, settings.prefs.show_content_preview, card)
+      const text = previewText(story().preview, story().title, settings.effective(stories.scope, 'show_content_preview'), card)
       return text ? highlight(text, stories.terms) : ''
     }),
     dimmed: computed(() => story().read && !stories.isSaved),

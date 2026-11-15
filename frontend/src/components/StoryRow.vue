@@ -14,7 +14,7 @@ const settings = useSettings()
 const stories = useStories()
 const item = useStoryItem(() => props.story, false)
 
-const thumbSetting = computed(() => settings.prefs.image_preview)
+const thumbSetting = computed(() => settings.effective(stories.scope, 'image_preview'))
 const cover = computed(() => props.story.image_urls[0] ?? null)
 // R9.8: without an image no thumbnail in Split with a west anchor; otherwise the space is kept.
 const showThumb = computed(() => thumbSetting.value !== 'none' && (cover.value !== null || !props.narrowPane))
