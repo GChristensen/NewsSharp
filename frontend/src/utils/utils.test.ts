@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { feedColors, parseHex, textColor } from './colors'
 import { highlight, previewText, storyDate, subscribeUrlFromLocation } from './format'
+import { firstVideo } from './media'
 
 describe('feed colors (R8.5, R8.8)', () => {
   it('derives fade, border and text color', () => {
@@ -45,5 +46,26 @@ describe('text helpers', () => {
     expect(storyDate(Date.parse('2026-11-14T23:30:00Z') / 1000, 'UTC', false, now)).toMatch(/^Yesterday, 23:30/)
     expect(storyDate(Date.parse('2026-11-14T23:30:00Z') / 1000, 'Europe/Berlin', false, now)).toBe('00:30')
     expect(storyDate(Date.parse('2025-03-02T10:00:00Z') / 1000, 'UTC', false, now)).toContain('2025')
+  })
+})
+
+describe('grid card video (R9.10)', () => {
+  it('prefers an MP4 among video and source URLs', () => {
+    const content =
+      '<p>x</p><video src="https://a.example/v.webm"></video>' +
+      '<video><source src="https://a.example/w.mp4?x=1&amp;y=2" type="video/mp4"></video>'
+    expect(firstVideo(content)).toBe('https://a.example/w.mp4?x=1&y=2')
+  })
+
+  it('falls back to the first video URL', () => {
+    expect(firstVideo('<video poster="https://a.example/p.jpg" src="https://a.example/v.webm"></video>')).toBe(
+      'https://a.example/v.webm',
+    )
+  })
+
+  it('returns null without a playable video', () => {
+    expect(firstVideo('<video poster="https://a.example/p.jpg"></video>')).toBeNull()
+    expect(firstVideo('<p>no video</p>')).toBeNull()
+    expect(firstVideo(undefined)).toBeNull()
   })
 })

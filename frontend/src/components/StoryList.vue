@@ -82,11 +82,16 @@ function menu(event: MouseEvent, story: Story) {
   ui.openMenu(event, items)
 }
 
+/** Keeps the selected story visible. In Grid the story opens in a full-width row below its card's
+ *  row, so its top is scrolled to the top of the pane (as in NewsBlur). */
 watch(
   () => stories.selectedKey,
   (key) => {
     if (!key) return
-    nextTick(() => pane.value?.querySelector(`[data-key="${key}"]`)?.scrollIntoView({ block: 'nearest' }))
+    nextTick(() => {
+      if (props.variant === 'grid') pane.value?.querySelector('.inline-story')?.scrollIntoView({ block: 'start' })
+      else pane.value?.querySelector(`[data-key="${key}"]`)?.scrollIntoView({ block: 'nearest' })
+    })
   },
 )
 </script>

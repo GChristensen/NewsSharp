@@ -70,7 +70,8 @@ const PATHS: Record<string, string> = {
   logout: 'M15 4h5v16h-5M10 8l-4 4 4 4M6 12h11',
   clock: 'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 7v5l3 2',
   volume: 'M4 9h4l5-4v14l-5-4H4zM16.500 9a4 4 0 0 1 0 6M19 6.500a7.500 7.500 0 0 1 0 11',
-  'volume-off': 'M4 9h4l5-4v14l-5-4H4zM16 9.500l5 5M21 9.500l-5 5',
+  play: 'M8 5v14l11-7z',
+  'volume-off':'M4 9h4l5-4v14l-5-4H4zM16 9.500l5 5M21 9.500l-5 5',
 }
 defineProps<{ name: string }>()
 </script>

@@ -7,11 +7,12 @@ export function proxyUrl(url: string | null, sigs: Record<string, string>): stri
   return sig ? `/img?u=${encodeURIComponent(url)}&sig=${sig}` : null
 }
 
-export function mediaFallback(event: Event, sigs: Record<string, string>) {
+/** Retries a failed media element through the proxy; false when there is nothing left to retry. */
+export function mediaFallback(event: Event, sigs: Record<string, string>): boolean {
   const element = event.target as HTMLElement
-  if (!element || !['IMG', 'VIDEO', 'AUDIO', 'SOURCE'].includes(element.tagName) || element.dataset.proxied) return
+  if (!element || !['IMG', 'VIDEO', 'AUDIO', 'SOURCE'].includes(element.tagName) || element.dataset.proxied) return false
   const proxied = proxyUrl(element.getAttribute('src'), sigs)
-  if (!proxied) return
+  if (!proxied) return false
   element.dataset.proxied = '1'
   element.removeAttribute('srcset')
   element.setAttribute('src', proxied)
@@ -19,11 +20,30 @@ export function mediaFallback(event: Event, sigs: Record<string, string>) {
     const parent = element.parentElement
     if (parent && 'load' in parent) (parent as HTMLMediaElement).load()
   }
+  return true
 }
 
-/** The first video URL of sanitized story content, for cards of video-only stories (R9.10). */
+const VIDEO_ELEMENT = /<video\b([^>]*)>([\s\S]*?)<\/video>/g
+const SOURCE_TAG = /<source\b([^>]*)>/g
+
+function attribute(attrs: string, name: string): string {
+  const match = attrs.match(new RegExp(`\\s${name}="([^"]*)"`))
+  return match ? match[1].replace(/&amp;/g, '&') : ''
+}
+
+/** The video a grid card plays (R9.10): the first MP4 among the `<video>` and `<source>` URLs of the
+ *  sanitized content, otherwise the first of them. Sanitized URLs are already absolute (R2.35). */
 export function firstVideo(content: string | undefined): string | null {
-  if (!content) return null
-  const match = content.match(/<video[^>]*\ssrc="([^"]+)"/) ?? content.match(/<video[^>]*>\s*<source[^>]*\ssrc="([^"]+)"/)
-  return match ? match[1].replace(/&amp;/g, '&') : null
+  if (!content || !content.includes('<video')) return null
+  const candidates: { src: string; type: string }[] = []
+  for (const [, attrs, inner] of content.matchAll(VIDEO_ELEMENT)) {
+    const src = attribute(attrs, 'src')
+    if (src) candidates.push({ src, type: attribute(attrs, 'type') })
+    for (const [, sourceAttrs] of inner.matchAll(SOURCE_TAG)) {
+      const sourceSrc = attribute(sourceAttrs, 'src')
+      if (sourceSrc) candidates.push({ src: sourceSrc, type: attribute(sourceAttrs, 'type') })
+    }
+  }
+  const mp4 = candidates.find((c) => c.type === 'video/mp4' || /\.mp4(\?|#|$)/i.test(c.src))
+  return (mp4 ?? candidates[0])?.src ?? null
 }

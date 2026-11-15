@@ -120,7 +120,13 @@ uv run python manage.py backup <file>         # online backup of the database
 uv run python manage.py createsuperuser       # or changepassword <user>
 uv run python manage.py rebuild_counters [feed id]
 uv run python manage.py import_newsblur export.json
+uv run python manage.py purge_feeds [--saved] [--folders] [--yes]
 ```
+
+`purge_feeds` resets a database for testing: it deletes every feed with its stories, read state, icons,
+fetch logs, counters, subscriptions and per-feed view settings. `--saved` also deletes all saved stories,
+`--folders` all folders; users and preferences are always kept. It asks for confirmation unless `--yes`
+is given, and refuses to run while the worker's heartbeat is fresh (stop `serve` first, or pass `--force`).
 
 Users are managed in the Django admin at `/admin/` (Manage → Administration).
 
