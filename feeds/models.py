@@ -52,6 +52,7 @@ class Feed(models.Model):
     stories_last_month = models.IntegerField(default=0)
     average_stories_per_month = models.IntegerField(default=0)
     is_push = models.BooleanField(default=False)
+    use_proxy = models.BooleanField(default=False)  # fetched through config.yaml's proxy.url when it is set
     favicon_color = models.CharField(max_length=6, blank=True, default="")
     favicon_not_found = models.BooleanField(default=False)
     favicon_checked_at = models.IntegerField(default=0)

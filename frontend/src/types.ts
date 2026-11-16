@@ -23,6 +23,8 @@ export interface Feed {
   has_icon: boolean
   icon_version: number
   is_push: boolean
+  /** Fetched through the proxy of config.yaml (a setting of the feed, shared by its subscribers). */
+  use_proxy: boolean
   fetched_once: boolean
   has_exception: boolean
   exception_code: number
@@ -143,6 +145,19 @@ export interface TextResult {
   reason: string
 }
 
+export interface FetchLogEntry {
+  at: number
+  code: number
+  message: string
+  duration_ms: number
+}
+
+export interface FeedSettings {
+  /** Whether config.yaml sets proxy.url; without it a feed set to use the proxy is fetched directly. */
+  proxy_available: boolean
+  fetch_history: FetchLogEntry[]
+}
+
 export interface Statistics {
   feed: { id: number; title: string; feed_address: string; feed_link: string; has_exception: boolean; exception_code: number }
   last_update: number
@@ -155,8 +170,8 @@ export interface Statistics {
   months: [string, number][]
   weekdays: number[]
   hours: number[]
-  fetch_history: { at: number; code: number; message: string; duration_ms: number }[]
-  push_history: { at: number; code: number; message: string; duration_ms: number }[]
+  fetch_history: FetchLogEntry[]
+  push_history: FetchLogEntry[]
   story_count: number
   content_bytes: number
   last_load_ms: number

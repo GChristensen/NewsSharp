@@ -254,15 +254,13 @@ function feedMenu(event: MouseEvent, feed: Feed) {
     { label: 'Mark as read', icon: 'check-circle', tone: 'read', action: () => markFeedRead(feed.id), disabled: feed.unread === 0 },
     { label: 'Refresh now', icon: 'sync', tone: 'sync', action: () => refreshFeed(feed.id) },
     { label: 'Statistics', icon: 'bar-chart', tone: 'insight', action: () => ui.openDialog('statistics', { feedId: feed.id }) },
+    { label: 'Settings…', icon: 'prefs-sliders', tone: 'organize', action: () => ui.openDialog('feed-settings', { feedId: feed.id }) },
     { label: 'Rename', icon: 'pencil', tone: 'organize', action: () => startRename(`feed:${feed.id}`, feed.title) },
     feed.muted
       ? { label: 'Unmute', icon: 'sound-on', tone: 'sound', action: () => setFeedMuted(feed, false) }
       : { label: 'Mute', icon: 'sound-off', tone: 'sound', action: () => setFeedMuted(feed, true) },
     { label: 'Open site', icon: 'globe', tone: 'web', action: () => openInNewTab(feed.feed_link || feed.feed_address), disabled: !feed.feed_link },
   ]
-  if (feed.has_exception) {
-    items.push({ label: 'Change address…', icon: 'signpost', tone: 'web', action: () => ui.openDialog('address', { feedId: feed.id }) })
-  }
   items.push({ label: '', separator: true }, { label: 'Delete', icon: 'trash-can', danger: true, action: () => tree.remove({ kind: 'feed', feed }) })
   ui.openMenu(event, items)
 }

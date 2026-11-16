@@ -47,3 +47,15 @@ def test_proxy_verify_accepts_false_and_ca_bundle(tmp_path):
 def test_invalid_config_is_rejected(tmp_path, text):
     with pytest.raises(ImproperlyConfigured):
         load_config(write(tmp_path, text))
+
+
+@pytest.mark.parametrize("url", ["http://u:p@proxy.lan:3128", "https://proxy.lan:3129", "socks5h://proxy.lan:1080"])
+@pytest.mark.parametrize("verify", [True, False])
+def test_proxied_client_builds_for_every_scheme(settings, url, verify):
+    import asyncio
+
+    from worker import fetcher
+
+    settings.PROXY_URL, settings.PROXY_VERIFY = url, verify
+    client = fetcher.make_client(proxied=True)
+    asyncio.run(client.aclose())

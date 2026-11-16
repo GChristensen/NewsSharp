@@ -15,7 +15,7 @@ from django.http import HttpResponse, HttpResponseNotModified
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 from accounts import prefs
-from feeds.models import FeedFetchLog, FeedIcon, FeedStoryCount, PushSubscription, Setting, Story
+from feeds.models import Feed, FeedFetchLog, FeedIcon, FeedStoryCount, PushSubscription, Setting, Story
 from feeds.util import now
 from reading import opml, stories, tree, unread
 from reading.models import Subscription, ViewSetting
@@ -630,7 +630,32 @@ def _statistics(request, data, feed_id):
     }  # fmt: skip
 
 
+def _settings_get(request, data, feed_id):
+    """What the feed settings dialog needs besides the tree's feed entry."""
+    _require_subscription(request.user, feed_id)
+    return {"proxy_available": bool(settings.PROXY_URL), "fetch_history": _log_rows(feed_id, "feed")}
+
+
+def _settings_patch(request, data, feed_id):
+    """PATCH {use_proxy}: a setting of the feed itself, shared by all its subscribers, who are all told.
+    Changing it fetches the feed again."""
+    sub = _require_subscription(request.user, feed_id)
+    use_proxy = data.get("use_proxy")
+    if type(use_proxy) is not bool:
+        raise ApiError(422, "invalid", "'use_proxy' must be true or false.")
+    if use_proxy != sub.feed.use_proxy:
+        with transaction.atomic():
+            Feed.objects.filter(pk=feed_id).update(use_proxy=use_proxy)
+        jobs.request_fetch(feed_id, forced=True)
+        subscribers = Subscription.objects.filter(feed_id=feed_id, deleted_at__isnull=True).values_list("user_id", flat=True)
+        for user_id in set(subscribers):
+            origin = client_id(request) if user_id == request.user.id else None
+            bus.publish(user_id, "feed:settings", {"feed_id": feed_id, "use_proxy": use_proxy}, origin=origin)
+    return {"use_proxy": use_proxy}
+
+
 refresh_view = endpoint(POST=_refresh)
+feed_settings_view = endpoint(GET=_settings_get, PATCH=_settings_patch)
 icon_view = endpoint(GET=_icon)
 statistics_view = endpoint(GET=_statistics)
 

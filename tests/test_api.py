@@ -536,3 +536,33 @@ def test_statistics(api, user, make_feed, make_story, subscribe):
     stats = api.get(f"/api/feeds/{feed.id}/statistics").json()
     assert stats["story_count"] == 1 and sum(stats["hours"]) == 1 and sum(stats["weekdays"]) == 1
     assert len(stats["months"]) == 1
+
+
+def test_feed_settings_proxy(api, user, other_user, make_feed, make_story, subscribe, settings):
+    from feeds import store as feed_store
+    from worker.coordinator import text_source
+    from worker.models import Job
+
+    feed = make_feed()
+    subscribe(user, feed)
+    subscribe(other_user, feed)
+    story = make_story(feed)
+    feed_store.log_fetch(feed.id, "feed", 200, "OK", 120)
+
+    settings.PROXY_URL = None
+    body = api.get(f"/api/feeds/{feed.id}/settings").json()
+    assert body["proxy_available"] is False and body["fetch_history"][0]["code"] == 200
+    settings.PROXY_URL = "http://proxy.lan:3128"
+    assert api.get(f"/api/feeds/{feed.id}/settings").json()["proxy_available"] is True
+
+    assert api.patch(f"/api/feeds/{feed.id}/settings", {"use_proxy": "yes"}, content_type="application/json").status_code == 422
+    response = api.patch(f"/api/feeds/{feed.id}/settings", {"use_proxy": True}, content_type="application/json")
+    assert response.json() == {"use_proxy": True}
+    feed.refresh_from_db()
+    assert feed.use_proxy
+    assert Job.objects.filter(type="fetch_feed", feed_id=feed.id, payload__forced=True).exists()
+    assert api.get("/api/tree").json()["feeds"][0]["use_proxy"] is True
+    assert text_source(story.id, None) == (story.permalink, True)
+
+    stranger = make_feed("https://other.example/feed.xml")
+    assert api.get(f"/api/feeds/{stranger.id}/settings").status_code == 404

@@ -198,6 +198,7 @@ def tree_payload(user) -> dict:
                 "has_icon": feed.id in icons,
                 "icon_version": icons.get(feed.id, 0),
                 "is_push": feed.is_push,
+                "use_proxy": feed.use_proxy,
                 "fetched_once": feed.fetched_once,
                 "has_exception": feed.has_exception,
                 "exception_code": feed.exception_code,

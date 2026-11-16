@@ -1,5 +1,5 @@
 <!-- The small dialogs (frontend/src/components/dialogs/SimpleDialogs.vue), R20.4: confirmation,
-     change password, change address (R7.11), import / export (item 15), keyboard shortcuts (R11.3). -->
+     change password, import / export (item 15), keyboard shortcuts (R11.3). -->
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api, errorMessage } from '../../api'
@@ -28,17 +28,6 @@ async function changePassword() {
     await api('POST', '/api/password', { old_password: oldPassword.value, new_password: newPassword.value })
     ui.closeDialog()
     ui.toast('The password was changed. Other sessions were logged out.')
-  })
-}
-
-// address
-const address = ref('')
-async function changeAddress() {
-  await run(async () => {
-    await api('POST', `/api/subscriptions/${props.options.feedId}/address`, { url: address.value.trim() }, { timeout: 40000 })
-    await tree.reload()
-    ui.closeDialog()
-    ui.toast('The address was changed; the feed is being fetched.')
   })
 }
 
@@ -93,22 +82,6 @@ async function run(action: () => Promise<void>) {
     <template #footer>
       <button class="btn outline" type="button" @click="ui.closeDialog()">Cancel</button>
       <button class="btn primary" type="submit" form="password-form" :disabled="busy">Change password</button>
-    </template>
-  </Modal>
-
-  <Modal v-else-if="name === 'address'" title="Change address" @close="ui.closeDialog()">
-    <form id="address-form" @submit.prevent="changeAddress">
-      <p class="dim">Current address: {{ tree.feedById.get(options.feedId)?.feed_address }}</p>
-      <div class="form-col">
-        <label for="address-url">New feed or website address</label>
-        <input id="address-url" v-model="address" class="input" placeholder="https://example.com/feed.xml" required />
-      </div>
-      <div v-if="error" class="error-text">{{ error }}</div>
-    </form>
-    <template #footer>
-      <span v-if="busy" class="spinner" style="align-self: center" />
-      <button class="btn outline" type="button" @click="ui.closeDialog()">Cancel</button>
-      <button class="btn primary" type="submit" form="address-form" :disabled="busy || !address.trim()">Change address</button>
     </template>
   </Modal>
 

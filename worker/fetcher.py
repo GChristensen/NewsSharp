@@ -2,6 +2,7 @@
 discovery, R2.20-R2.22. Nothing is parsed here; parsing is a pool task."""
 import asyncio
 import logging
+import ssl
 import time
 from dataclasses import dataclass, field
 from email.utils import formatdate, parsedate_to_datetime
@@ -45,11 +46,30 @@ class Download:
         return self.headers.get("content-type", "")
 
 
-def make_client() -> httpx.AsyncClient:
+def _proxy() -> httpx.Proxy:
+    """config.yaml's proxy. `proxy.verify` is about the TLS connection to an https:// proxy itself;
+    the TLS of the sites behind it is always checked."""
+    if not settings.PROXY_URL.lower().startswith("https://"):
+        return httpx.Proxy(settings.PROXY_URL)  # httpcore refuses a TLS context for other schemes
+    verify = settings.PROXY_VERIFY
+    if verify is False:
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+    elif isinstance(verify, str):
+        context = ssl.create_default_context(cafile=verify)
+    else:
+        context = ssl.create_default_context()
+    return httpx.Proxy(settings.PROXY_URL, ssl_context=context)
+
+
+def make_client(proxied: bool = False) -> httpx.AsyncClient:
+    """The coordinator's client; with `proxied`, one that sends every request through the proxy."""
     return httpx.AsyncClient(
         follow_redirects=False,
         timeout=httpx.Timeout(connect=10, read=15, write=15, pool=30),
         limits=httpx.Limits(max_connections=40, max_keepalive_connections=10),
+        proxy=_proxy() if proxied else None,
     )
 
 

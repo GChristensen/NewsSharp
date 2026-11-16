@@ -10,6 +10,7 @@ import { useUi } from '../../stores/ui'
 import type { Statistics } from '../../types'
 import { bytes, dateTime, relativeTime } from '../../utils/format'
 import FeedIcon from '../FeedIcon.vue'
+import FetchHistory from '../FetchHistory.vue'
 import Modal from '../Modal.vue'
 
 Chart.register(...registerables)
@@ -126,18 +127,7 @@ onBeforeUnmount(() => charts.forEach((chart) => chart.destroy()))
       </div>
 
       <h3 class="section">Fetch history</h3>
-      <table class="data">
-        <thead><tr><th>Time</th><th>Code</th><th>Message</th><th>Duration</th></tr></thead>
-        <tbody>
-          <tr v-for="(entry, index) in stats.fetch_history" :key="index">
-            <td>{{ when(entry.at) }}</td>
-            <td :class="{ 'error-text': ![200, 304].includes(entry.code) }">{{ entry.code }}</td>
-            <td>{{ entry.message }}</td>
-            <td>{{ entry.duration_ms }} ms</td>
-          </tr>
-          <tr v-if="!stats.fetch_history.length"><td colspan="4" class="dim">Not fetched yet.</td></tr>
-        </tbody>
-      </table>
+      <FetchHistory :entries="stats.fetch_history" />
       <template v-if="stats.push_history.length">
         <h3 class="section">Push history</h3>
         <table class="data">
@@ -149,7 +139,7 @@ onBeforeUnmount(() => charts.forEach((chart) => chart.destroy()))
       </template>
     </template>
     <template #footer>
-      <button class="btn outline" @click="ui.openDialog('address', { feedId })">Change address</button>
+      <button class="btn outline" @click="ui.openDialog('feed-settings', { feedId })">Settings</button>
       <button class="btn outline" @click="refreshFeed(feedId)">Refresh now</button>
       <button class="btn primary" @click="ui.closeDialog()">Close</button>
     </template>

@@ -32,7 +32,7 @@ MAX_WAITING_BODIES = 8  # R0.31
 PURGE_AFTER = 60  # R7.10
 ICON_MAX_AGE = 30 * 86400  # R8.1
 TEXT_FAILURE_TTL = 600  # R13.6
-FEED_FIELDS = ("id", "feed_address", "feed_link", "image_url", "etag", "last_modified", "fetched_once")
+FEED_FIELDS = ("id", "feed_address", "feed_link", "image_url", "etag", "last_modified", "fetched_once", "use_proxy")
 
 
 # ------------------------------------------------------------------ database operations (sync)
@@ -115,10 +115,17 @@ def change_address(feed_id: int, address: str) -> int | None:
     return feed_id
 
 
-def text_source(story_id: int | None, saved_id: int | None) -> str:
+def text_source(story_id: int | None, saved_id: int | None) -> tuple[str, bool]:
+    """The page of a story and whether its feed is fetched through the proxy."""
     if story_id:
-        return Story.objects.filter(pk=story_id).values_list("permalink", flat=True).first() or ""
-    return SavedStory.objects.filter(pk=saved_id).values_list("permalink", flat=True).first() or ""
+        row = Story.objects.filter(pk=story_id).values_list("permalink", "feed_id").first()
+    else:
+        row = SavedStory.objects.filter(pk=saved_id).values_list("permalink", "feed_id").first()
+    if row is None:
+        return "", False
+    permalink, feed_id = row
+    use_proxy = bool(feed_id) and Feed.objects.filter(pk=feed_id, use_proxy=True).exists()
+    return permalink or "", use_proxy
 
 
 def purge_deleted() -> list[dict]:
@@ -193,6 +200,7 @@ class Coordinator:
         self.pool = Pool(settings.WORKER_PROCESSES)
         self.db_thread = ThreadPoolExecutor(max_workers=1, thread_name_prefix="db")  # one connection (R0.18)
         self.client = None
+        self.proxy_client = None  # only when config.yaml sets proxy.url
         self.waker = Waker()
         self.stopping = asyncio.Event()
         self.fetch_slots = asyncio.Semaphore(FETCH_CONCURRENCY)
@@ -234,6 +242,8 @@ class Coordinator:
         await self.db(recover_at_start)
         await self.db(heartbeat)
         self.client = fetcher.make_client()
+        if settings.PROXY_URL:
+            self.proxy_client = fetcher.make_client(proxied=True)
         self.pool.start()
         wakeup.start_reader(lambda: loop.call_soon_threadsafe(self.waker.wake))
         log.info("worker started with %d pool processes", settings.WORKER_PROCESSES)
@@ -254,6 +264,15 @@ class Coordinator:
                 task.cancel()
             await asyncio.gather(*self.tasks, return_exceptions=True)
             await self.client.aclose()
+            if self.proxy_client is not None:
+                await self.proxy_client.aclose()
+
+    def client_for(self, use_proxy: bool):
+        """The client for the requests of a feed: through the proxy when the feed is set to use it
+        and a proxy is configured, directly otherwise."""
+        if use_proxy and self.proxy_client is not None:
+            return self.proxy_client
+        return self.client
 
     async def heartbeat_loop(self) -> None:
         """R0.19."""
@@ -343,7 +362,8 @@ class Coordinator:
 
     async def job_discover(self, job: dict) -> dict:
         async with self.interactive_slots:
-            return await fetcher.discover(self.client, self.pool, job["payload"]["url"])
+            client = self.client_for(bool(job["payload"].get("proxy")))
+            return await fetcher.discover(client, self.pool, job["payload"]["url"])
 
     async def job_fetch_feed(self, job: dict) -> dict:
         forced = bool(job["payload"].get("forced"))
@@ -378,7 +398,7 @@ class Coordinator:
         remembered = self.text_failures.get(key)
         if remembered and not payload.get("force") and now() - remembered[0] < TEXT_FAILURE_TTL:
             return remembered[1]
-        url = await self.db(text_source, story_id, saved_id)
+        url, use_proxy = await self.db(text_source, story_id, saved_id)
 
         def failed(reason: str) -> dict:
             result = {"failed": True, "reason": reason, "url": url}
@@ -388,7 +408,7 @@ class Coordinator:
         if not url.startswith(("http://", "https://")):
             return failed("the story has no link")
         async with self.interactive_slots:
-            page = await fetcher.download_page(self.client, url, 5 * 1024 * 1024, 15)
+            page = await fetcher.download_page(self.client_for(use_proxy), url, 5 * 1024 * 1024, 15)
         if not page.ok:
             return failed(f"the page could not be loaded ({page.error or page.status})")
         kind = page.content_type.split(";")[0].strip().lower()
@@ -428,13 +448,13 @@ class Coordinator:
             return {"gone": True}
         if interactive:
             async with self.interactive_slots:
-                result = await fetcher.download_feed(self.client, feed, forced)
+                result = await fetcher.download_feed(self.client_for(feed["use_proxy"]), feed, forced)
         else:
             while self.pool.queued >= MAX_WAITING_BODIES:
                 await asyncio.sleep(0.1)
             host = urlsplit(feed["feed_address"]).hostname or ""
             async with self.host_locks.setdefault(host, asyncio.Lock()), self.fetch_slots:
-                result = await fetcher.download_feed(self.client, feed, forced)
+                result = await fetcher.download_feed(self.client_for(feed["use_proxy"]), feed, forced)
         outcome = await self.process_download(feed_id, result, interactive)
         wakeup.notify()
         log.info(
@@ -483,7 +503,8 @@ class Coordinator:
         if feed is None:
             return
         try:
-            found = await fetcher.discover(self.client, self.pool, feed["feed_link"] or feed["feed_address"], False)
+            client = self.client_for(feed["use_proxy"])
+            found = await fetcher.discover(client, self.pool, feed["feed_link"] or feed["feed_address"], False)
         except (fetcher.DiscoveryError, TaskTimeout, TaskCrashed, TaskFailed):
             return
         target = await self.db(change_address, feed_id, found["feed_address"])
@@ -501,10 +522,11 @@ class Coordinator:
             if feed is None:
                 return
             page_url = feed["feed_link"] or ""
+            client = self.client_for(feed["use_proxy"])
             candidates = []
             try:
                 if page_url:
-                    page = await fetcher.download_page(self.client, page_url, 2 * 1024 * 1024, 10)
+                    page = await fetcher.download_page(client, page_url, 2 * 1024 * 1024, 10)
                     if page.ok and page.body:
                         parsed = await self.pool.run(
                             "parse_page", {"body": page.body, "base_url": page.url, "content_type": page.content_type},
@@ -516,7 +538,7 @@ class Coordinator:
                 candidates.append(site_root(page_url or feed["feed_address"]) + "/favicon.ico")
                 headers = {"User-Agent": fetcher.BROWSER_UA, "Accept": "image/png,image/x-icon,image/*;q=0.9,*/*;q=0.8"}
                 for url in list(dict.fromkeys(candidates))[:6]:
-                    image = await fetcher.download(self.client, url, headers=headers, max_bytes=512 * 1024, total_timeout=10)
+                    image = await fetcher.download(client, url, headers=headers, max_bytes=512 * 1024, total_timeout=10)
                     if not image.ok or not image.body:
                         continue
                     stored = await self.pool.run(

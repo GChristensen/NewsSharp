@@ -20,6 +20,8 @@ export const useTree = defineStore('tree', {
     openFeedId: null as number | null, // stays visible in Unread mode until another feed is opened
     progressDismissed: false,
     progressTotal: 0,
+    /** When the client last heard of a finished fetch of each feed (Date.now()), for dialogs to reload. */
+    fetchedAt: {} as Record<number, number>,
   }),
   getters: {
     feedById(state): Map<number, Feed> {

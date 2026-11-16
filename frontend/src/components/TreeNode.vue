@@ -38,7 +38,7 @@ function folderSelected(folder: Folder): boolean {
   return stories.scope === `folder:${folder.id}` || stories.scope === `saved:folder:${folder.id}`
 }
 function errorTitle(feed: Feed): string {
-  return `Error ${feed.exception_code}${feed.exception_message ? ': ' + feed.exception_message : ''} — right-click to change the address`
+  return `Error ${feed.exception_code}${feed.exception_message ? ': ' + feed.exception_message : ''} — right-click and choose Settings to change the address`
 }
 const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select()) }
 </script>

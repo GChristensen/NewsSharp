@@ -86,6 +86,7 @@ export const useEvents = defineStore('events', {
         const { feed_id, ...fields } = data
         delete fields.origin
         tree.updateFeed(feed_id, fields)
+        tree.fetchedAt[feed_id] = Date.now()
         if (stories.pendingRefresh === feed_id) {
           stories.pendingRefresh = null
           stories.reload() // R17.10
@@ -95,6 +96,7 @@ export const useEvents = defineStore('events', {
       })
       on('feed:icon', (data) => tree.updateFeed(data.feed_id, { has_icon: true, icon_version: Date.now(), favicon_color: data.favicon_color }))
       on('feed:push', (data) => tree.updateFeed(data.feed_id, { is_push: data.is_push }))
+      on('feed:settings', (data) => tree.updateFeed(data.feed_id, { use_proxy: data.use_proxy }))
       on('tree', (data) => {
         if (data.origin !== clientId) tree.reload().catch(() => {}) // R21.4
       })

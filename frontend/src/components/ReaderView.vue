@@ -14,6 +14,7 @@ import { handleKey } from '../utils/shortcuts'
 import ContentArea from './ContentArea.vue'
 import ContextMenu from './ContextMenu.vue'
 import AddDialog from './dialogs/AddDialog.vue'
+import FeedSettingsDialog from './dialogs/FeedSettingsDialog.vue'
 import PreferencesDialog from './dialogs/PreferencesDialog.vue'
 import SimpleDialogs from './dialogs/SimpleDialogs.vue'
 import StatisticsDialog from './dialogs/StatisticsDialog.vue'
@@ -133,6 +134,7 @@ function dragSidebar(event: PointerEvent) {
     <template v-if="ui.dialog">
       <AddDialog v-if="ui.dialog.name === 'add'" :url="ui.dialog.props.url" :folder-id="ui.dialog.props.folderId" />
       <PreferencesDialog v-else-if="ui.dialog.name === 'preferences'" />
+      <FeedSettingsDialog v-else-if="ui.dialog.name === 'feed-settings'" :key="ui.dialog.props.feedId" :feed-id="ui.dialog.props.feedId" />
       <StatisticsDialog v-else-if="ui.dialog.name === 'statistics'" :key="ui.dialog.props.feedId" :feed-id="ui.dialog.props.feedId" />
       <SimpleDialogs v-else :key="ui.dialog.name" :name="ui.dialog.name" :options="ui.dialog.props" />
     </template>

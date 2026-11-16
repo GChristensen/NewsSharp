@@ -37,8 +37,8 @@ def _normalize(url: str) -> str:
         raise ApiError(422, "invalid_url", "This address does not point to an RSS feed or a website with an RSS feed.") from None
 
 
-async def _find_feed(user, url: str) -> dict:
-    """An existing feed by address, or a `discover` job (R2.20)."""
+async def _find_feed(user, url: str, proxy: bool = False) -> dict:
+    """An existing feed by address, or a `discover` job (R2.20), through the proxy with `proxy`."""
     address = _normalize(url)
 
     def existing():
@@ -47,7 +47,7 @@ async def _find_feed(user, url: str) -> dict:
 
     found = await _in_thread(existing)()
     if found is None:
-        found = await jobs.run_and_wait("discover", user_id=user.id, payload={"url": address})
+        found = await jobs.run_and_wait("discover", user_id=user.id, payload={"url": address, "proxy": proxy})
     return found
 
 
@@ -123,8 +123,14 @@ def _change_address(user, feed_id: int, address: str) -> int:
     return target
 
 
+def _uses_proxy(user, feed_id: int) -> bool:
+    return tree.live_subs(user).filter(feed_id=feed_id, feed__use_proxy=True).exists()
+
+
 async def _address(request, data, feed_id):
-    found = await _find_feed(request.user, require_str(data, "url", ""))
+    # A feed that is fetched through the proxy is also looked up at its new address through it.
+    proxy = await _in_thread(_uses_proxy)(request.user, feed_id)
+    found = await _find_feed(request.user, require_str(data, "url", ""), proxy)
     target = await _in_thread(_change_address)(request.user, feed_id, found["feed_address"])
     bus.publish(request.user.id, "tree", {"version": now()}, origin=client_id(request))
     return {"feed_id": target, "feed_address": found["feed_address"]}
