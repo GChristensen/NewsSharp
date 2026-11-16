@@ -195,7 +195,7 @@ select.input { padding-right: 4px; }
 .tree-row.dragging { opacity: 0.4; }
 .tree-row .title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-row.folder .title { font-weight: 600; }
-.tree-row.feed + .tree-row.folder { margin-top: 8px; }
+.tree-row.feed + .tree-row.folder:not(.subfolder) { margin-top: 8px; }
 /* Feeds with unread stories carry weight, so empty ones can stay legible in --text-dim. */
 .tree-row.feed:not(.empty) .title { font-weight: 600; }
 .tree-row.empty .title { color: var(--text-dim); }

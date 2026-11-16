@@ -48,8 +48,8 @@ const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select()) }
     <template v-if="item.kind === 'folder'">
       <div
         class="tree-row folder"
-        :class="{ selected: folderSelected(item.folder), 'drop-into': ctx.drag.intoFolderId === item.folder.id, dragging: ctx.drag.itemKey === key(item) }"
-        :style="{ paddingLeft: 6 + depth * 14 + 'px' }"
+        :class="{ subfolder: depth > 0, selected: folderSelected(item.folder), 'drop-into': ctx.drag.intoFolderId === item.folder.id, dragging: ctx.drag.itemKey === key(item) }"
+        :style="{ paddingLeft: (depth > 0 ? 14 : 6) + depth * 14 + 'px' }"
         data-tree-kind="folder" :data-tree-id="item.folder.id"
         @pointerdown="ctx.pointerDown($event, item)"
         @click="ctx.clickFolder(item.folder)"

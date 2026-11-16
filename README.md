@@ -137,15 +137,6 @@ is given, and refuses to run while the worker's heartbeat is fresh (stop `serve`
 
 Users are managed in the Django admin at `/admin/` (Manage → Administration).
 
-## Migrating from NewsBlurMod
-
-1. In the NewsBlurMod repository: `uv run python utils/export_for_reader.py > export.json`
-2. Here, on an empty database: `uv run python manage.py import_newsblur export.json`
-
-Users, feeds, subscriptions, the folder tree, custom titles, icons, preferences and per-feed view settings
-are migrated. Stories, read state, saved stories and passwords are not: the command prints a one-time
-password per user and writes `migration_map.json` (old feed id → new feed id).
-
 ## Development
 
 ```sh
