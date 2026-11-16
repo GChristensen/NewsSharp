@@ -5,33 +5,31 @@ import os
 import secrets
 from pathlib import Path
 
-from dotenv import load_dotenv
+from config.file import load_config, resolve_path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
 
-
-def _int(name: str, default: int) -> int:
-    try:
-        return int(os.environ.get(name, default))
-    except ValueError:
-        return default
-
-
-# --- .env keys (R23.1) ---
-PORT = _int("PORT", 8000)
-BIND = os.environ.get("BIND", "0.0.0.0")
-DATA_DIR = Path(os.environ.get("DATA_DIR", "./data"))
-if not DATA_DIR.is_absolute():
-    DATA_DIR = (BASE_DIR / DATA_DIR).resolve()
+# --- config.yaml (R23.1; see config/file.py and config.example.yaml) ---
+_config = load_config(BASE_DIR / "config.yaml")
+PORT = _config["port"]
+BIND = _config["bind"]
+DATA_DIR = resolve_path(BASE_DIR, _config["data_dir"])
 DATA_DIR.mkdir(parents=True, exist_ok=True)
-TRUST_PROXY = os.environ.get("TRUST_PROXY", "0") == "1"
-FETCH_INTERVAL_MINUTES = _int("FETCH_INTERVAL_MINUTES", 60)
-STORIES_PER_FEED = _int("STORIES_PER_FEED", 500)
-WORKER_PROCESSES = max(1, _int("WORKER_PROCESSES", 2))
-PUSH_LEASE_SECONDS = _int("PUSH_LEASE_SECONDS", 2147483647)
-IMAGE_CACHE_MB = _int("IMAGE_CACHE_MB", 0)
-LOG_LEVEL = os.environ.get("LOG_LEVEL", "info").upper()
+TRUST_PROXY = _config["trust_proxy"]
+FETCH_INTERVAL_MINUTES = _config["fetch_interval_minutes"]
+STORIES_PER_FEED = _config["stories_per_feed"]
+WORKER_PROCESSES = max(1, _config["worker_processes"])
+PUSH_LEASE_SECONDS = _config["push_lease_seconds"]
+IMAGE_CACHE_MB = _config["image_cache_mb"]
+LOG_LEVEL = _config["log_level"].upper()
+
+# Outbound proxy for the feeds that are set to use it. None when the config has no proxy.url.
+# PROXY_VERIFY is how the TLS certificate of an https:// proxy is checked: True (system CA store),
+# False (not checked, for a self-signed certificate) or the path of a CA bundle that signs it.
+PROXY_URL = _config["proxy"]["url"]
+PROXY_VERIFY = _config["proxy"]["verify"]
+if isinstance(PROXY_VERIFY, str):
+    PROXY_VERIFY = str(resolve_path(BASE_DIR, PROXY_VERIFY))
 
 APP_NAME = "NewsSharp"
 APP_VERSION = "0.1.0"

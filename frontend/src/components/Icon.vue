@@ -1,5 +1,8 @@
 <!-- Inline stroke icons (frontend/src/components/Icon.vue). -->
 <script setup lang="ts">
+const CIRCLE = 'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z'
+const SHIELD = 'M12 3l8 3v6c0 5-3.500 8-8 9-4.500-1-8-4-8-9V6z'
+
 const PATHS: Record<string, string> = {
   plus: 'M12 5v14M5 12h14',
   gear: 'M12 9a3 3 0 1 0 0 6a3 3 0 0 0 0-6zM19.400 15a1.650 1.650 0 0 0 .330 1.820l.060.060a2 2 0 1 1-2.830 2.830l-.060-.060a1.650 1.650 0 0 0-1.820-.330 1.650 1.650 0 0 0-1 1.510V21a2 2 0 1 1-4 0v-.090A1.650 1.650 0 0 0 9 19.400a1.650 1.650 0 0 0-1.820.330l-.060.060a2 2 0 1 1-2.830-2.830l.060-.060a1.650 1.650 0 0 0 .330-1.820 1.650 1.650 0 0 0-1.510-1H3a2 2 0 1 1 0-4h.090A1.650 1.650 0 0 0 4.600 9a1.650 1.650 0 0 0-.330-1.820l-.060-.060a2 2 0 1 1 2.830-2.830l.060.060a1.650 1.650 0 0 0 1.820.330H9a1.650 1.650 0 0 0 1-1.510V3a2 2 0 1 1 4 0v.090a1.650 1.650 0 0 0 1 1.510 1.650 1.650 0 0 0 1.820-.330l.060-.060a2 2 0 1 1 2.830 2.830l-.060.060a1.650 1.650 0 0 0-.330 1.820V9a1.650 1.650 0 0 0 1.510 1H21a2 2 0 1 1 0 4h-.090a1.650 1.650 0 0 0-1.510 1z',
@@ -72,10 +75,79 @@ const PATHS: Record<string, string> = {
   volume: 'M4 9h4l5-4v14l-5-4H4zM16.500 9a4 4 0 0 1 0 6M19 6.500a7.500 7.500 0 0 1 0 11',
   play: 'M8 5v14l11-7z',
   'volume-off':'M4 9h4l5-4v14l-5-4H4zM16 9.500l5 5M21 9.500l-5 5',
+
+  // Two-tone icons of the popup menus: each also has a tint path in TINTS.
+  'check-circle': `${CIRCLE}M8 12.500l2.800 2.800L16.500 9.500`,
+  'check-double': 'M5.500 12.500l3.200 3.200L15.500 8.500M11.500 15.200l.500.500 6.800-7.200',
+  'check-newer': 'M3 13.500l3 3 6.500-7M18 19V6M15 9l3-3 3 3',
+  'check-older': 'M3 10.500l3 3 6.500-7M18 5v13M15 15l3 3 3-3',
+  'calendar-check': 'M4 6h16v14H4zM4 10h16M8 3.500v4M16 3.500v4M9 15l2 2 4-4',
+  'unread-dot': `${CIRCLE}M12 8.500a3.500 3.500 0 1 0 0 7a3.500 3.500 0 0 0 0-7z`,
+  'bookmark-plus': 'M6 3h12v18l-6-4-6 4zM12 7v6M9 10h6',
+  'bookmark-minus': 'M6 3h12v18l-6-4-6 4zM9 10h6',
+  sync: 'M19.500 10A8 8 0 0 0 5 7.500M4.500 3.500v4h4M4.500 14a8 8 0 0 0 14.500 2.500M19.500 20.500v-4h-4',
+  reset: 'M4.500 12a7.500 7.500 0 1 0 2.200-5.300M4.500 3.500v4h4M12 10.500a1.500 1.500 0 1 0 0 3a1.500 1.500 0 0 0 0-3z',
+  'bar-chart': 'M5 13h3.500v7H5zM10.250 7h3.500v13h-3.500zM15.500 10H19v10h-3.500zM3 20h18',
+  keys: 'M3 6h18v12H3zM7 10h.010M10.500 10h.010M14 10h.010M17.500 10h.010M7.500 14h9',
+  pencil: 'M5 19v-3.500L14.500 6a2.470 2.470 0 0 1 3.500 3.500L8.500 19zM12.500 8l3.500 3.500M13 19h7',
+  'rss-tile': 'M7.500 16.500h.010M7.500 11.500a5 5 0 0 1 5 5M7.500 6.500a10 10 0 0 1 10 10',
+  'folder-add': 'M3 6h6l2 2h10v11H3zM12 11v5M9.500 13.500h5',
+  'tray-swap': 'M3 14h5l1 3h6l1-3h5v6H3zM8 3v8M5.500 8.500L8 11l2.500-2.500M16 11V3M13.500 5.500L16 3l2.500 2.500',
+  'sound-off': 'M4 9h4l5-4v14l-5-4H4zM16.500 9.500l5 5M21.500 9.500l-5 5',
+  'sound-on': 'M4 9h4l5-4v14l-5-4H4zM16.500 9a4 4 0 0 1 0 6M19 6.500a7.500 7.500 0 0 1 0 11',
+  globe: `${CIRCLE}M3 12h18M12 3c2.500 2.500 3.800 5.500 3.800 9s-1.300 6.500-3.800 9M12 3c-2.500 2.500-3.800 5.500-3.800 9s1.300 6.500 3.800 9`,
+  'open-tab': 'M17 14v6H4V7h6M14 4h6v6M20 4l-8.500 8.500',
+  chain: 'M10 14a4 4 0 0 0 5.660 0l3-3a4 4 0 0 0-5.660-5.660l-1 1M14 10a4 4 0 0 0-5.660 0l-3 3a4 4 0 0 0 5.660 5.660l1-1',
+  signpost: 'M5 5h11l3 3-3 3H5zM10 2.500V5M10 11v10M7 21h6',
+  'trash-can': 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13zM10 11v6M14 11v6',
+  'prefs-sliders': 'M4 7h10M18 7h2M4 17h4M12 17h8M16 5a2 2 0 1 0 0 4a2 2 0 0 0 0-4zM10 15a2 2 0 1 0 0 4a2 2 0 0 0 0-4z',
+  key: 'M8 9a4 4 0 1 0 0 8a4 4 0 0 0 0-8zM12 13h9M18.500 13v3M21 13v2.500',
+  'shield-check': `${SHIELD}M9 12l2 2 4-4`,
+  'door-out': 'M13 4H4v16h9M10 12h11M18 9l3 3-3 3',
+  'theme-auto': 'M12 4a8 8 0 1 0 0 16a8 8 0 0 0 0-16zM12 4v16',
+  sun: 'M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8zM12 2.500v2M12 19.500v2M2.500 12h2M19.500 12h2M5.300 5.300l1.400 1.400M17.300 17.300l1.400 1.400M5.300 18.700l1.400-1.400M17.300 6.700l1.400-1.400',
+  moon: 'M20 14.500A8 8 0 1 1 9.500 4a6.500 6.500 0 0 0 10.500 10.500z',
+}
+
+/** The filled, translucent second tone of the two-tone icons, drawn under the stroke. */
+const TINTS: Record<string, string> = {
+  'check-circle': CIRCLE,
+  'check-double': 'M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4z',
+  'check-newer': 'M15 6a3 3 0 0 1 6 0v12a3 3 0 0 1-6 0z',
+  'check-older': 'M15 6a3 3 0 0 1 6 0v12a3 3 0 0 1-6 0z',
+  'calendar-check': 'M4 6h16v4H4z',
+  'unread-dot': 'M12 8.500a3.500 3.500 0 1 0 0 7a3.500 3.500 0 0 0 0-7z',
+  'bookmark-plus': 'M6 3h12v18l-6-4-6 4z',
+  'bookmark-minus': 'M6 3h12v18l-6-4-6 4z',
+  sync: 'M12 9.500a2.500 2.500 0 1 0 0 5a2.500 2.500 0 0 0 0-5z',
+  reset: 'M12 10.500a1.500 1.500 0 1 0 0 3a1.500 1.500 0 0 0 0-3z',
+  'bar-chart': 'M5 13h3.500v7H5zM10.250 7h3.500v13h-3.500zM15.500 10H19v10h-3.500z',
+  keys: 'M3 6h18v12H3z',
+  pencil: 'M5 15.500L14.500 6l3.500 3.500L8.500 19H5z',
+  'rss-tile': 'M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3z',
+  'folder-add': 'M3 6h6l2 2h10v11H3z',
+  'tray-swap': 'M3 14h5l1 3h6l1-3h5v6H3z',
+  'sound-off': 'M4 9h4l5-4v14l-5-4H4z',
+  'sound-on': 'M4 9h4l5-4v14l-5-4H4z',
+  globe: CIRCLE,
+  'open-tab': 'M4 10h13v10H4z',
+  chain: 'M13.500 6.500l1.500-1.500a4 4 0 0 1 5.600 5.600L17.500 13.700a4 4 0 0 1-5.600 0z',
+  signpost: 'M5 5h11l3 3-3 3H5z',
+  'trash-can': 'M6 7l1 13h10l1-13z',
+  'prefs-sliders': 'M16 5a2 2 0 1 0 0 4a2 2 0 0 0 0-4zM10 15a2 2 0 1 0 0 4a2 2 0 0 0 0-4z',
+  key: 'M8 9a4 4 0 1 0 0 8a4 4 0 0 0 0-8z',
+  'shield-check': SHIELD,
+  'door-out': 'M4 4h9v16H4z',
+  'theme-auto': 'M12 4a8 8 0 0 0 0 16z',
+  sun: 'M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8z',
+  moon: 'M20 14.500A8 8 0 1 1 9.500 4a6.500 6.500 0 0 0 10.500 10.500z',
 }
 defineProps<{ name: string }>()
 </script>
 
 <template>
-  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path :d="PATHS[name] || ''" /></svg>
+  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path v-if="TINTS[name]" class="icon-tint" :d="TINTS[name]" />
+    <path :d="PATHS[name] || ''" />
+  </svg>
 </template>

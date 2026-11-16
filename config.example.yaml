@@ -1,0 +1,20 @@
+# NewsSharp configuration (config.example.yaml, R23.1). Copy to config.yaml and adjust; every key is
+# optional and falls back to the default shown in README.md. There is no host name key.
+
+port: 10000
+bind: 0.0.0.0
+data_dir: ./data            # relative to the installation directory unless absolute
+trust_proxy: false          # true only behind a reverse proxy that every request goes through
+fetch_interval_minutes: 60
+stories_per_feed: 2000
+worker_processes: 2
+push_lease_seconds: 2147483647
+image_cache_mb: 0
+log_level: info
+
+# Outbound proxy, used by the feeds that are set to fetch through it.
+proxy:
+  url: null                 # e.g. https://user:password@proxy.lan:3129 (http, https, socks5, socks5h)
+  # TLS check of an https:// proxy: true (system CA store), false (no check, e.g. a self-signed
+  # certificate) or the path of a CA bundle / the proxy's certificate in PEM.
+  verify: true

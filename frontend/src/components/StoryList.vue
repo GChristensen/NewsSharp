@@ -61,23 +61,26 @@ function middleDown(event: MouseEvent, story: Story) {
 function menu(event: MouseEvent, story: Story) {
   const items: MenuItem[] = []
   if (!stories.isSaved && story.id !== null) {
-    items.push({ label: story.read ? 'Mark as unread' : 'Mark as read', icon: story.read ? 'circle' : 'check', action: () => stories.toggleRead(story) })
+    items.push(story.read
+      ? { label: 'Mark as unread', icon: 'unread-dot', tone: 'unread', action: () => stories.toggleRead(story) }
+      : { label: 'Mark as read', icon: 'check-circle', tone: 'read', action: () => stories.toggleRead(story) })
   }
   items.push({
     label: story.saved ? 'Remove from Saved for Later' : 'Save for later',
-    icon: 'bookmark',
+    icon: story.saved ? 'bookmark-minus' : 'bookmark-plus',
+    tone: 'saved',
     action: () => (story.saved ? stories.unsave(story) : stories.save(story)),
   })
   if (!stories.isSaved) {
     items.push(
-      { label: 'Mark newer stories as read', icon: 'arrow-up', action: () => stories.markRelative(story, 'newer') },
-      { label: 'Mark older stories as read', icon: 'arrow-down', action: () => stories.markRelative(story, 'older') },
+      { label: 'Mark newer stories as read', icon: 'check-newer', tone: 'read', action: () => stories.markRelative(story, 'newer') },
+      { label: 'Mark older stories as read', icon: 'check-older', tone: 'read', action: () => stories.markRelative(story, 'older') },
     )
   }
   items.push(
     { label: '', separator: true },
-    { label: 'Open in new tab', icon: 'external', action: () => openInNewTab(story.permalink) },
-    { label: 'Copy link', icon: 'copy', action: () => copyLink(story.permalink) },
+    { label: 'Open in new tab', icon: 'open-tab', tone: 'web', action: () => openInNewTab(story.permalink) },
+    { label: 'Copy link', icon: 'chain', tone: 'web', action: () => copyLink(story.permalink) },
   )
   ui.openMenu(event, items)
 }

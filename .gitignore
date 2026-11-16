@@ -9,4 +9,4 @@ frontend/dist/
 migration_map.json
 /.idea/
 /CLAUDE.md
-/.env
+/config.yaml

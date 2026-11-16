@@ -16,7 +16,7 @@ One SQLite file, two Python processes, no Docker, Redis, Celery, MongoDB, Elasti
 ```sh
 uv sync                                   # Python dependencies
 cd frontend && npm install && npm run build && cd ..
-cp .env.example .env                      # optional: port, data directory, ...
+cp config.example.yaml config.yaml       # optional: port, data directory, proxy, ...
 uv run python manage.py serve
 ```
 
@@ -31,31 +31,38 @@ Open `http://localhost:10000`. The first visit shows a form that creates the adm
 
 The database is the only link between them. Either can be run alone under an external service manager.
 
-## Configuration (`.env`)
+## Configuration (`config.yaml`)
+
+`config.yaml` in the installation directory is optional; every key has a default. Unknown keys and values
+of the wrong type stop the process with an error. Restart `serve` after changing it.
 
 | Key | Default | Meaning |
 |---|---|---|
-| `PORT` / `BIND` | `10000` / `0.0.0.0` | Listen address of the web process |
-| `DATA_DIR` | `./data` | Database, secret key, lock file, optional image cache |
-| `TRUST_PROXY` | `0` | `1` to honor `X-Forwarded-*` headers behind a reverse proxy |
-| `FETCH_INTERVAL_MINUTES` | `60` | Upper bound of the polling interval of a healthy feed |
-| `STORIES_PER_FEED` | `2000` | Stories kept per feed (unread stories are never pruned) |
-| `WORKER_PROCESSES` | `2` | Size of the worker's process pool |
-| `PUSH_LEASE_SECONDS` | `2147483647` | Lease requested from WebSub hubs |
-| `IMAGE_CACHE_MB` | `0` | Disk cache for proxied images (0 = off) |
-| `LOG_LEVEL` | `info` | |
+| `port` / `bind` | `8000` / `0.0.0.0` | Listen address of the web process (the example file uses 10000) |
+| `data_dir` | `./data` | Database, secret key, lock file, optional image cache |
+| `trust_proxy` | `false` | `true` to honor `X-Forwarded-*` headers behind a reverse proxy |
+| `fetch_interval_minutes` | `60` | Upper bound of the polling interval of a healthy feed |
+| `stories_per_feed` | `500` | Stories kept per feed (unread stories are never pruned; the example file uses 2000) |
+| `worker_processes` | `2` | Size of the worker's process pool |
+| `push_lease_seconds` | `2147483647` | Lease requested from WebSub hubs |
+| `image_cache_mb` | `0` | Disk cache for proxied images (0 = off) |
+| `log_level` | `info` | |
+| `proxy.url` | none | Outbound proxy for feeds set to use it: `http://`, `https://`, `socks5://` or `socks5h://`, credentials as `user:password@` |
+| `proxy.verify` | `true` | TLS check of an `https://` proxy: `true` (system CA store), `false` (no check, for a self-signed certificate) or the path of a PEM CA bundle or the proxy's own certificate |
+
+Relative paths (`data_dir`, `proxy.verify`) are relative to the installation directory.
 
 There is no host name setting. The address given to WebSub hubs is learned from the most recent login
 and can be pinned in Preferences → General (administrators).
 
 Behind a reverse proxy, do not buffer `/api/events` and allow long-lived responses.
 
-### When to set `TRUST_PROXY=1`
+### When to set `trust_proxy: true`
 
-Set it when a reverse proxy sits in front of NewsSharp and every request goes through it. Leave it at
-`0` when browsers connect to NewsSharp's port directly, even if a proxy is also in use.
+Set it when a reverse proxy sits in front of NewsSharp and every request goes through it. Leave it
+`false` when browsers connect to NewsSharp's port directly, even if a proxy is also in use.
 
-With `TRUST_PROXY=1`, NewsSharp takes these values from headers the proxy sends instead of from the
+With `trust_proxy: true`, NewsSharp takes these values from headers the proxy sends instead of from the
 connection:
 
 | Header | Used for |
@@ -64,14 +71,14 @@ connection:
 | `X-Forwarded-Host`, `X-Forwarded-Port` | The address the browser used: the CSRF origin check, and the callback address learned from logins and given to WebSub hubs |
 | `X-Forwarded-For` (first entry) | The client address used to throttle login attempts |
 
-- **HTTPS proxy, `TRUST_PROXY=0`:** NewsSharp thinks the page is plain http. Django's CSRF check
+- **HTTPS proxy, `trust_proxy: false`:** NewsSharp thinks the page is plain http. Django's CSRF check
   rejects the browser's `https://` origin, so login and every other change fail with a CSRF error.
   Cookies go out without `Secure`, hubs get an `http://` callback, and every client shares one
   throttling bucket: the proxy's address.
-- **No proxy, `TRUST_PROXY=1`:** anyone can send these headers. A client can claim any IP address and
+- **No proxy, `trust_proxy: true`:** anyone can send these headers. A client can claim any IP address and
   get around login throttling, or claim https and a host of their choosing.
 - **Proxy, but the port is also reachable directly:** same as above for whoever bypasses the proxy.
-  Keep `BIND=127.0.0.1`, or firewall the port, so that only the proxy can connect.
+  Keep `bind: 127.0.0.1`, or firewall the port, so that only the proxy can connect.
 
 The proxy must set all four headers and overwrite `X-Forwarded-For` rather than append to it. Otherwise
 its first entry is whatever the client sent. `deploy/nginx.conf` does both.
@@ -87,9 +94,9 @@ piece:
 | `deploy/nginx.conf` | nginx site: TLS, HTTP/2, http → https redirect, unbuffered event stream |
 
 1. Put the code in the installation directory (`just deploy`, or a copy) and run `uv sync` and
-   `cp .env.example .env` there.
-2. In `.env`, set `BIND=127.0.0.1` so only nginx can reach the server, set `TRUST_PROXY=1`, and use the
-   same `PORT` as `proxy_pass` in `nginx.conf` (10000 in both examples).
+   `cp config.example.yaml config.yaml` there.
+2. In `config.yaml`, set `bind: 127.0.0.1` so only nginx can reach the server, set `trust_proxy: true`, and use the
+   same `port` as `proxy_pass` in `nginx.conf` (10000 in both examples).
 3. Edit `User`, `Group` and the paths in the unit, then install it:
 
    ```sh
@@ -108,7 +115,7 @@ piece:
 `serve` restarts a crashed web or worker process by itself. systemd restarts `serve` only if `serve`
 itself fails. After `just deploy`, run `sudo systemctl restart newssharp`, which also applies migrations.
 
-See [When to set `TRUST_PROXY=1`](#when-to-set-trust_proxy1) for what the option changes and why the
+See [When to set `trust_proxy: true`](#when-to-set-trust_proxy-true) for what the option changes and why the
 port must not be reachable around the proxy.
 
 ## Commands
@@ -162,42 +169,3 @@ frontend/   Vue 3 + Vite + Pinia application (built into frontend/dist)
 deploy/     example systemd unit and nginx site
 tests/      pytest suite
 ```
-
-## Deviations from the requirements document
-
-- The API layer is plain Django views with hand-written validation (the fallback of decision 25) instead
-  of django-ninja, so there is no generated OpenAPI document; the frontend's types are written by hand.
-- Split panes and tree drag and drop are implemented directly instead of with `splitpanes` / `vuedraggable`.
-  Dragging is disabled while the sidebar is filtered or in Unread / Saved for Later mode.
-- Schema additions: `folders.deleted_at` (undo), `feeds.image_url`, `feeds.redirects_in_row`, `jobs.blob`
-  (pushed bodies), and `removing`, `lease_seconds`, `requested_at` on push subscriptions.
-- Server cache hints (`max-age`, `Retry-After`) shorter than 15 minutes are raised to 15 minutes.
-- `Content-Security-Policy: upgrade-insecure-requests` is sent only on https pages; on plain http it
-  would upgrade the application's own requests.
-- The scope `saved:folder:<id>` was added for folders opened in Saved for Later mode.
-- Graceful shutdown of children relies on Ctrl+C reaching the console group on Windows; a supervisor
-  killed any other way stops its children without the 10 s grace period.
-- Sidebar (R7.1): there is no Saved for Later row (the mode switch at the bottom replaces it; saved tags
-  are listed in Saved mode). All Site Stories is shown only with the `show_all_site_stories` preference
-  or in Saved mode, where it is labelled All Saved Stories. The feed filter is hidden until the funnel button (or `g`) shows it; the
-  `show_feed_filter` preference remembers that.
-- The content top bar has no Next unread button (`n` remains). Next story (`j`, the right arrow button)
-  past the last story of a feed opens the next feed with unread stories.
-- The content top bar holds the read filter, the order and a List style popover (density, previews,
-  titles pane, Grid options); the bottom Style popover keeps the story options. The top bar is not tinted
-  with the feed color. Unread counts are a neutral dark grey everywhere; the unread dot of a story row
-  takes its feed's icon color.
-- Stories per row in Grid (`grid_columns`, 1–6, default 4) is also a per-scope view setting; there is no
-  automatic column count.
-- The content preview (title only / small / medium / large) and the image preview position are per-scope
-  view settings too. The List style popover sets them for the open feed or folder; the preferences
-  `show_content_preview` and `image_preview` are the defaults.
-- Feeds can be muted (the feed menu's Mute / Unmute; `PATCH /api/subscriptions/<id> {muted}`), which the
-  requirements drop. A muted feed stays in the tree with a mute icon in place of its unread count. It is
-  left out of All Site Stories and folders (their story lists, search, counts, mark-read and the new
-  stories bar), of Unread mode, and of next-unread navigation. Opened by itself it lists, counts and marks
-  read as usual, and it is still fetched. Saved for Later is unaffected.
-- Marking a whole feed or folder read from the story titles header (the Mark read button, its "Mark all
-  as read" entry, `Shift+a`) shows an Undo toast for 10 s (`POST /api/mark-read/undo {undo_token}`).
-  Undo restores each feed's read date unless it has changed since, and reopens the feed or folder if
-  "mark read, then next feed" moved on. All Site Stories, "older than N days" and the sidebar have no undo.

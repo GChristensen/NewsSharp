@@ -3,7 +3,7 @@
 #   sudo systemctl daemon-reload && sudo systemctl enable --now newssharp
 #   journalctl -u newssharp -f          # logs
 #
-# Adjust User, Group and the paths to the installation directory, which holds the code, .env,
+# Adjust User, Group and the paths to the installation directory, which holds the code, config.yaml,
 # data/ and the .venv created there by `uv sync`. The service user must own data/.
 
 [Unit]

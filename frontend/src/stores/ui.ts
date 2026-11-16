@@ -9,9 +9,14 @@ export interface Toast {
   action?: () => void
 }
 
+/** The kind of action a menu item performs; it picks the icon color (`--tone-*` in styles.css). */
+export type MenuTone =
+  | 'read' | 'unread' | 'saved' | 'sync' | 'insight' | 'organize' | 'sound' | 'web' | 'account' | 'appearance'
+
 export interface MenuItem {
   label: string
   icon?: string
+  tone?: MenuTone
   action?: () => void
   checked?: boolean
   disabled?: boolean

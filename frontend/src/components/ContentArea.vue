@@ -9,7 +9,7 @@ import {
 import { useSettings } from '../stores/settings'
 import { useStories } from '../stores/stories'
 import { useTree } from '../stores/tree'
-import { useUi } from '../stores/ui'
+import { useUi, type MenuItem } from '../stores/ui'
 import type { Layout, View, ViewKey } from '../types'
 import FeedIcon from './FeedIcon.vue'
 import Icon from './Icon.vue'
@@ -71,7 +71,8 @@ function useDefault(event: MouseEvent, key: ViewKey) {
   ui.openMenu(event, [
     {
       label: 'Use default',
-      icon: 'refresh',
+      icon: 'reset',
+      tone: 'sync',
       disabled: !overridden(key),
       action: () => {
         settings.clearView(scope.value!, key)
@@ -83,9 +84,11 @@ function useDefault(event: MouseEvent, key: ViewKey) {
 
 function markMenu(event: MouseEvent) {
   ui.openMenuAt(event.currentTarget as HTMLElement, [
-    { label: 'Mark all as read', icon: 'check', action: () => markScopeRead(0, scope.value, { undoable: true }) },
+    { label: 'Mark all as read', icon: 'check-double', tone: 'read', action: () => markScopeRead(0, scope.value, { undoable: true }) },
     { label: '', separator: true },
-    ...[1, 3, 7, 14].map((days) => ({ label: `Older than ${days} day${days === 1 ? '' : 's'}`, icon: 'clock', action: () => markScopeRead(days) })),
+    ...[1, 3, 7, 14].map((days): MenuItem => ({
+      label: `Older than ${days} day${days === 1 ? '' : 's'}`, icon: 'calendar-check', tone: 'read', action: () => markScopeRead(days),
+    })),
   ])
 }
 

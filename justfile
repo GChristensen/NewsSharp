@@ -9,7 +9,7 @@
 
 set windows-shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
 
-# The installation directory on the server (holds the code, data/, .env and .venv).
+# The installation directory on the server (holds the code, data/, config.yaml and .venv).
 remote := env("NEWSSHARP_REMOTE", '\\server\share\newssharp')
 
 # robocopy: 2-second timestamps for Samba, few retries, quiet; exit codes below 8 mean success
@@ -36,13 +36,13 @@ test:
     uv run pytest -q
     cd frontend; npm run typecheck; if ($LASTEXITCODE -ne 0) { exit 1 }; npm test
 
-# Copy the code and the built frontend to the server. data/, .env and .venv there are not touched.
+# Copy the code and the built frontend to the server. data/, config.yaml and .venv there are not touched.
 deploy:
     if (-not (Test-Path -LiteralPath '{{remote}}')) { throw 'Server directory not reachable: {{remote}}' }
     if (-not (Test-Path frontend\dist\index.html)) { throw 'frontend\dist is missing: run "just build" first.' }
     foreach ($d in 'config', 'accounts', 'feeds', 'reading', 'api', 'worker', 'deploy') { robocopy $d "{{remote}}\$d" /MIR /XD __pycache__ {{rc}}; if ($LASTEXITCODE -ge 8) { exit 1 } }; exit 0
     robocopy frontend\dist '{{remote}}\frontend\dist' /MIR {{rc}}{{ok}}
-    robocopy . '{{remote}}' manage.py pyproject.toml uv.lock README.md .env.example {{rc}}{{ok}}
+    robocopy . '{{remote}}' manage.py pyproject.toml uv.lock README.md config.example.yaml {{rc}}{{ok}}
     @echo 'Deployed. Restart the server (it applies migrations); if pyproject.toml dependencies changed, run "uv sync" there first.'
 
 # Replace local data/ with the server's copy. The image cache, collected static files and the worker lock are not copied.

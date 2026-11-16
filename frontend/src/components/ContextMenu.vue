@@ -39,9 +39,14 @@ function run(item: MenuItem) {
     <template v-for="(item, index) in ui.menu.items" :key="index">
       <hr v-if="item.separator" />
       <button v-else :class="{ danger: item.danger }" :disabled="item.disabled" @click="run(item)">
-        <span v-if="item.checked !== undefined" class="check"><Icon v-if="item.checked" name="check" style="width: 14px; height: 14px" /></span>
-        <span v-else-if="hasIcons" class="menu-icon"><Icon v-if="item.icon" :name="item.icon" style="width: 14px; height: 14px" /></span>
-        {{ item.label }}
+        <span v-if="item.icon" class="menu-icon" :style="item.tone ? { color: `var(--tone-${item.tone})` } : undefined">
+          <Icon :name="item.icon" />
+        </span>
+        <span v-else-if="item.checked !== undefined" class="check"><Icon v-if="item.checked" name="check" /></span>
+        <span v-else-if="hasIcons" class="menu-icon" />
+        <span class="menu-label">{{ item.label }}</span>
+        <!-- An item with its own icon shows its check mark at the end of the row. -->
+        <span v-if="item.icon && item.checked" class="check"><Icon name="check" /></span>
       </button>
     </template>
   </div>

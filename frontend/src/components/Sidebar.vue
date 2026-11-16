@@ -251,28 +251,30 @@ function clickFolder(folder: Folder) {
 
 function feedMenu(event: MouseEvent, feed: Feed) {
   const items: MenuItem[] = [
-    { label: 'Mark as read', icon: 'check', action: () => markFeedRead(feed.id), disabled: feed.unread === 0 },
-    { label: 'Refresh now', icon: 'refresh', action: () => refreshFeed(feed.id) },
-    { label: 'Statistics', icon: 'chart', action: () => ui.openDialog('statistics', { feedId: feed.id }) },
-    { label: 'Rename', icon: 'edit', action: () => startRename(`feed:${feed.id}`, feed.title) },
+    { label: 'Mark as read', icon: 'check-circle', tone: 'read', action: () => markFeedRead(feed.id), disabled: feed.unread === 0 },
+    { label: 'Refresh now', icon: 'sync', tone: 'sync', action: () => refreshFeed(feed.id) },
+    { label: 'Statistics', icon: 'bar-chart', tone: 'insight', action: () => ui.openDialog('statistics', { feedId: feed.id }) },
+    { label: 'Rename', icon: 'pencil', tone: 'organize', action: () => startRename(`feed:${feed.id}`, feed.title) },
     feed.muted
-      ? { label: 'Unmute', icon: 'volume', action: () => setFeedMuted(feed, false) }
-      : { label: 'Mute', icon: 'volume-off', action: () => setFeedMuted(feed, true) },
-    { label: 'Open site', icon: 'external', action: () => openInNewTab(feed.feed_link || feed.feed_address), disabled: !feed.feed_link },
+      ? { label: 'Unmute', icon: 'sound-on', tone: 'sound', action: () => setFeedMuted(feed, false) }
+      : { label: 'Mute', icon: 'sound-off', tone: 'sound', action: () => setFeedMuted(feed, true) },
+    { label: 'Open site', icon: 'globe', tone: 'web', action: () => openInNewTab(feed.feed_link || feed.feed_address), disabled: !feed.feed_link },
   ]
-  if (feed.has_exception) items.push({ label: 'Change address…', icon: 'link', action: () => ui.openDialog('address', { feedId: feed.id }) })
-  items.push({ label: '', separator: true }, { label: 'Delete', icon: 'trash', danger: true, action: () => tree.remove({ kind: 'feed', feed }) })
+  if (feed.has_exception) {
+    items.push({ label: 'Change address…', icon: 'signpost', tone: 'web', action: () => ui.openDialog('address', { feedId: feed.id }) })
+  }
+  items.push({ label: '', separator: true }, { label: 'Delete', icon: 'trash-can', danger: true, action: () => tree.remove({ kind: 'feed', feed }) })
   ui.openMenu(event, items)
 }
 
 function folderMenu(event: MouseEvent, folder: Folder) {
   ui.openMenu(event, [
-    { label: 'Mark as read', icon: 'check', action: () => markScopeRead(0, `folder:${folder.id}`) },
-    { label: 'Add site…', icon: 'plus', action: () => ui.openDialog('add', { folderId: folder.id }) },
-    { label: 'Rename', icon: 'edit', action: () => startRename(`folder:${folder.id}`, folder.title) },
-    { label: 'New subfolder', icon: 'folder-plus', action: () => newSubfolder(folder) },
+    { label: 'Mark as read', icon: 'check-circle', tone: 'read', action: () => markScopeRead(0, `folder:${folder.id}`) },
+    { label: 'Add site…', icon: 'rss-tile', tone: 'organize', action: () => ui.openDialog('add', { folderId: folder.id }) },
+    { label: 'Rename', icon: 'pencil', tone: 'organize', action: () => startRename(`folder:${folder.id}`, folder.title) },
+    { label: 'New subfolder', icon: 'folder-add', tone: 'organize', action: () => newSubfolder(folder) },
     { label: '', separator: true },
-    { label: 'Delete', icon: 'trash', danger: true, action: () => tree.remove({ kind: 'folder', folder }) },
+    { label: 'Delete', icon: 'trash-can', danger: true, action: () => tree.remove({ kind: 'folder', folder }) },
   ])
 }
 
@@ -304,23 +306,25 @@ const context: TreeContext = {
 provide('tree', context)
 
 function manageMenu(event: MouseEvent) {
-  const theme = (value: 'auto' | 'light' | 'dark', label: string): MenuItem => ({
-    label: `Theme: ${label}`, checked: settings.prefs.theme === value, action: () => settings.set('theme', value),
+  const theme = (value: 'auto' | 'light' | 'dark', label: string, icon: string): MenuItem => ({
+    label: `Theme: ${label}`, icon, tone: 'appearance', checked: settings.prefs.theme === value, action: () => settings.set('theme', value),
   })
   const items: MenuItem[] = [
-    { label: 'Preferences', icon: 'gear', action: () => ui.openDialog('preferences') },
-    { label: 'Import / Export (OPML)', icon: 'swap', action: () => ui.openDialog('opml') },
-    { label: 'Keyboard shortcuts', icon: 'keyboard', action: () => ui.openDialog('shortcuts') },
+    { label: 'Preferences', icon: 'prefs-sliders', tone: 'account', action: () => ui.openDialog('preferences') },
+    { label: 'Import / Export (OPML)', icon: 'tray-swap', tone: 'organize', action: () => ui.openDialog('opml') },
+    { label: 'Keyboard shortcuts', icon: 'keys', tone: 'insight', action: () => ui.openDialog('shortcuts') },
     { label: '', separator: true },
-    theme('auto', 'Auto'),
-    theme('light', 'Light'),
-    theme('dark', 'Dark'),
+    theme('auto', 'Auto', 'theme-auto'),
+    theme('light', 'Light', 'sun'),
+    theme('dark', 'Dark', 'moon'),
     { label: '', separator: true },
-    { label: 'Mark everything as read', icon: 'check', action: () => markScopeRead(0, 'all') },
-    { label: 'Change password', icon: 'lock', action: () => ui.openDialog('password') },
+    { label: 'Mark everything as read', icon: 'check-double', tone: 'read', action: () => markScopeRead(0, 'all') },
+    { label: 'Change password', icon: 'key', tone: 'account', action: () => ui.openDialog('password') },
   ]
-  if (session.user?.is_admin) items.push({ label: 'Administration', icon: 'shield', action: () => openInNewTab('/admin/') })
-  items.push({ label: '', separator: true }, { label: 'Log out', icon: 'logout', action: () => session.logout() })
+  if (session.user?.is_admin) {
+    items.push({ label: 'Administration', icon: 'shield-check', tone: 'account', action: () => openInNewTab('/admin/') })
+  }
+  items.push({ label: '', separator: true }, { label: 'Log out', icon: 'door-out', tone: 'account', action: () => session.logout() })
   ui.openMenuAt(event.currentTarget as HTMLElement, items)
 }
 </script>

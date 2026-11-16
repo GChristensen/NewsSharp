@@ -24,6 +24,17 @@
   --shadow: rgba(0, 0, 0, 0.5);
   --mark: rgba(255, 213, 79, 0.3);
   --neutral-feed: #4a5261;
+  /* Popup menu icon colors by kind of action (MenuTone); 3:1 against --bg-bar. */
+  --tone-read: #4cc38a;
+  --tone-unread: #4c8dff;
+  --tone-saved: #f2b84b;
+  --tone-sync: #3fc1d0;
+  --tone-insight: #f472b6;
+  --tone-organize: #f59f5a;
+  --tone-sound: #b392f0;
+  --tone-web: #5cb8ff;
+  --tone-account: #8b9cff;
+  --tone-appearance: #e9c46a;
   color-scheme: dark;
 }
 
@@ -49,6 +60,16 @@
   --shadow: rgba(20, 30, 50, 0.25);
   --mark: rgba(255, 196, 0, 0.4);
   --neutral-feed: #9ea6b3;
+  --tone-read: #17794a;
+  --tone-unread: #2f6fdc;
+  --tone-saved: #8f5a00;
+  --tone-sync: #0b6f7a;
+  --tone-insight: #b0246e;
+  --tone-organize: #b04a10;
+  --tone-sound: #6a3fd0;
+  --tone-web: #0a64a8;
+  --tone-account: #4450c8;
+  --tone-appearance: #7d6300;
   color-scheme: light;
 }
 
@@ -111,6 +132,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; }
 ::-webkit-scrollbar-track { background: transparent; }
 
 .icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.icon .icon-tint { fill: currentColor; stroke: none; opacity: 0.26; }
 
 /* ---------- controls ---------- */
 .btn {
@@ -373,9 +395,13 @@ select.input { padding-right: 4px; }
 .menu button:hover:not(:disabled) { background: var(--bg-hover); }
 .menu button:disabled { color: var(--text-read); cursor: default; }
 .menu button.danger { color: var(--error); }
-.menu .check { width: 14px; flex: none; color: var(--accent); }
-.menu .menu-icon { width: 14px; flex: none; display: inline-flex; color: var(--text-dim); }
+.menu .check { width: 16px; flex: none; display: inline-flex; color: var(--accent); }
+.menu .check .icon { width: 14px; height: 14px; }
+.menu .menu-icon { width: 16px; flex: none; display: inline-flex; color: var(--text-dim); }
+.menu .menu-icon .icon { stroke-width: 1.8; }
+.menu .menu-label { flex: 1 1 auto; }
 .menu button.danger .menu-icon { color: inherit; }
+.menu button:disabled .menu-icon { color: inherit !important; }
 .menu hr { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
 .popover-anchor { position: relative; display: inline-flex; }
 .style-popover { width: 340px; padding: 8px 12px 12px; }
