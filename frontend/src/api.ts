@@ -19,7 +19,7 @@ export function onUnauthorized(handler: () => void) {
 }
 
 function csrfToken(): string {
-  const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/)
+  const match = document.cookie.match(/(?:^|;\s*)newssharp_csrftoken=([^;]+)/)
   return match ? decodeURIComponent(match[1]) : ''
 }
 

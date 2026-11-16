@@ -10,3 +10,4 @@ migration_map.json
 /.idea/
 /CLAUDE.md
 /config.yaml
+/.env

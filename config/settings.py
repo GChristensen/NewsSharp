@@ -113,6 +113,11 @@ SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_AGE = 90 * 24 * 3600
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_DOMAIN = None
+# Own cookie names: cookies are shared by every port of a host, and another Django app on the same host
+# deletes a "sessionid" it cannot load (logging the user out here) and overwrites "csrftoken".
+SESSION_COOKIE_NAME = "newssharp_sessionid"
+CSRF_COOKIE_NAME = "newssharp_csrftoken"
+MESSAGE_STORAGE = "django.contrib.messages.storage.session.SessionStorage"  # no shared "messages" cookie
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_TRUSTED_ORIGINS = []

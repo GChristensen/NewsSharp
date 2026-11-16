@@ -8,8 +8,10 @@
 #   just remote='\\host\share\dir' deploy   use another installation directory
 
 set windows-shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
+set dotenv-load
 
 # The installation directory on the server (holds the code, data/, config.yaml and .venv).
+# Set NEWSSHARP_REMOTE in the environment or in .env next to this file.
 remote := env("NEWSSHARP_REMOTE", '\\server\share\newssharp')
 
 # robocopy: 2-second timestamps for Samba, few retries, quiet; exit codes below 8 mean success

@@ -5,6 +5,7 @@ import hmac
 import json
 
 import pytest
+from django.conf import settings
 
 from accounts.models import User
 from api.events import bus
@@ -425,8 +426,8 @@ def test_opml_upload_with_csrf_checks(user):
 
     strict = Client(enforce_csrf_checks=True)
     strict.force_login(user)
-    strict.get("/api/bootstrap")  # sets the csrftoken cookie
-    token = strict.cookies["csrftoken"].value
+    strict.get("/api/bootstrap")  # sets the CSRF cookie
+    token = strict.cookies[settings.CSRF_COOKIE_NAME].value
     response = strict.post("/api/opml", {"file": SimpleUploadedFile("feeds.opml", OPML)}, headers={"X-CSRFToken": token})
     assert response.status_code == 200 and response.json()["feeds_added"] == 2
 

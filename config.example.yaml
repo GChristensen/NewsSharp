@@ -1,7 +1,7 @@
 # NewsSharp configuration (config.example.yaml, R23.1). Copy to config.yaml and adjust; every key is
 # optional and falls back to the default shown in README.md. There is no host name key.
 
-port: 10000
+port: 20000
 bind: 0.0.0.0
 data_dir: ./data            # relative to the installation directory unless absolute
 trust_proxy: false          # true only behind a reverse proxy that every request goes through
