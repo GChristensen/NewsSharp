@@ -56,6 +56,8 @@ class Feed(models.Model):
     favicon_color = models.CharField(max_length=6, blank=True, default="")
     favicon_not_found = models.BooleanField(default=False)
     favicon_checked_at = models.IntegerField(default=0)
+    # An icon address set in the feed settings dialog; icon searches then fetch only it ("" = look it up).
+    icon_link = models.CharField(max_length=1000, blank=True, default="")
     created_at = models.IntegerField(default=0)
 
     def __str__(self):

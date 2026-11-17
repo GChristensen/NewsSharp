@@ -1,6 +1,7 @@
 """Async API views (api/views_async.py): the endpoints that wait for a worker job (R0.12, R0.32).
 They reach the ORM through sync_to_async."""
 import asyncio
+from urllib.parse import urlsplit
 
 from asgiref.sync import sync_to_async
 from django.db import connection, transaction
@@ -173,7 +174,50 @@ async def _saved_text(request, data, saved_id):
     return await _text(request, _saved_text_state, "saved_id", saved_id)
 
 
+def _subscribes(user, feed_id: int) -> bool:
+    return tree.live_subs(user).filter(feed_id=feed_id).exists()
+
+
+def _icon_link(data) -> str | None:
+    """The optional `url` of a fetch_icon request: None when absent, "" to look the icon up again."""
+    if "url" not in data:
+        return None
+    url = require_str(data, "url", "").strip()
+    if not url:
+        return ""
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https") or not parts.hostname or len(url) > 1000:
+        raise ApiError(422, "invalid_url", "The icon address must be an http or https address.")
+    return url
+
+
+def _set_icon_link(feed_id: int, url: str) -> None:
+    with transaction.atomic():
+        Feed.objects.filter(pk=feed_id).update(icon_link=url)
+
+
+async def _fetch_icon(request, data, feed_id):
+    """POST /api/feeds/<id>/icon/fetch {url?}: look for the feed's icon again now, retrying through the
+    proxy when one is configured (R8.1). A `url` is kept as the feed's icon address, which every later
+    search fetches instead of looking the icon up; an empty one returns to looking it up. The address
+    belongs to the feed, so it applies to all its subscribers. Answers {found, icon_url, favicon_color,
+    tried, out_of_time}, or {pending: true} when the search outlasts the wait; other tabs learn of a
+    found icon from the feed:icon event."""
+    link = _icon_link(data)
+    if not await _in_thread(_subscribes)(request.user, feed_id):
+        raise ApiError(404, "not_found", "Feed not found.")
+    if link is not None:
+        await _in_thread(_set_icon_link)(feed_id, link)
+    try:
+        return await jobs.run_and_wait("fetch_icon", feed_id=feed_id, user_id=request.user.id, payload={"force": True})
+    except ApiError as e:
+        if e.code != "worker_timeout":
+            raise
+        return {"pending": True}
+
+
 discover_view = endpoint(POST=_discover)
+fetch_icon_view = endpoint(POST=_fetch_icon)
 subscriptions_view = endpoint(POST=_subscribe)
 address_view = endpoint(POST=_address)
 story_text_view = endpoint(GET=_story_text)

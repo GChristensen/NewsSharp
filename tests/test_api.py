@@ -605,6 +605,56 @@ def test_feed_settings_proxy(api, user, other_user, make_feed, make_story, subsc
     assert api.get(f"/api/feeds/{stranger.id}/settings").status_code == 404
 
 
+@pytest.mark.django_db(transaction=True)
+def test_fetch_icon(api, user, make_feed, subscribe, monkeypatch):
+    """The "Fetch icon" button waits for a forced fetch_icon job; a search that outlasts the wait is pending.
+    Transactional, because the view reads the database from another thread."""
+    from api import jobs
+    from api.http import ApiError
+    from feeds.models import FeedIcon
+
+    feed = make_feed()
+    subscribe(user, feed)
+    assert api.get(f"/api/feeds/{feed.id}/settings").json()["icon_url"] == ""
+    FeedIcon.objects.create(feed=feed, data=b"png", content_type="image/png", icon_url="https://example.com/i.png", updated_at=1)
+    assert api.get(f"/api/feeds/{feed.id}/settings").json()["icon_url"] == "https://example.com/i.png"
+
+    calls = []
+    found = {"found": True, "icon_url": "https://example.com/i.png", "favicon_color": "a0b0c0", "tried": 2, "out_of_time": False}
+
+    async def answer(job_type, feed_id=None, user_id=None, payload=None):
+        calls.append((job_type, feed_id, payload))
+        return found
+
+    monkeypatch.setattr(jobs, "run_and_wait", answer)
+    assert api.post(f"/api/feeds/{feed.id}/icon/fetch").json() == found
+    assert calls == [("fetch_icon", feed.id, {"force": True})]
+
+    # An address set by hand is kept on the feed; an empty one returns to looking the icon up.
+    def icon_link():
+        return api.get(f"/api/feeds/{feed.id}/settings").json()["icon_link"]
+
+    def fetch_with(url):
+        return api.post(f"/api/feeds/{feed.id}/icon/fetch", {"url": url}, content_type="application/json")
+
+    assert fetch_with(" https://cdn.example/icon.png ").json() == found
+    assert icon_link() == "https://cdn.example/icon.png"
+    assert fetch_with("javascript:alert(1)").status_code == 422
+    assert icon_link() == "https://cdn.example/icon.png"
+    assert fetch_with("").status_code == 200 and icon_link() == ""
+
+    async def slow(*args, **kwargs):
+        raise ApiError(504, "worker_timeout", "late")
+
+    monkeypatch.setattr(jobs, "run_and_wait", slow)
+    assert api.post(f"/api/feeds/{feed.id}/icon/fetch").json() == {"pending": True}
+
+    stranger = make_feed("https://other.example/feed.xml")
+    assert api.post(f"/api/feeds/{stranger.id}/icon/fetch").status_code == 404
+    assert jobs.enqueue("fetch_icon", feed_id=feed.id, payload={"force": True}).interactive
+    assert not jobs.enqueue("fetch_icon", feed_id=feed.id).interactive
+
+
 def test_index_carries_the_theme(client, api, user, settings, tmp_path):
     """The shell page names the user's theme and dark tint in its html tag, so the first paint uses them."""
     (tmp_path / "index.html").write_text('<!doctype html>\n<html lang="en" data-theme="dark"><head></head></html>')

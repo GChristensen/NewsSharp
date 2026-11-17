@@ -165,8 +165,17 @@ export interface FetchLogEntry {
 export interface FeedSettings {
   /** Whether config.yaml sets proxy.url; without it a feed set to use the proxy is fetched directly. */
   proxy_available: boolean
+  /** Where the stored icon was downloaded from; empty when the feed has none. */
+  icon_url: string
+  /** The icon address set by hand, which icon searches fetch instead of looking the icon up; empty when none. */
+  icon_link: string
   fetch_history: FetchLogEntry[]
 }
+
+/** POST /api/feeds/<id>/icon/fetch: the search's outcome, or `pending` when it outlasted the wait. */
+export type IconFetchResult =
+  | { pending: true }
+  | { pending?: undefined; found: boolean; icon_url: string; favicon_color: string; tried: number; out_of_time: boolean }
 
 export interface Statistics {
   feed: { id: number; title: string; feed_address: string; feed_link: string; has_exception: boolean; exception_code: number }

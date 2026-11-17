@@ -633,8 +633,12 @@ def _statistics(request, data, feed_id):
 
 def _settings_get(request, data, feed_id):
     """What the feed settings dialog needs besides the tree's feed entry."""
-    _require_subscription(request.user, feed_id)
-    return {"proxy_available": bool(settings.PROXY_URL), "fetch_history": _log_rows(feed_id, "feed")}
+    sub = _require_subscription(request.user, feed_id)
+    icon_url = FeedIcon.objects.filter(feed_id=feed_id).values_list("icon_url", flat=True).first() or ""
+    return {
+        "proxy_available": bool(settings.PROXY_URL), "icon_url": icon_url, "icon_link": sub.feed.icon_link,
+        "fetch_history": _log_rows(feed_id, "feed"),
+    }  # fmt: skip
 
 
 def _settings_patch(request, data, feed_id):

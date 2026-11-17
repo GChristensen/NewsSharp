@@ -23,6 +23,7 @@ urlpatterns = [
     path("api/feeds/discover", views_async.discover_view),
     path("api/feeds/<int:feed_id>/refresh", views.refresh_view),
     path("api/feeds/<int:feed_id>/icon", views.icon_view),
+    path("api/feeds/<int:feed_id>/icon/fetch", views_async.fetch_icon_view),
     path("api/feeds/<int:feed_id>/statistics", views.statistics_view),
     path("api/feeds/<int:feed_id>/settings", views.feed_settings_view),
     path("api/stories", views.stories_view),

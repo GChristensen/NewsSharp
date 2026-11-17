@@ -17,7 +17,11 @@ WAIT_SECONDS = 30  # R0.12
 def enqueue(job_type: str, feed_id=None, user_id=None, payload=None, blob=None, interactive=None) -> Job:
     payload = payload or {}
     if interactive is None:
-        interactive = job_type in INTERACTIVE_TYPES or (job_type == "fetch_feed" and bool(payload.get("forced")))
+        interactive = (
+            job_type in INTERACTIVE_TYPES
+            or (job_type == "fetch_feed" and bool(payload.get("forced")))
+            or (job_type == "fetch_icon" and bool(payload.get("force")))
+        )
     job = Job.objects.create(
         type=job_type, feed_id=feed_id, user_id=user_id, payload=payload, blob=blob, interactive=interactive,
         created_at=now(),

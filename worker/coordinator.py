@@ -1,9 +1,11 @@
 """The worker's coordinator (worker/coordinator.py), R0.23: one event loop running the scheduler
 (item 3), job intake (R0.9), every outbound request, the heartbeat and the pool. It parses nothing."""
 import asyncio
+import contextlib
 import functools
 import http
 import logging
+import math
 import random
 import signal
 from concurrent.futures import ThreadPoolExecutor
@@ -28,11 +30,14 @@ log = logging.getLogger("worker")
 
 FETCH_CONCURRENCY = 4  # R2.16
 INTERACTIVE_CONCURRENCY = 4  # R0.10
+FORCED_ICON_SECONDS = 24  # the downloads of a "Fetch icon" search, within the web process's 30 s wait
 MAX_WAITING_BODIES = 8  # R0.31
 PURGE_AFTER = 60  # R7.10
 ICON_MAX_AGE = 30 * 86400  # R8.1
 TEXT_FAILURE_TTL = 600  # R13.6
-FEED_FIELDS = ("id", "feed_address", "feed_link", "image_url", "etag", "last_modified", "fetched_once", "use_proxy")
+FEED_FIELDS = (
+    "id", "feed_address", "feed_link", "image_url", "etag", "last_modified", "fetched_once", "use_proxy", "icon_link",
+)  # fmt: skip
 
 
 # ------------------------------------------------------------------ database operations (sync)
@@ -207,7 +212,7 @@ class Coordinator:
         self.interactive_slots = asyncio.Semaphore(INTERACTIVE_CONCURRENCY)
         self.host_locks: dict[str, asyncio.Lock] = {}
         self.scheduled: set[int] = set()
-        self.icons_in_flight: set[int] = set()
+        self.icon_searches: dict[int, tuple[asyncio.Task, bool]] = {}  # feed id -> (search, forced)
         self.text_failures: dict[tuple, tuple[int, dict]] = {}
         self.tasks: set[asyncio.Task] = set()
 
@@ -426,8 +431,7 @@ class Coordinator:
         return result
 
     async def job_fetch_icon(self, job: dict) -> dict:
-        await self.fetch_icon(job["feed_id"])
-        return {}
+        return await self.fetch_icon(job["feed_id"], forced=bool(job["payload"].get("force")))
 
     async def job_websub_resubscribe_all(self, job: dict) -> dict:
         """R4.11."""
@@ -512,60 +516,157 @@ class Coordinator:
             log.info("feed %s: address rediscovered as %s", feed_id, found["feed_address"])
             self.spawn(self.fetch_feed(target))
 
-    async def fetch_icon(self, feed_id: int) -> None:
-        """R8.1, R8.2: the coordinator downloads, a pool child decodes and computes the color."""
-        if feed_id in self.icons_in_flight:
-            return
-        self.icons_in_flight.add(feed_id)
+    async def fetch_icon(self, feed_id: int, forced: bool = False) -> dict:
+        """R8.1, R8.2: look for a feed's icon; one search per feed at a time, later requests share it.
+        A forced search (the "Fetch icon" button) that the running one cannot satisfy starts another.
+        Returns {found, icon_url, via_proxy, tried}."""
+        if feed_id in self.icon_searches:
+            running, running_forced = self.icon_searches[feed_id]
+            outcome = await asyncio.shield(running)
+            if outcome["found"] or not forced or running_forced:
+                return outcome
+        search = self.spawn(self.search_icon(feed_id, forced))
+        self.icon_searches[feed_id] = (search, forced)
+
+        def forget(done: asyncio.Task) -> None:
+            if self.icon_searches.get(feed_id, (None,))[0] is done:
+                del self.icon_searches[feed_id]
+
+        search.add_done_callback(forget)
+        return await asyncio.shield(search)
+
+    async def search_icon(self, feed_id: int, forced: bool) -> dict:
+        """The coordinator downloads, a pool child decodes and computes the color. A forced search
+        that finds nothing directly repeats the whole search through the proxy, since sites that block
+        automated clients usually answer 403 or with a page instead of failing to connect.
+        A forced search is someone waiting in the feed settings dialog, so both passes together stay
+        within FORCED_ICON_SECONDS, which the web process's 30 s wait (R0.12) covers; the direct pass
+        gets the first part of it when the proxy pass may follow."""
+        outcome = {"found": False, "icon_url": "", "favicon_color": "", "tried": 0, "out_of_time": False}
+        feed = await self.db(load_feed, feed_id)
+        if feed is None:
+            return outcome
+        direct = self.client_for(feed["use_proxy"])
+        proxy = self.proxy_client if self.proxy_client is not None and direct is not self.proxy_client else None
+        tried: set[str] = set()
+        loop = asyncio.get_running_loop()
+        end = loop.time() + FORCED_ICON_SECONDS if forced else math.inf
+        log.info(
+            "icon feed=%s: %s search, site %s, proxy %s", feed_id, "forced" if forced else "background",
+            feed["feed_link"] or "-", "always" if direct is self.proxy_client else "on retry" if proxy else "none",
+        )  # fmt: skip
+        page: dict = {}  # "links": the icon links of the site's page, once it was downloaded
         try:
-            feed = await self.db(load_feed, feed_id)
-            if feed is None:
-                return
-            page_url = feed["feed_link"] or ""
-            clients = [self.client_for(feed["use_proxy"])]
-            if self.proxy_client is not None and clients[0] is not self.proxy_client:
-                clients.append(self.proxy_client)
-
-            async def get(call):
-                # A site the feed's own connection cannot reach is retried through the proxy, and the
-                # proxy is kept for the rest of this feed's downloads.
-                result = await call(clients[0])
-                if result.error_code in (502, 504) and len(clients) > 1:
-                    clients.pop(0)
-                    result = await call(clients[0])
-                return result
-
-            candidates = []
-            try:
-                if page_url:
-                    page = await get(lambda client: fetcher.download_page(client, page_url, 2 * 1024 * 1024, 10))
-                    if page.ok and page.body:
-                        parsed = await self.pool.run(
-                            "parse_page", {"body": page.body, "base_url": page.url, "content_type": page.content_type},
-                            limit=TIME_LIMITS["parse_page"],
-                        )  # fmt: skip
-                        candidates.extend(parsed.get("icon_links") or [])
-                if feed["image_url"]:
-                    candidates.append(urljoin(page_url or feed["feed_address"], feed["image_url"]))
-                candidates.append(site_root(page_url or feed["feed_address"]) + "/favicon.ico")
-                headers = {"User-Agent": fetcher.BROWSER_UA, "Accept": "image/png,image/x-icon,image/*;q=0.9,*/*;q=0.8"}
-                for url in list(dict.fromkeys(candidates))[:6]:
-                    image = await get(
-                        lambda client, url=url: fetcher.download(
-                            client, url, headers=headers, max_bytes=512 * 1024, total_timeout=10
-                        )
-                    )
-                    if not image.ok or not image.body:
-                        continue
-                    stored = await self.pool.run(
-                        "process_icon", {"feed_id": feed_id, "data": image.body, "icon_url": url},
-                        limit=TIME_LIMITS["process_icon"],
-                    )  # fmt: skip
-                    if stored.get("ok"):
-                        wakeup.notify()
-                        return
-            except (TaskTimeout, TaskCrashed, TaskFailed) as e:
-                log.info("icon for feed %s failed: %r", feed_id, e)
+            async with (self.interactive_slots if forced else contextlib.nullcontext()):
+                clients = [direct, proxy] if proxy else [direct]
+                retry = forced and proxy is not None
+                first_end = min(end, loop.time() + FORCED_ICON_SECONDS / 2) if retry else end
+                stored = await self.icon_pass(feed, clients, tried, page, first_end)
+                if stored is None and retry and clients[0] is not proxy:
+                    clients = [proxy]
+                    stored = await self.icon_pass(feed, clients, tried, page, end)
+        except (TaskTimeout, TaskCrashed, TaskFailed) as e:
+            log.info("icon for feed %s failed: %r", feed_id, e)
+            stored = None
+        outcome["tried"] = len(tried)
+        outcome["out_of_time"] = stored is None and loop.time() >= end - 1
+        if stored is None:
+            log.info("icon feed=%s: no icon found, %d addresses tried", feed_id, len(tried))
             await self.db(icon_not_found, feed_id)  # R8.6
-        finally:
-            self.icons_in_flight.discard(feed_id)
+            return outcome
+        wakeup.notify()
+        return {**outcome, "found": True, "icon_url": stored[0], "favicon_color": stored[1]}
+
+    async def icon_pass(
+        self, feed: dict, clients: list, tried: set[str], page: dict, end: float = math.inf
+    ) -> tuple[str, str] | None:
+        """One search over the site's page, the feed's image and /favicon.ico, or only over the icon
+        address set by hand. A site the first client cannot reach is retried through the next, which is
+        kept for the rest of the pass (`clients` is shortened in place). The page is downloaded once
+        per search: a later pass reuses the links in `page`. Downloads stop at `end` (event loop time).
+        Returns the address and the color of the stored icon."""
+        page_url = feed["feed_link"] or ""
+        loop = asyncio.get_running_loop()
+        feed_id = feed["id"]
+
+        def time_left() -> float | None:
+            """At most 10 s for a download, None when too little time is left to start one."""
+            left = end - loop.time()
+            if left < 1:
+                log.info("icon feed=%s: out of time", feed_id)
+                return None
+            return min(10.0, left)
+
+        async def get(url: str, call):
+            """Download `url` with call(client, timeout), logging each attempt."""
+            for attempt in (1, 2):
+                timeout = time_left()
+                if timeout is None:
+                    return None
+                client = clients[0]
+                result = await call(client, timeout)
+                via = "proxy" if client is self.proxy_client else "direct"
+                if result.error_code:
+                    answer = f"error {result.error_code} {result.error}"
+                else:
+                    answer = f"{result.status} {result.content_type or '-'} {len(result.body)} bytes"
+                log.info("icon feed=%s %s %s -> %s (%d ms)", feed_id, via, url, answer, result.ms)
+                if attempt == 2 or result.error_code not in (502, 504) or len(clients) < 2:
+                    return result
+                clients.pop(0)
+
+        if feed["icon_link"]:
+            candidates = [feed["icon_link"]]
+            log.info("icon feed=%s: the icon address is set by hand", feed_id)
+        else:
+            candidates = await self.page_icon_links(feed, page, get)
+            if candidates is None:
+                return None
+            if feed["image_url"]:
+                candidates.append(urljoin(page_url or feed["feed_address"], feed["image_url"]))
+            candidates.append(site_root(page_url or feed["feed_address"]) + "/favicon.ico")
+        headers = {"User-Agent": fetcher.BROWSER_UA, "Accept": "image/png,image/x-icon,image/*;q=0.9,*/*;q=0.8"}
+        for url in list(dict.fromkeys(candidates))[:6]:
+            image = await get(
+                url,
+                lambda client, timeout, url=url: fetcher.download(
+                    client, url, headers=headers, max_bytes=512 * 1024, total_timeout=timeout
+                ),
+            )
+            if image is None:
+                return None
+            tried.add(url)
+            if not image.ok or not image.body:
+                continue
+            stored = await self.pool.run(
+                "process_icon", {"feed_id": feed_id, "data": image.body, "icon_url": url},
+                limit=TIME_LIMITS["process_icon"],
+            )  # fmt: skip
+            if stored.get("ok"):
+                log.info("icon feed=%s: stored %s", feed_id, url)
+                return url, stored["color"]
+            log.info("icon feed=%s: %s rejected: %s", feed_id, url, stored.get("reason"))
+        return None
+
+    async def page_icon_links(self, feed: dict, page: dict, get) -> list[str] | None:
+        """The icon links of the feed's site page: downloaded with `get` the first time, kept in `page`
+        once the download worked. None when the search ran out of time."""
+        if "links" in page:
+            return list(page["links"])
+        page_url = feed["feed_link"] or ""
+        if not page_url:
+            return []
+        result = await get(
+            page_url, lambda client, timeout: fetcher.download_page(client, page_url, 2 * 1024 * 1024, timeout)
+        )
+        if result is None:
+            return None
+        if not (result.ok and result.body):
+            return []
+        parsed = await self.pool.run(
+            "parse_page", {"body": result.body, "base_url": result.url, "content_type": result.content_type},
+            limit=TIME_LIMITS["parse_page"],
+        )  # fmt: skip
+        page["links"] = list(parsed.get("icon_links") or [])
+        log.info("icon feed=%s: the page links %d icons: %s", feed["id"], len(page["links"]), " ".join(page["links"]) or "-")
+        return list(page["links"])
