@@ -30,6 +30,7 @@ export interface Feed {
   exception_code: number
   exception_message: string
   errors_since_good: number
+  last_update: number // UTC seconds of the latest fetch attempt; 0 before the first
 }
 
 export interface SavedCounts {
@@ -119,6 +120,7 @@ export interface Prefs {
   read_story_delay: number
   mark_read_on_scroll_titles: boolean
   open_feed_action: 'newest' | 'none'
+  start_page: 'home' | 'all' | 'last'
   markread_nextfeed: 'nextfeed' | 'nothing'
   mark_read_river_confirm: boolean
   new_window: boolean

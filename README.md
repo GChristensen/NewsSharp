@@ -168,6 +168,12 @@ tests/      pytest suite
   opens its share page, copies the link or text, prints the story or starts an email; nothing is sent
   through the server. NewsBlur's Pocket, Delicious, Google+ and Evernote entries are left out because
   those services or their share pages no longer exist.
+- **Start page**: `/` shows a start page instead of an empty content area. It shows the unread total
+  with a Start reading button (Enter), the last opened feed or folder to continue, top-level folders
+  ranked by unread count, the newest unread headlines, feeds that failed at least twice in a row and
+  the Saved for Later tags. With no subscriptions it offers Add, OPML import and a subscribe
+  bookmarklet. Shift+H and the sidebar's home button open it; the `start_page` preference can open
+  All Site Stories or the last scope at startup instead. The last scope is remembered per browser.
 
 ## License
 

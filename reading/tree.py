@@ -204,6 +204,7 @@ def tree_payload(user) -> dict:
                 "exception_code": feed.exception_code,
                 "exception_message": messages.get(feed.id, ""),
                 "errors_since_good": feed.errors_since_good,
+                "last_update": feed.last_update,
             }
         )
     folders = list(live_folders(user).values("id", "parent_id", "title", "position", "collapsed"))

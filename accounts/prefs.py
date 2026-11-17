@@ -91,7 +91,7 @@ CATALOG = {
     "title_counts": (_bool, True),
     "sidebar_mode": (_enum("all", "unread", "saved"), "all"),
     "show_feed_filter": (_bool, False),
-    "show_all_site_stories": (_bool, False),
+    "show_all_site_stories": (_bool, True),
     "theme": (_enum("auto", "light", "dark"), "dark"),
     "dateformat": (_enum("12", "24"), "24"),
     "timezone": (_timezone, "UTC"),
@@ -99,6 +99,8 @@ CATALOG = {
     "read_story_delay": (_int(-1, 60), 0),
     "mark_read_on_scroll_titles": (_bool, False),
     "open_feed_action": (_enum("newest", "none"), "newest"),
+    # What `/` shows when the app is opened: the start page, All Site Stories or the last open scope.
+    "start_page": (_enum("home", "all", "last"), "home"),
     "markread_nextfeed": (_enum("nextfeed", "nothing"), "nextfeed"),
     "mark_read_river_confirm": (_bool, True),
     "new_window": (_bool, True),

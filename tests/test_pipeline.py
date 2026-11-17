@@ -13,6 +13,7 @@ from feeds.util import InvalidUrl, guid_hash, normalize_url, now
 from reading import unread
 from reading.models import ReadStory
 from worker import pipeline, scheduling
+from worker.models import WorkerEvent
 from worker.tasks import dominant_color, parse_page
 
 pytestmark = pytest.mark.django_db
@@ -179,6 +180,19 @@ def test_html_at_feed_address_is_552_and_asks_for_rediscovery(make_feed):
     feed.refresh_from_db()
     assert feed.has_exception and feed.errors_since_good == 1
     assert FeedFetchLog.objects.filter(feed=feed, status_code=552, message="Non-xml feed").exists()
+
+
+def test_fetched_event_and_tree_carry_the_failure_state(api, user, make_feed, subscribe):
+    """The start page lists failing feeds and the last update from the tree and feed:fetched events."""
+    feed = make_feed()
+    subscribe(user, feed)
+    pipeline.record_failure(feed.id, 500, "Server error")
+    pipeline.record_failure(feed.id, 500, "Server error")
+    feed.refresh_from_db()
+    event = WorkerEvent.objects.filter(feed_id=feed.id, type="feed_fetched").last()
+    assert event.payload["errors_since_good"] == 2 and event.payload["last_update"] == feed.last_update > 0
+    row = api.get("/api/tree").json()["feeds"][0]
+    assert row["errors_since_good"] == 2 and row["last_update"] == feed.last_update
 
 
 def test_parse_page_finds_feed_and_icon_links():

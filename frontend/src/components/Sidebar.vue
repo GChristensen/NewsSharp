@@ -3,7 +3,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, provide, reactive, ref } from 'vue'
 import {
-  markFeedRead, markScopeRead, openAll, openFeed, openFolder, openInNewTab, openScope, refreshFeed, setFeedMuted,
+  markFeedRead, markScopeRead, openAll, openFeed, openFolder, openHome, openInNewTab, openScope, refreshFeed, setFeedMuted,
 } from '../actions'
 import { api, errorMessage } from '../api'
 import { useSession } from '../stores/session'
@@ -342,6 +342,7 @@ function manageMenu(event: MouseEvent) {
   <div class="bar">
     <button class="btn" title="Manage" @click="manageMenu"><Icon name="user" /> {{ session.user?.username }}</button>
     <span class="spacer" />
+    <button class="btn icon-only" :class="{ active: !stories.scope }" title="Start page (Shift+H)" @click="openHome()"><Icon name="home" /></button>
     <button
       v-if="settings.prefs.feedxcavator_newspaper_url" class="btn icon-only" title="Feedxcavator news"
       @click="runNewspaperHandler"

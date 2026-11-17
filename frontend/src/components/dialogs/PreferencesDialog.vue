@@ -42,6 +42,7 @@ const TABS: Record<string, Field[]> = {
     { key: 'days_of_unread', label: 'Days a story stays unread', type: 'number', min: 1, max: 365 },
     { key: 'read_story_delay', label: 'Mark a selected story read after (seconds)', type: 'number', min: -1, max: 60, hint: '0 = at once, -1 = never' },
     { key: 'mark_read_on_scroll_titles', label: 'Mark stories read when scrolled past (Split)', type: 'bool' },
+    { key: 'start_page', label: 'When NewsSharp opens', type: 'select', options: [['home', 'Show the start page'], ['all', 'Open All Site Stories'], ['last', 'Open the last feed or folder']] },
     { key: 'open_feed_action', label: 'When a feed opens (Split)', type: 'select', options: [['newest', 'Select the first story'], ['none', 'Select nothing']] },
     { key: 'markread_nextfeed', label: 'After marking a feed read', type: 'select', options: [['nextfeed', 'Open the next unread feed'], ['nothing', 'Stay']] },
     { key: 'mark_read_river_confirm', label: 'Confirm marking All Site Stories read', type: 'bool' },

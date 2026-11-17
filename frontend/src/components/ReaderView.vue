@@ -3,13 +3,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { effectiveLayout, scopeTitle, selectStory } from '../actions'
-import { scopeFromRoute } from '../router'
+import { continueTarget, effectiveLayout, scopeTitle, selectStory } from '../actions'
+import { scopeFromRoute, scopePath } from '../router'
 import { useSettings } from '../stores/settings'
 import { useStories } from '../stores/stories'
 import { useTree } from '../stores/tree'
 import { useUi } from '../stores/ui'
 import { subscribeUrlFromLocation } from '../utils/format'
+import { lastScope, rememberScope } from '../utils/lastScope'
 import { handleKey } from '../utils/shortcuts'
 import ContentArea from './ContentArea.vue'
 import ContextMenu from './ContextMenu.vue'
@@ -35,6 +36,17 @@ const sidebarVisible = computed(() => !settings.prefs.sidebar_collapsed && !ui.f
 
 // ------------------------------------------------------------------ route -> scope
 
+/** Only the first navigation applies the start page preference; later visits to `/` show the page. */
+let firstSync = true
+
+/** The scope to open instead of the start page when the app opens at `/` (`start_page`). */
+function startupScope(): string | null {
+  const choice = settings.prefs.start_page
+  if (choice === 'all') return 'all'
+  if (choice === 'last') return continueTarget(lastScope())?.scope ?? null
+  return null
+}
+
 function sync() {
   if (route.name === 'subscribe') {
     // R20.10: everything after /subscribe/ in the raw location, query string included, is the URL.
@@ -47,7 +59,16 @@ function sync() {
     router.replace('/')
     return
   }
+  const startup = firstSync
+  firstSync = false
   const scope = scopeFromRoute(route)
+  if (!scope && startup && route.name === 'home') {
+    const start = startupScope()
+    if (start) {
+      router.replace(scopePath(start))
+      return
+    }
+  }
   const query = typeof route.query.q === 'string' ? route.query.q : ''
   const storyId = route.params.storyId ? Number(route.params.storyId) : null
   if (!scope) {
@@ -55,6 +76,7 @@ function sync() {
     return
   }
   if (scope !== stories.scope) {
+    if (!query) rememberScope(scope)
     stories.open(scope, { storyId, query }).then(() => {
       // R10.6: `newest` selects the first story when a scope opens in Split layout.
       const first = stories.stories[0]

@@ -2,8 +2,8 @@
 // dialog use this one table (R11.3). No shortcut uses Alt or Meta (R11.2); the Ctrl shortcuts are
 // global: they also work while an input has the focus, and they replace the browser's own action.
 import {
-  cycleSidebarMode, cycleView, effectiveLayout, markScopeRead, nextUnread, oldestUnread, openAll, openInNewTab, refreshFeed,
-  selectStory, stepFeed, stepStory, toggleView,
+  cycleSidebarMode, cycleView, effectiveLayout, markScopeRead, nextUnread, oldestUnread, openAll, openHome, openInNewTab, refreshFeed,
+  selectStory, startReading, stepFeed, stepStory, toggleView,
 } from '../actions'
 import { useSettings } from '../stores/settings'
 import { useStories } from '../stores/stories'
@@ -77,7 +77,7 @@ function toggleReadFilter() {
 
 export const SHORTCUTS: Shortcut[] = [
   { keys: ['?'], label: 'Keyboard shortcuts', run: () => useUi().openDialog('shortcuts') },
-  { keys: ['j', 'ArrowDown'], label: 'Next story', run: () => vertical(1) },
+  { keys: ['j', 'ArrowDown'], label: 'Next story (on the start page: start reading)', run: () => vertical(1) },
   { keys: ['k', 'ArrowUp'], label: 'Previous story', run: () => vertical(-1) },
   { keys: ['n'], label: 'Next unread story, across feeds', run: () => nextUnread() },
   { keys: ['p', 'b'], label: 'Previous story in reading history', run: () => useStories().previousInHistory() },
@@ -87,7 +87,11 @@ export const SHORTCUTS: Shortcut[] = [
   { keys: ['ArrowRight'], label: 'Next view (or next feed)', run: () => horizontal(1) },
   { keys: ['h'], label: 'Previous view', run: () => cycleView(-1) },
   { keys: ['l'], label: 'Next view', run: () => cycleView(1) },
-  { keys: ['Enter'], label: 'Toggle Text view', run: () => toggleView('text') },
+  {
+    keys: ['Enter'],
+    label: 'Toggle Text view (on the start page: start reading)',
+    run: () => (useStories().scope ? toggleView('text') : startReading()),
+  },
   { keys: ['Shift+Enter'], label: 'Toggle Story view', run: () => toggleView('story') },
   { keys: ['Space'], label: 'Page down; at the end, next unread story', run: () => page(1) },
   { keys: ['Shift+Space'], label: 'Page up', run: () => page(-1) },
@@ -103,6 +107,7 @@ export const SHORTCUTS: Shortcut[] = [
   { keys: ['Shift+b'], label: 'Mark older stories as read', run: () => withSelected((s) => useStories().markRelative(s, 'older')) },
   { keys: ['Shift+a'], label: 'Mark all as read', run: () => markScopeRead(0, undefined, { undoable: true }) },
   { keys: ['Shift+e'], label: 'Open All Site Stories', run: () => openAll() },
+  { keys: ['Shift+h'], label: 'Go to the start page', run: () => openHome() },
   { keys: ['Shift+u'], label: 'Toggle the sidebar', run: () => useSettings().set('sidebar_collapsed', !useSettings().prefs.sidebar_collapsed) },
   { keys: ['Shift+f'], label: 'Full screen reading', run: () => (useUi().fullscreen = !useUi().fullscreen) },
   { keys: ['Shift+l', 'Ctrl+u'], label: 'Toggle the read filter (Unread / All)', run: toggleReadFilter },

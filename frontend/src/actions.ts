@@ -37,6 +37,60 @@ export function openAll() {
   return openScope(savedMode() ? 'saved' : 'all')
 }
 
+export function openHome() {
+  return router.push('/')
+}
+
+/** A top-level row of the tree with unread stories, as ranked on the start page. */
+export interface UnreadGroup {
+  scope: string
+  title: string
+  unread: number
+  feedIds: number[] // the feeds with the most unread stories first
+}
+
+/** Top-level folders and feeds with unread stories, most unread first; muted feeds do not count. */
+export function unreadGroups(): UnreadGroup[] {
+  const tree = useTree()
+  const counted = (ids: number[]) =>
+    ids
+      .map((id) => tree.feedById.get(id)!)
+      .filter((f) => !f.muted && f.unread > 0)
+      .sort((a, b) => b.unread - a.unread)
+  const groups: UnreadGroup[] = []
+  for (const item of tree.children(null)) {
+    if (item.kind === 'folder') {
+      const feeds = counted(tree.folderFeedIds(item.folder.id))
+      const unread = feeds.reduce((sum, f) => sum + f.unread, 0)
+      if (unread) groups.push({ scope: `folder:${item.folder.id}`, title: item.folder.title, unread, feedIds: feeds.map((f) => f.id) })
+    } else if (!item.feed.muted && item.feed.unread > 0) {
+      groups.push({ scope: `feed:${item.feed.id}`, title: item.feed.title, unread: item.feed.unread, feedIds: [item.feed.id] })
+    }
+  }
+  return groups.sort((a, b) => b.unread - a.unread)
+}
+
+/** The start page's main action: the group with the most unread stories, or All Site Stories. */
+export function startReading() {
+  const top = unreadGroups()[0]
+  if (!top) return useUi().toast('No unread stories remain.')
+  return openScope(useTree().folders.length ? top.scope : 'all')
+}
+
+/** The remembered scope, if it still exists; with its unread count. */
+export function continueTarget(scope: string | null): { scope: string; unread: number } | null {
+  const tree = useTree()
+  if (!scope) return null
+  if (scope === 'all') return { scope, unread: tree.totalUnread }
+  const [kind, raw] = scope.split(':')
+  const id = Number(raw)
+  if (kind === 'feed') {
+    const feed = tree.feedById.get(id)
+    return feed ? { scope, unread: feed.muted ? 0 : feed.unread } : null
+  }
+  return tree.folderById.has(id) ? { scope, unread: tree.folderUnread(id) } : null
+}
+
 export function scopeTitle(scope: string | null): string {
   if (!scope) return 'NewsSharp'
   const tree = useTree()
@@ -98,7 +152,10 @@ export function selectStory(story: Story | null) {
 
 export async function stepStory(step: 1 | -1) {
   const stories = useStories()
-  if (!stories.scope) return
+  if (!stories.scope) {
+    if (step === 1) await startReading() // on the start page, "next" begins reading
+    return
+  }
   let index = stories.selectedIndex + step
   if (stories.selectedIndex === -1) index = step === 1 ? 0 : -1
   if (index >= stories.stories.length && !stories.ended) {

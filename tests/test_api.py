@@ -358,6 +358,11 @@ def test_preferences_and_view_settings(api, user, make_feed, subscribe):
         assert bad.status_code == 422
     good = api.patch("/api/preferences", data=json.dumps({"share_services": ["reddit", "print"]}), content_type="application/json")
     assert good.json()["preferences"]["share_services"] == ["reddit", "print"]
+    assert good.json()["preferences"]["start_page"] == "home"
+    bad = api.patch("/api/preferences", data=json.dumps({"start_page": "saved"}), content_type="application/json")
+    assert bad.status_code == 422
+    good = api.patch("/api/preferences", data=json.dumps({"start_page": "last"}), content_type="application/json")
+    assert good.json()["preferences"]["start_page"] == "last"
     put = api.put("/api/view-settings", data=json.dumps({"scope": f"feed:{feed.id}", "key": "layout", "value": "grid"}),
                   content_type="application/json")  # fmt: skip
     assert put.json()["view_settings"] == {f"feed:{feed.id}": {"layout": "grid"}}
@@ -519,6 +524,7 @@ def test_push_notifications(client, push, user, subscribe):
     assert not feed.has_exception and feed.exception_code == 0 and feed.errors_since_good == 0
     fetched = WorkerEvent.objects.filter(feed_id=push.feed_id, type="feed_fetched").last()
     assert fetched is not None and fetched.payload["has_exception"] is False
+    assert fetched.payload["last_update"] == feed.last_update > 0
     empty = pipeline.process_feed(push.feed_id, {"kind": "push", "body": b"", "content_type": ""})
     assert empty == {"fetch_needed": True}
 

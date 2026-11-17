@@ -13,6 +13,7 @@ import { useUi, type MenuItem } from '../stores/ui'
 import type { Layout, View, ViewKey } from '../types'
 import FeedIcon from './FeedIcon.vue'
 import Icon from './Icon.vue'
+import StartPage from './StartPage.vue'
 import StoryList from './StoryList.vue'
 import StoryPane from './StoryPane.vue'
 import StylePopover from './StylePopover.vue'
@@ -146,7 +147,8 @@ function dragDivider(event: PointerEvent) {
       <button class="btn icon-only" title="Previous story (K)" :disabled="!scope" @click="stepStory(-1)"><Icon name="chevron-left" /></button>
       <button class="btn icon-only" title="Next story (J)" :disabled="!scope" @click="stepStory(1)"><Icon name="chevron-right" /></button>
       <div class="scope-title">
-        <template v-if="scope">
+        <template v-if="!scope"><Icon name="home" /><span>Start</span></template>
+        <template v-else>
           <FeedIcon v-if="stories.feedId !== null" :feed-id="stories.feedId" />
           <Icon v-else-if="stories.isSaved" name="bookmark" />
           <Icon v-else-if="scope === 'all'" name="stack" />
@@ -194,7 +196,7 @@ function dragDivider(event: PointerEvent) {
     </div>
 
     <div class="content-body">
-      <div v-if="!scope" class="hint">Select a feed or folder</div>
+      <StartPage v-if="!scope" />
       <template v-else-if="layout === 'split'">
         <div class="split" :class="anchor">
           <template v-if="!ui.fullscreen">

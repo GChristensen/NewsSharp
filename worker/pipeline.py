@@ -200,7 +200,11 @@ def _schedule_fields(feed_id: int, stats: dict, errors: int, ts: int, hint: int 
 
 
 def _fetched_event(feed_id: int, ts: int) -> None:
-    feed = Feed.objects.filter(pk=feed_id).values("fetched_once", "has_exception", "exception_code", "title", "favicon_color").first()
+    feed = (
+        Feed.objects.filter(pk=feed_id)
+        .values("fetched_once", "has_exception", "exception_code", "errors_since_good", "last_update", "title", "favicon_color")
+        .first()
+    )
     if feed:
         WorkerEvent.objects.create(at=ts, type="feed_fetched", feed_id=feed_id, payload=feed)
 
@@ -299,7 +303,7 @@ def process_feed(feed_id: int, fetch: dict) -> dict:
             # A usable pushed body shows the feed is alive: clear a failed fetch's error state and tell
             # the clients, as a successful fetch does.
             Feed.objects.filter(pk=feed_id).update(
-                errors_since_good=0, has_exception=False, exception_code=0,
+                errors_since_good=0, has_exception=False, exception_code=0, last_update=ts,
                 **stats, **_schedule_fields(feed_id, stats, 0, ts),
             )  # fmt: skip
             store.log_fetch(feed_id, "push", 200, f"OK, {counts['new']} new, {counts['updated']} updated", elapsed())

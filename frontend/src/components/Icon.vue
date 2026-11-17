@@ -38,6 +38,7 @@ const PATHS: Record<string, string> = {
   'arrow-up': 'M12 19V5M6 11l6-6 6 6',
   copy: 'M9 9h11v11H9zM5 15H4V4h11v1',
   stack: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5',
+  home: 'M3 11l9-7 9 7M5 9.500V20h14V9.500M10 20v-6h4v6',
   single: 'M6 3h12v18H6zM9 8h6M9 12h6M9 16h4',
   image: 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4',
   type: 'M5 7V5h14v2M12 5v14M9 19h6',
