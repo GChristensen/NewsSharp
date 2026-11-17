@@ -83,6 +83,8 @@ export type View = 'original' | 'feed' | 'text' | 'story'
 export type Layout = 'full' | 'split' | 'list' | 'grid' | 'magazine'
 export type ViewKey = 'view' | 'layout' | 'order' | 'read_filter' | 'grid_columns' | 'show_content_preview' | 'image_preview' | 'story_display'
 export type Size = 'xs' | 's' | 'm' | 'l' | 'xl'
+/** Variants of the dark theme: the data-tint blocks of styles.css. */
+export type DarkTint = 'graphite' | 'oled' | 'ink' | 'navy' | 'warm' | 'moss' | 'teal' | 'plum' | 'ember' | 'rose' | 'dim'
 
 export interface Prefs {
   default_view: View
@@ -114,6 +116,7 @@ export interface Prefs {
   show_feed_filter: boolean
   show_all_site_stories: boolean
   theme: 'auto' | 'light' | 'dark'
+  dark_tint: DarkTint
   dateformat: '12' | '24'
   timezone: string
   days_of_unread: number

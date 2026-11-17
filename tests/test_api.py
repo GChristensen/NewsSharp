@@ -603,3 +603,16 @@ def test_feed_settings_proxy(api, user, other_user, make_feed, make_story, subsc
 
     stranger = make_feed("https://other.example/feed.xml")
     assert api.get(f"/api/feeds/{stranger.id}/settings").status_code == 404
+
+
+def test_index_carries_the_theme(client, api, user, settings, tmp_path):
+    """The shell page names the user's theme and dark tint in its html tag, so the first paint uses them."""
+    (tmp_path / "index.html").write_text('<!doctype html>\n<html lang="en" data-theme="dark"><head></head></html>')
+    settings.FRONTEND_DIST = tmp_path
+    assert 'data-theme="dark" data-tint="graphite"' in api.get("/").content.decode()
+    api.patch("/api/preferences", data=json.dumps({"theme": "auto", "dark_tint": "oled"}), content_type="application/json")
+    assert 'data-theme="auto" data-tint="oled"' in api.get("/").content.decode()
+    bad = api.patch("/api/preferences", data=json.dumps({"dark_tint": "slate"}), content_type="application/json")
+    assert bad.status_code == 422
+    client.logout()
+    assert 'data-theme="dark" data-tint="graphite"' in client.get("/login").content.decode()

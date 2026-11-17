@@ -59,6 +59,8 @@ CONTENT_PREVIEWS = ("title", "small", "medium", "large")
 IMAGE_PREVIEWS = ("none", "small-left", "small-right", "large-left", "large-right")
 # Full layout: "images" shows only the story bodies, without titles or any story controls.
 STORY_DISPLAYS = ("standard", "images")
+# Variants of the dark theme (data-tint in frontend/src/styles.css); "graphite" is the base dark theme.
+DARK_TINTS = ("graphite", "oled", "ink", "navy", "warm", "moss", "teal", "plum", "ember", "rose", "dim")
 # Maximum width of the content preview in List and Magazine, in pixels (0: no limit).
 SUMMARY_WIDTH_MIN = 300
 SUMMARY_WIDTH_MAX = 1600
@@ -93,6 +95,7 @@ CATALOG = {
     "show_feed_filter": (_bool, False),
     "show_all_site_stories": (_bool, True),
     "theme": (_enum("auto", "light", "dark"), "dark"),
+    "dark_tint": (_enum(*DARK_TINTS), "graphite"),
     "dateformat": (_enum("12", "24"), "24"),
     "timezone": (_timezone, "UTC"),
     "days_of_unread": (_int(1, 365), 30),

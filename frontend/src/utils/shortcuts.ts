@@ -110,7 +110,7 @@ export const SHORTCUTS: Shortcut[] = [
   { keys: ['Shift+h'], label: 'Go to the start page', run: () => openHome() },
   { keys: ['Shift+u'], label: 'Toggle the sidebar', run: () => useSettings().set('sidebar_collapsed', !useSettings().prefs.sidebar_collapsed) },
   { keys: ['Shift+f'], label: 'Full screen reading', run: () => (useUi().fullscreen = !useUi().fullscreen) },
-  { keys: ['Shift+l', 'Ctrl+u'], label: 'Toggle the read filter (Unread / All)', run: toggleReadFilter },
+  { keys: ['Shift+l'], label: 'Toggle the read filter (Unread / All)', run: toggleReadFilter },
   { keys: ['+'], label: 'Next sidebar mode (All, Unread, Saved for Later)', run: () => cycleSidebarMode(1) },
   { keys: ['-'], label: 'Previous sidebar mode', run: () => cycleSidebarMode(-1) },
   { keys: ['g'], label: 'Jump to a feed by name', run: (context) => context.focusFilter() },

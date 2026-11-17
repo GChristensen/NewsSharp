@@ -1,5 +1,6 @@
 """Synchronous API views (api/views.py): session, tree, read state, saved stories, story lists,
 settings, OPML, statistics. Each runs in a request thread (R0.32) and never calls the network (R0.6)."""
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -672,9 +673,21 @@ def index(request, **kwargs):
             "<code>npm run build</code> in <code>frontend/</code>.</p>",
             status=503,
         )
-    response = HttpResponse(path.read_bytes(), content_type="text/html; charset=utf-8")
+    response = HttpResponse(_with_theme(path.read_text(encoding="utf-8"), request.user),
+                            content_type="text/html; charset=utf-8")
     response["Cache-Control"] = "no-cache"
     return response
+
+
+_HTML_TAG = re.compile(r"<html\b[^>]*>")
+
+
+def _with_theme(html: str, user) -> str:
+    """Write the user's theme and dark tint into the html tag, so the first paint already uses them
+    (an inline script in index.html resolves "auto"). Anonymous visitors get the defaults."""
+    values = prefs.effective(user.preferences if user.is_authenticated else None)
+    tag = f'<html lang="en" data-theme="{values["theme"]}" data-tint="{values["dark_tint"]}">'
+    return _HTML_TAG.sub(tag, html, count=1)
 
 
 def api_not_found(request, **kwargs):

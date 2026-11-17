@@ -51,6 +51,7 @@ export const useSettings = defineStore('settings', {
     applyTheme() {
       const root = document.documentElement
       root.dataset.theme = this.dark ? 'dark' : 'light'
+      root.dataset.tint = this.prefs.dark_tint
       const reduce = !this.prefs.animations || window.matchMedia('(prefers-reduced-motion: reduce)').matches
       root.dataset.animations = reduce ? 'off' : 'on'
       for (const key of ['story_size', 'story_line_spacing', 'feed_size', 'grid_height', 'density'] as const) {

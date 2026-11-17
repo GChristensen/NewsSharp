@@ -1,15 +1,22 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-tint="graphite">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="referrer" content="no-referrer" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>NewsSharp</title>
-    <script type="module" crossorigin src="/assets/index-BqamkrEq.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BU1jcWkh.css">
+    <script>
+      // The web process writes the theme preference into the html tag; "auto" is resolved here,
+      // before the first paint, so the page never shows the wrong theme while the app boots.
+      if (document.documentElement.dataset.theme === 'auto') {
+        document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      }
+    </script>
+    <script type="module" crossorigin src="/assets/index-BCAC5JDJ.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CKIB_7oZ.css">
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app"></div>
   </body>
 </html>

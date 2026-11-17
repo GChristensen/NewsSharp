@@ -1,20 +1,20 @@
 <!-- Preferences dialog (frontend/src/components/dialogs/PreferencesDialog.vue): the settings page of
      item 19 with its General, Reading, Appearance, Sharing and Keyboard sections. -->
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { api, errorMessage } from '../../api'
 import { useSession } from '../../stores/session'
 import { useSettings } from '../../stores/settings'
 import { useStories } from '../../stores/stories'
 import { useUi } from '../../stores/ui'
-import type { Prefs, ViewKey } from '../../types'
+import type { DarkTint, Prefs, ViewKey } from '../../types'
 import { SHARE_SERVICES } from '../../utils/share'
 import Modal from '../Modal.vue'
 
 interface Field {
   key: keyof Prefs
   label: string
-  type: 'bool' | 'select' | 'number' | 'text'
+  type: 'bool' | 'select' | 'number' | 'text' | 'tint'
   options?: [string, string][]
   min?: number
   max?: number
@@ -49,7 +49,15 @@ const TABS: Record<string, Field[]> = {
     { key: 'new_window', label: 'Open story links in a new tab', type: 'bool' },
   ],
   Appearance: [
-    { key: 'theme', label: 'Theme', type: 'select', options: [['dark', 'Dark'], ['light', 'Light'], ['auto', 'Follow the system']] },
+    {
+      key: 'dark_tint', label: 'Theme', type: 'tint', hint: 'Hover a square to preview it',
+      options: [
+        ['light', 'Light'], ['graphite', 'Graphite, blue accent'], ['oled', 'OLED black, white accent'], ['ink', 'Ink, blue accent'],
+        ['navy', 'Midnight navy, periwinkle accent'], ['warm', 'Warm charcoal, amber accent'], ['moss', 'Moss, green accent'],
+        ['teal', 'Deep teal, cyan accent'], ['plum', 'Plum, violet accent'], ['ember', 'Ember, coral accent'],
+        ['rose', 'Rosé, pink accent'], ['dim', 'Dim grey, soft blue accent'],
+      ],
+    },
     { key: 'feed_size', label: 'Feed list and title size', type: 'select', options: SIZES },
     { key: 'show_content_preview', label: 'Default content preview', type: 'select', options: [['title', 'Title only'], ['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']] },
     { key: 'image_preview', label: 'Default image preview', type: 'select', options: [['none', 'No image'], ['small-left', 'Small, left'], ['large-left', 'Large, left'], ['large-right', 'Large, right'], ['small-right', 'Small, right']] },
@@ -78,6 +86,35 @@ const tab = ref(props.initialTab && props.initialTab in TABS ? props.initialTab 
 const instance = ref<{ public_base_url: string; manual: boolean; current_origin: string } | null>(null)
 const publicUrl = ref('')
 const message = ref('')
+
+/** A square of the theme picker: the light theme, or a tint of the dark theme. */
+type ThemeChoice = 'light' | DarkTint
+
+/** The framed square. "Follow the system" (set from the sidebar menu) frames the tint it uses when dark. */
+function isChosen(choice: ThemeChoice): boolean {
+  const light = settings.prefs.theme === 'light'
+  return choice === 'light' ? light : !light && settings.prefs.dark_tint === choice
+}
+
+/** Show a theme on the whole page while its square is hovered; leaving the row or closing the dialog
+    restores the saved preferences. */
+function previewTheme(choice: ThemeChoice) {
+  const root = document.documentElement
+  root.dataset.theme = choice === 'light' ? 'light' : 'dark'
+  if (choice !== 'light') root.dataset.tint = choice
+}
+
+function chooseTheme(choice: ThemeChoice) {
+  if (choice === 'light') {
+    settings.set('theme', 'light')
+  } else {
+    settings.set('dark_tint', choice)
+    settings.set('theme', 'dark')
+  }
+  previewTheme(choice) // keep showing it while the pointer stays on the square
+}
+
+onUnmounted(() => settings.applyTheme())
 
 function update(field: Field, event: Event) {
   const input = event.target as HTMLInputElement
@@ -144,8 +181,15 @@ onMounted(async () => {
       <button v-for="(_, name) in TABS" :key="name" class="btn" :class="{ active: tab === name }" @click="(tab = name as string), (message = '')">{{ name }}</button>
     </div>
     <div v-for="field in TABS[tab]" :key="field.key" class="form-row">
-      <label :for="`pref-${field.key}`">{{ field.label }}<span v-if="field.hint" class="dim" style="display: block; font-size: 11px">{{ field.hint }}</span></label>
-      <input v-if="field.type === 'bool'" :id="`pref-${field.key}`" type="checkbox" :checked="!!settings.prefs[field.key]" @change="update(field, $event)" />
+      <label :id="`pref-label-${field.key}`" :for="field.type === 'tint' ? undefined : `pref-${field.key}`">{{ field.label }}<span v-if="field.hint" class="dim" style="display: block; font-size: 11px">{{ field.hint }}</span></label>
+      <div v-if="field.type === 'tint'" class="tint-picker" role="radiogroup" :aria-labelledby="`pref-label-${field.key}`" @mouseleave="settings.applyTheme()">
+        <button
+          v-for="[value, label] in field.options" :key="value" type="button" role="radio" class="tint-swatch"
+          :class="{ selected: isChosen(value as ThemeChoice) }" :data-swatch="value" :title="label" :aria-label="label"
+          :aria-checked="isChosen(value as ThemeChoice)" @mouseenter="previewTheme(value as ThemeChoice)" @click="chooseTheme(value as ThemeChoice)"
+        ></button>
+      </div>
+      <input v-else-if="field.type === 'bool'" :id="`pref-${field.key}`" type="checkbox" :checked="!!settings.prefs[field.key]" @change="update(field, $event)" />
       <select v-else-if="field.type === 'select'" :id="`pref-${field.key}`" class="input" :value="settings.prefs[field.key]" @change="update(field, $event)">
         <option v-for="[value, label] in field.options" :key="value" :value="value">{{ label }}</option>
       </select>
