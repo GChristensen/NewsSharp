@@ -47,7 +47,7 @@ of the wrong type stop the process with an error. Restart `serve` after changing
 | `push_lease_seconds` | `2147483647` | Lease requested from WebSub hubs |
 | `image_cache_mb` | `0` | Disk cache for proxied images (0 = off) |
 | `log_level` | `info` | |
-| `proxy.url` | none | Outbound proxy for the feeds set to use it (feed context menu → Settings: feed, icon and story text downloads): `http://`, `https://`, `socks5://` or `socks5h://`, credentials as `user:password@` |
+| `proxy.url` | none | Outbound proxy for the feeds set to use it (feed context menu → Settings: feed, icon and story text downloads): `http://`, `https://`, `socks5://` or `socks5h://`, credentials as `user:password@`. Icon downloads of the other feeds fall back to it when the site cannot be reached directly |
 | `proxy.verify` | `true` | TLS check of an `https://` proxy: `true` (system CA store), `false` (no check, for a self-signed certificate) or the path of a PEM CA bundle or the proxy's own certificate |
 
 Relative paths (`data_dir`, `proxy.verify`) are relative to the installation directory.

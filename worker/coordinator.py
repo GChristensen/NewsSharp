@@ -522,11 +522,23 @@ class Coordinator:
             if feed is None:
                 return
             page_url = feed["feed_link"] or ""
-            client = self.client_for(feed["use_proxy"])
+            clients = [self.client_for(feed["use_proxy"])]
+            if self.proxy_client is not None and clients[0] is not self.proxy_client:
+                clients.append(self.proxy_client)
+
+            async def get(call):
+                # A site the feed's own connection cannot reach is retried through the proxy, and the
+                # proxy is kept for the rest of this feed's downloads.
+                result = await call(clients[0])
+                if result.error_code in (502, 504) and len(clients) > 1:
+                    clients.pop(0)
+                    result = await call(clients[0])
+                return result
+
             candidates = []
             try:
                 if page_url:
-                    page = await fetcher.download_page(client, page_url, 2 * 1024 * 1024, 10)
+                    page = await get(lambda client: fetcher.download_page(client, page_url, 2 * 1024 * 1024, 10))
                     if page.ok and page.body:
                         parsed = await self.pool.run(
                             "parse_page", {"body": page.body, "base_url": page.url, "content_type": page.content_type},
@@ -538,7 +550,11 @@ class Coordinator:
                 candidates.append(site_root(page_url or feed["feed_address"]) + "/favicon.ico")
                 headers = {"User-Agent": fetcher.BROWSER_UA, "Accept": "image/png,image/x-icon,image/*;q=0.9,*/*;q=0.8"}
                 for url in list(dict.fromkeys(candidates))[:6]:
-                    image = await fetcher.download(client, url, headers=headers, max_bytes=512 * 1024, total_timeout=10)
+                    image = await get(
+                        lambda client, url=url: fetcher.download(
+                            client, url, headers=headers, max_bytes=512 * 1024, total_timeout=10
+                        )
+                    )
                     if not image.ok or not image.body:
                         continue
                     stored = await self.pool.run(
