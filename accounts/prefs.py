@@ -24,6 +24,11 @@ def _timezone(v):
         return False
 
 
+def _summary_width(v):
+    """0 means no limit; otherwise a width in pixels."""
+    return type(v) is int and (v == 0 or SUMMARY_WIDTH_MIN <= v <= SUMMARY_WIDTH_MAX)
+
+
 def _url_or_empty(v):
     return isinstance(v, str) and len(v) <= 500 and (v == "" or v.startswith(("http://", "https://")))
 
@@ -40,6 +45,9 @@ CONTENT_PREVIEWS = ("title", "small", "medium", "large")
 IMAGE_PREVIEWS = ("none", "small-left", "small-right", "large-left", "large-right")
 # Full layout: "images" shows only the story bodies, without titles or any story controls.
 STORY_DISPLAYS = ("standard", "images")
+# Maximum width of the content preview in List and Magazine, in pixels (0: no limit).
+SUMMARY_WIDTH_MIN = 300
+SUMMARY_WIDTH_MAX = 1600
 
 # name -> (validator, default)
 CATALOG = {
@@ -59,6 +67,7 @@ CATALOG = {
     "image_preview": (_enum(*IMAGE_PREVIEWS), "small-left"),
     "grid_columns": (_int(1, 6), 4),
     "grid_height": (_enum(*_SIZES), "m"),
+    "summary_max_width": (_summary_width, 0),
     "story_display": (_enum(*STORY_DISPLAYS), "standard"),
     "story_styling": (_enum(*STORY_FONTS), "sans-serif"),
     "story_size": (_enum(*_SIZES), "m"),

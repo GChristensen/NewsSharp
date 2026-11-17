@@ -100,6 +100,8 @@ export interface Prefs {
   image_preview: 'none' | 'small-left' | 'small-right' | 'large-left' | 'large-right'
   grid_columns: number
   grid_height: Size
+  /** Maximum width of the content preview in List and Magazine, in pixels; 0 means no limit. */
+  summary_max_width: number
   story_display: 'standard' | 'images'
   story_styling: string
   story_size: Size

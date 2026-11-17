@@ -88,6 +88,7 @@
   --row-pad: 8px;
   --end-space-keep: 80px; /* pane height the end spacer leaves for the last story */
   --content-max: 720px;
+  --summary-max-width: none; /* the summary_max_width preference sets it on the root element */
   --ui-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --transition: 150ms;
 }
@@ -338,6 +339,9 @@ select.input { padding-right: 4px; }
 .mag-card.read .story-title { color: var(--text-read); font-weight: 400; }
 .mag-card .card-meta { display: flex; gap: 6px; align-items: center; color: var(--text-dim); font-size: 0.9em; }
 .mag-card .preview { color: var(--text-dim); white-space: pre-line; overflow: hidden; }
+/* List and Magazine (not the Split titles pane): the summary width limit of the style popover. */
+.list-pane .story-row .preview,
+.list-pane .mag-card .preview { max-width: var(--summary-max-width); }
 
 /* ---------- story ---------- */
 .story-detail { padding: 0 0 28px; }
@@ -413,6 +417,9 @@ select.input { padding-right: 4px; }
 .seg-row-icon { margin-top: 5px; color: var(--text-dim); }
 .seg-row .segmented { flex: 1; min-width: 0; }
 .seg-row .segmented .btn { flex: 1 0 auto; padding: 0 8px; gap: 5px; white-space: nowrap; }
+.seg-row .range { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 26px; }
+.seg-row .range input { flex: 1; min-width: 0; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.seg-row .range-value { flex: none; width: 58px; text-align: right; color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .segmented.vertical { flex-direction: column; }
 .seg-row .segmented.vertical .btn { flex: none; justify-content: flex-start; padding: 0 10px; }
 .segmented.vertical .btn + .btn { border-left: none; border-top: 1px solid var(--border); }

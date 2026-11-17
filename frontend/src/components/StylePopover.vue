@@ -24,9 +24,18 @@ interface Row {
   pick(value: string): void
   vertical?: boolean
 }
+/** A row with a slider instead of choices. */
+interface RangeRow {
+  title: string
+  icon: string
+  range: { min: number; max: number; step: number }
+  current: number
+  label: string
+  pick(value: number): void
+}
 interface Section {
   title: string
-  rows: Row[]
+  rows: (Row | RangeRow)[]
 }
 
 const props = defineProps<{ part: 'list' | 'story' }>()
@@ -70,6 +79,21 @@ function viewRow(key: ViewKey, title: string, icon: string, choices: Choice[]): 
   }
 }
 
+// Summary width (accounts/prefs.py): the slider's last step, past the maximum, means no limit (stored as 0).
+const SUMMARY_WIDTH = { min: 300, max: 1600, step: 20 }
+const NO_LIMIT_POSITION = SUMMARY_WIDTH.max + SUMMARY_WIDTH.step
+
+function summaryWidthRow(): RangeRow {
+  const width = settings.prefs.summary_max_width
+  return {
+    title: 'Summary width (List and Magazine)', icon: 'width',
+    range: { min: SUMMARY_WIDTH.min, max: NO_LIMIT_POSITION, step: SUMMARY_WIDTH.step },
+    current: width || NO_LIMIT_POSITION,
+    label: width ? `${width}px` : 'No limit',
+    pick: (value) => settings.set('summary_max_width', value >= NO_LIMIT_POSITION ? 0 : value),
+  }
+}
+
 const listSections = computed<Section[]>(() => {
   const layout = effectiveLayout()
   const sections: Section[] = [
@@ -97,6 +121,7 @@ const listSections = computed<Section[]>(() => {
       ],
     },
   ]
+  if (layout === 'list' || layout === 'magazine') sections[0].rows.push(summaryWidthRow())
   if (layout === 'split') {
     sections.push({
       title: 'Split',
@@ -181,7 +206,14 @@ const sections = computed(() => (props.part === 'list' ? listSections.value : st
       <div class="popover-title">{{ section.title }}</div>
       <div v-for="row in section.rows" :key="row.title" class="seg-row" :title="row.title">
         <Icon :name="row.icon" class="seg-row-icon" />
-        <div class="segmented" :class="{ vertical: row.vertical }">
+        <div v-if="'range' in row" class="range">
+          <input
+            type="range" :min="row.range.min" :max="row.range.max" :step="row.range.step" :value="row.current"
+            :aria-label="row.title" @input="row.pick(Number(($event.target as HTMLInputElement).value))"
+          >
+          <span class="range-value">{{ row.label }}</span>
+        </div>
+        <div v-else class="segmented" :class="{ vertical: row.vertical }">
           <button
             v-for="choice in row.choices" :key="choice.value" class="btn" :class="[{ active: row.current === choice.value }, choice.font ? `font-${choice.font}` : '']"
             :title="choice.title" @click="row.pick(choice.value)"

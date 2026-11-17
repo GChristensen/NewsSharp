@@ -56,6 +56,10 @@ export const useSettings = defineStore('settings', {
       for (const key of ['story_size', 'story_line_spacing', 'feed_size', 'grid_height', 'density'] as const) {
         root.dataset[key.replace(/_(\w)/g, (_, c) => c.toUpperCase())] = String(this.prefs[key])
       }
+      // A continuous value has no named size, so it overrides the default of styles.css directly.
+      const summaryWidth = this.prefs.summary_max_width
+      if (summaryWidth) root.style.setProperty('--summary-max-width', `${summaryWidth}px`)
+      else root.style.removeProperty('--summary-max-width')
     },
     /** Apply a preference locally at once and save it debounced by 500 ms (R19.8). */
     set<K extends keyof Prefs>(key: K, value: Prefs[K]) {
