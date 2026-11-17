@@ -28,10 +28,12 @@ import { copyLink, openFeed, openInNewTab } from '../actions'
 import { useSettings } from '../stores/settings'
 import { useStories } from '../stores/stories'
 import { useTree } from '../stores/tree'
+import { type MenuItem, useUi } from '../stores/ui'
 import type { Story } from '../types'
 import { feedColors } from '../utils/colors'
 import { displayTitle, storyDate } from '../utils/format'
 import { mediaFallback } from '../utils/media'
+import { selectedServices, share, shareInput } from '../utils/share'
 import FeedIcon from './FeedIcon.vue'
 import Icon from './Icon.vue'
 
@@ -40,6 +42,7 @@ const props = defineProps<{ story: Story; view: 'feed' | 'text' | 'story'; showF
 const settings = useSettings()
 const stories = useStories()
 const tree = useTree()
+const ui = useUi()
 
 const contentEl = ref<HTMLElement | null>(null)
 const text = ref<TextResult | null>(null)
@@ -138,6 +141,22 @@ function onContentClick(event: MouseEvent) {
   if (props.bare && target.closest('img, picture') && props.story.permalink) openLink(props.story.permalink)
 }
 
+/** The share menu of the services chosen in Preferences, with a link to choose them. */
+function openShareMenu(event: MouseEvent) {
+  const input = shareInput(props.story, body.value)
+  const items: MenuItem[] = selectedServices(settings.prefs.share_services).map((service) => ({
+    label: service.label,
+    icon: service.icon,
+    action: () => {
+      share(service, input)
+      stories.markRead(props.story)
+    },
+  }))
+  if (items.length) items.push({ label: '', separator: true })
+  items.push({ label: 'Choose services…', icon: 'prefs-sliders', action: () => ui.openDialog('preferences', { tab: 'Sharing' }) })
+  ui.openMenuAt(event.currentTarget as HTMLElement, items)
+}
+
 function onSave() {
   if (!props.story.saved) {
     stories.save(props.story)
@@ -190,6 +209,7 @@ function removeSaved() {
             </button>
             <button class="btn" title="Open in a new tab (Shift+V)" @click="openInNewTab(story.permalink)"><Icon name="external" /> Open</button>
             <button class="btn icon-only" title="Copy link" @click="copyLink(story.permalink)"><Icon name="copy" /></button>
+            <button class="btn" title="Share" @click="openShareMenu"><Icon name="share" /> Share</button>
             <button v-if="mode === 'text' && text && !textLoading" class="btn" title="Extract the text again" @click="loadText(true)">
               <Icon name="refresh" /> Fetch again
             </button>

@@ -33,6 +33,20 @@ def _url_or_empty(v):
     return isinstance(v, str) and len(v) <= 500 and (v == "" or v.startswith(("http://", "https://")))
 
 
+# Story sharing services, in the order of the share menu (frontend/src/utils/share.ts). NewsBlur's
+# Pocket, Delicious, Google+ and Evernote are left out: those services or their share pages no longer exist.
+SHARE_SERVICES = (
+    "copyurl", "copytext", "print", "email",
+    "facebook", "twitter", "bluesky", "mastodon", "reddit", "hackernews", "linkedin", "tumblr", "blogger",
+    "livejournal", "pinterest", "flipboard", "buffer", "whatsapp", "telegram", "lineme",
+    "instapaper", "readwise", "pinboard", "raindrop", "diigo",
+)
+
+
+def _share_services(v):
+    return isinstance(v, list) and len(set(v)) == len(v) and all(isinstance(s, str) and s in SHARE_SERVICES for s in v)
+
+
 _SIZES = ("xs", "s", "m", "l", "xl")
 STORY_FONTS = ("sans-serif", "serif", "system", "georgia", "palatino", "helvetica", "segoe", "verdana", "monospace")
 
@@ -97,6 +111,7 @@ CATALOG = {
     "show_tooltips": (_bool, True),
     "feedxcavator_url": (_url_or_empty, ""),
     "feedxcavator_newspaper_url": (_url_or_empty, ""),
+    "share_services": (_share_services, []),
 }
 
 VIEW_SETTING_KEYS = {
@@ -126,5 +141,7 @@ def effective(stored: dict | None) -> dict:
     result = {}
     for key, (validator, default) in CATALOG.items():
         value = stored.get(key, default)
-        result[key] = value if validator(value) else default
+        value = value if validator(value) else default
+        # A list default must not be shared between users.
+        result[key] = list(value) if isinstance(value, list) else value
     return result

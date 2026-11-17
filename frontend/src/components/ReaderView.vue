@@ -133,7 +133,7 @@ function dragSidebar(event: PointerEvent) {
 
     <template v-if="ui.dialog">
       <AddDialog v-if="ui.dialog.name === 'add'" :url="ui.dialog.props.url" :folder-id="ui.dialog.props.folderId" />
-      <PreferencesDialog v-else-if="ui.dialog.name === 'preferences'" />
+      <PreferencesDialog v-else-if="ui.dialog.name === 'preferences'" :initial-tab="ui.dialog.props.tab" />
       <FeedSettingsDialog v-else-if="ui.dialog.name === 'feed-settings'" :key="ui.dialog.props.feedId" :feed-id="ui.dialog.props.feedId" />
       <StatisticsDialog v-else-if="ui.dialog.name === 'statistics'" :key="ui.dialog.props.feedId" :feed-id="ui.dialog.props.feedId" />
       <SimpleDialogs v-else :key="ui.dialog.name" :name="ui.dialog.name" :options="ui.dialog.props" />

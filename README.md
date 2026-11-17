@@ -161,6 +161,14 @@ deploy/     example systemd unit and nginx site
 tests/      pytest suite
 ```
 
+## Deviations from the requirements document
+
+- **Story sharing** (dropped in the requirements) is kept in a browser-only form: a Share menu in the
+  story header lists the services chosen under Preferences → Sharing (`share_services`). Each service
+  opens its share page, copies the link or text, prints the story or starts an email; nothing is sent
+  through the server. NewsBlur's Pocket, Delicious, Google+ and Evernote entries are left out because
+  those services or their share pages no longer exist.
+
 ## License
 
 NewsSharp is free software: you can redistribute it and/or modify it under the terms of the GNU

@@ -353,6 +353,11 @@ def test_preferences_and_view_settings(api, user, make_feed, subscribe):
     for width in (640, 0):
         good = api.patch("/api/preferences", data=json.dumps({"summary_max_width": width}), content_type="application/json")
         assert good.json()["preferences"]["summary_max_width"] == width
+    for services in ("reddit", ["readitlater"], ["reddit", "reddit"], [1]):
+        bad = api.patch("/api/preferences", data=json.dumps({"share_services": services}), content_type="application/json")
+        assert bad.status_code == 422
+    good = api.patch("/api/preferences", data=json.dumps({"share_services": ["reddit", "print"]}), content_type="application/json")
+    assert good.json()["preferences"]["share_services"] == ["reddit", "print"]
     put = api.put("/api/view-settings", data=json.dumps({"scope": f"feed:{feed.id}", "key": "layout", "value": "grid"}),
                   content_type="application/json")  # fmt: skip
     assert put.json()["view_settings"] == {f"feed:{feed.id}": {"layout": "grid"}}

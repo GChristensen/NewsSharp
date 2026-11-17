@@ -1,5 +1,5 @@
 <!-- Preferences dialog (frontend/src/components/dialogs/PreferencesDialog.vue): the settings page of
-     item 19 with its General, Reading, Appearance and Keyboard sections. -->
+     item 19 with its General, Reading, Appearance, Sharing and Keyboard sections. -->
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { api, errorMessage } from '../../api'
@@ -8,6 +8,7 @@ import { useSettings } from '../../stores/settings'
 import { useStories } from '../../stores/stories'
 import { useUi } from '../../stores/ui'
 import type { Prefs, ViewKey } from '../../types'
+import { SHARE_SERVICES } from '../../utils/share'
 import Modal from '../Modal.vue'
 
 interface Field {
@@ -57,6 +58,8 @@ const TABS: Record<string, Field[]> = {
     { key: 'animations', label: 'Animations', type: 'bool' },
     { key: 'show_tooltips', label: 'Tooltips', type: 'bool' },
   ],
+  // No field rows: the tab is the checkbox list of share services in the template.
+  Sharing: [],
   Keyboard: [
     { key: 'keyboard_verticalarrows', label: 'Up / Down arrows', type: 'select', options: [['story', 'Previous / next story'], ['scroll', 'Scroll the story']] },
     { key: 'keyboard_horizontalarrows', label: 'Left / Right arrows', type: 'select', options: [['view', 'Switch view'], ['site', 'Previous / next feed']] },
@@ -66,10 +69,11 @@ const TABS: Record<string, Field[]> = {
   ],
 }
 
+const props = defineProps<{ initialTab?: string }>()
 const settings = useSettings()
 const session = useSession()
 const ui = useUi()
-const tab = ref('General')
+const tab = ref(props.initialTab && props.initialTab in TABS ? props.initialTab : 'General')
 const instance = ref<{ public_base_url: string; manual: boolean; current_origin: string } | null>(null)
 const publicUrl = ref('')
 const message = ref('')
@@ -91,6 +95,14 @@ function update(field: Field, event: Event) {
     return
   }
   settings.set(field.key, value)
+}
+
+/** Turn one share service on or off; the list is kept in catalog order. */
+function toggleShare(key: string, on: boolean) {
+  const chosen = new Set(settings.prefs.share_services)
+  if (on) chosen.add(key)
+  else chosen.delete(key)
+  settings.set('share_services', SHARE_SERVICES.map((service) => service.key).filter((k) => chosen.has(k)))
 }
 
 /** R19.4: reset a per-scope setting for all scopes. */
@@ -153,6 +165,19 @@ onMounted(async () => {
         <button class="btn outline" @click="reset('story_display', 'The story display')">Reset story display</button>
         <button class="btn outline" @click="reset('show_content_preview', 'The content preview')">Reset content preview</button>
         <button class="btn outline" @click="reset('image_preview', 'The image preview')">Reset image preview</button>
+      </div>
+    </template>
+
+    <template v-if="tab === 'Sharing'">
+      <p class="dim">Services shown in the Share menu of a story.</p>
+      <div class="share-options">
+        <label v-for="service in SHARE_SERVICES" :key="service.key">
+          <input
+            type="checkbox" :checked="settings.prefs.share_services.includes(service.key)"
+            @change="toggleShare(service.key, ($event.target as HTMLInputElement).checked)"
+          />
+          {{ service.label }}
+        </label>
       </div>
     </template>
 

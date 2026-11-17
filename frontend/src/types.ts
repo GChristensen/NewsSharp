@@ -131,6 +131,7 @@ export interface Prefs {
   show_tooltips: boolean
   feedxcavator_url: string
   feedxcavator_newspaper_url: string
+  share_services: string[]
 }
 
 export interface Bootstrap {
