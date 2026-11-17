@@ -35,7 +35,8 @@ import { mediaFallback } from '../utils/media'
 import FeedIcon from './FeedIcon.vue'
 import Icon from './Icon.vue'
 
-const props = defineProps<{ story: Story; view: 'feed' | 'text' | 'story'; showFeedStrip: boolean; fill?: boolean }>()
+/** bare: only the content, without the feed strip, header, controls and notices (story_display "images"). */
+const props = defineProps<{ story: Story; view: 'feed' | 'text' | 'story'; showFeedStrip: boolean; fill?: boolean; bare?: boolean }>()
 const settings = useSettings()
 const stories = useStories()
 const tree = useTree()
@@ -118,12 +119,23 @@ onMounted(prepare)
 // R14.3: error events do not bubble, so the listener captures them on the content container.
 watch(contentEl, (el) => el?.addEventListener('error', (event) => mediaFallback(event, props.story.image_sigs), true))
 
+function openLink(href: string) {
+  if (settings.prefs.new_window) openInNewTab(href)
+  else window.location.href = href
+}
+
 function onContentClick(event: MouseEvent) {
-  const link = (event.target as HTMLElement).closest('a')
-  if (link && !settings.prefs.new_window && link.getAttribute('href')) {
-    event.preventDefault()
-    window.location.href = link.getAttribute('href')!
+  const target = event.target as HTMLElement
+  const link = target.closest('a')
+  if (link && link.getAttribute('href')) {
+    if (!settings.prefs.new_window) {
+      event.preventDefault()
+      window.location.href = link.getAttribute('href')!
+    }
+    return
   }
+  // Without a title to click, an image outside a link opens the story.
+  if (props.bare && target.closest('img, picture') && props.story.permalink) openLink(props.story.permalink)
 }
 
 function onSave() {
@@ -147,7 +159,7 @@ function removeSaved() {
 
 <template>
   <article
-    class="story-detail" :class="{ read: story.read && !stories.isSaved }" :style="framed && fill ? { height: '100%', padding: 0 } : {}"
+    class="story-detail" :class="{ read: story.read && !stories.isSaved && !bare, bare }" :style="framed && fill ? { height: '100%', padding: 0 } : {}"
     :data-key="story.key" :data-unread="!story.read && !stories.isSaved ? '1' : undefined"
   >
     <iframe
@@ -155,12 +167,12 @@ function removeSaved() {
       sandbox="allow-scripts allow-same-origin allow-popups allow-forms" referrerpolicy="no-referrer"
     />
     <template v-else>
-      <div v-if="showFeedStrip" class="story-feed-strip" :style="stripStyle" @click="feed && openFeed(feed)">
+      <div v-if="showFeedStrip && !bare" class="story-feed-strip" :style="stripStyle" @click="feed && openFeed(feed)">
         <FeedIcon :feed-id="story.feed_id" />
         <span>{{ feed?.title ?? story.feed_title }}</span>
       </div>
       <div class="story-column">
-        <header class="story-header">
+        <header v-if="!bare" class="story-header">
           <h1><a :href="story.permalink" target="_blank" rel="noopener noreferrer">{{ title }}</a></h1>
           <div class="byline">
             <span v-if="story.author">{{ story.author }}</span>
@@ -193,10 +205,10 @@ function removeSaved() {
             </div>
           </div>
         </header>
-        <div v-if="notice" class="notice">
+        <div v-if="notice && !bare" class="notice">
           {{ notice }} <a :href="story.permalink" target="_blank" rel="noopener noreferrer">Open the original</a>
         </div>
-        <div v-if="(mode === 'text' && textLoading) || mode === 'checking'" class="notice">
+        <div v-if="((mode === 'text' && textLoading) || mode === 'checking') && !bare" class="notice">
           <span class="spinner" style="display: inline-block; vertical-align: -2px" />
           {{ mode === 'checking' ? 'Checking the site…' : 'Extracting the article text…' }}
         </div>

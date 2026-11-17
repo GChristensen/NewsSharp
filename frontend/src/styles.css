@@ -342,6 +342,8 @@ select.input { padding-right: 4px; }
 /* ---------- story ---------- */
 .story-detail { padding: 0 0 28px; }
 .story-detail + .story-detail { border-top: 1px solid var(--border); }
+.story-detail.bare { padding: 18px 0; }
+.story-detail.bare .story-content img { cursor: pointer; }
 .story-column { max-width: var(--content-max); margin: 0 auto; padding: 0 22px; }
 .story-pane.pos-left .story-column, .inline-story.pos-left .story-column { margin-left: 0; }
 .story-pane.pos-right .story-column, .inline-story.pos-right .story-column { margin-right: 0; }

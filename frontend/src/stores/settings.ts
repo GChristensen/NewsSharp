@@ -12,6 +12,7 @@ const DEFAULT_KEYS: Record<ViewKey, keyof Prefs> = {
   grid_columns: 'grid_columns',
   show_content_preview: 'show_content_preview',
   image_preview: 'image_preview',
+  story_display: 'story_display',
 }
 
 let saveTimer: number | undefined

@@ -368,6 +368,19 @@ def test_grid_columns_per_scope(api, user, make_feed, subscribe):
     assert bad.status_code == 422
 
 
+def test_story_display_per_scope(api, user, make_feed, subscribe):
+    feed = make_feed()
+    subscribe(user, feed)
+    assert api.get("/api/bootstrap").json()["preferences"]["story_display"] == "standard"
+    scope = f"feed:{feed.id}"
+    put = api.put("/api/view-settings", data=json.dumps({"scope": scope, "key": "story_display", "value": "images"}),
+                  content_type="application/json")  # fmt: skip
+    assert put.json()["view_settings"] == {scope: {"story_display": "images"}}
+    bad = api.put("/api/view-settings", data=json.dumps({"scope": scope, "key": "story_display", "value": "bare"}),
+                  content_type="application/json")  # fmt: skip
+    assert bad.status_code == 422
+
+
 def test_story_title_previews_per_scope(api, user, make_feed, subscribe):
     feed = make_feed()
     subscribe(user, feed)

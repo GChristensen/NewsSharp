@@ -33,6 +33,7 @@ const TABS: Record<string, Field[]> = {
     { key: 'default_order', label: 'Default order', type: 'select', options: [['newest', 'Newest first'], ['oldest', 'Oldest first']] },
     { key: 'default_read_filter', label: 'Default read filter (feeds)', type: 'select', options: [['all', 'All stories'], ['unread', 'Unread only']] },
     { key: 'grid_columns', label: 'Default stories per row (Grid)', type: 'number', min: 1, max: 6 },
+    { key: 'story_display', label: 'Default story display (Full)', type: 'select', options: [['standard', 'Standard'], ['images', 'Content only']] },
     { key: 'days_of_unread', label: 'Days a story stays unread', type: 'number', min: 1, max: 365 },
     { key: 'read_story_delay', label: 'Mark a selected story read after (seconds)', type: 'number', min: -1, max: 60, hint: '0 = at once, -1 = never' },
     { key: 'mark_read_on_scroll_titles', label: 'Mark stories read when scrolled past (Split)', type: 'bool' },
@@ -143,6 +144,7 @@ onMounted(async () => {
         <button class="btn outline" @click="reset('order', 'The order and read filter')">Reset order and read filter</button>
         <button class="btn outline" @click="reset('read_filter', 'The read filter')">Reset read filter</button>
         <button class="btn outline" @click="reset('grid_columns', 'Stories per row')">Reset stories per row</button>
+        <button class="btn outline" @click="reset('story_display', 'The story display')">Reset story display</button>
         <button class="btn outline" @click="reset('show_content_preview', 'The content preview')">Reset content preview</button>
         <button class="btn outline" @click="reset('image_preview', 'The image preview')">Reset image preview</button>
       </div>

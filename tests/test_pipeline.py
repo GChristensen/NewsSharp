@@ -148,6 +148,16 @@ def test_sanitize_iframes_and_links():
     assert extract_image_urls(clean) == ["https://img.youtube.com/vi/abcdefghijk/0.jpg", "https://site.example/p.jpg"]
 
 
+def test_sanitize_keeps_only_display_style():
+    clean = sanitize(
+        '<div style="display: none; color: red">hidden</div><p style="display: none">p</p>'
+        '<span style="position: fixed">s</span>'
+    )
+    assert '<div style="display:none">hidden</div>' in clean
+    assert "<p>p</p>" in clean
+    assert "color" not in clean and "position" not in clean
+
+
 def test_json_feed(make_feed):
     feed = make_feed()
     body = (

@@ -141,6 +141,12 @@ const storySections = computed<Section[]>(() => {
       settings.set('story_position', value as Prefs['story_position'])
     },
   }]
+  if (effectiveLayout() === 'full') {
+    layoutRows.push(viewRow('story_display', 'Story display (this site)', 'image', [
+      { value: 'standard', icon: 'full', label: 'Standard', title: 'Titles, story controls and content' },
+      { value: 'images', icon: 'image', label: 'Content only', title: 'Only the content: no titles and no story controls' },
+    ]))
+  }
   if (effectiveLayout() === 'split') {
     layoutRows.push({
       title: 'Feed view in Split', icon: 'stack',

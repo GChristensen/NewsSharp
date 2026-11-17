@@ -38,6 +38,8 @@ READ_FILTERS = ("all", "unread")
 GRID_COLUMNS = ("1", "2", "3", "4", "5", "6")
 CONTENT_PREVIEWS = ("title", "small", "medium", "large")
 IMAGE_PREVIEWS = ("none", "small-left", "small-right", "large-left", "large-right")
+# Full layout: "images" shows only the story bodies, without titles or any story controls.
+STORY_DISPLAYS = ("standard", "images")
 
 # name -> (validator, default)
 CATALOG = {
@@ -57,6 +59,7 @@ CATALOG = {
     "image_preview": (_enum(*IMAGE_PREVIEWS), "small-left"),
     "grid_columns": (_int(1, 6), 4),
     "grid_height": (_enum(*_SIZES), "m"),
+    "story_display": (_enum(*STORY_DISPLAYS), "standard"),
     "story_styling": (_enum(*STORY_FONTS), "sans-serif"),
     "story_size": (_enum(*_SIZES), "m"),
     "story_line_spacing": (_enum(*_SIZES), "m"),
@@ -94,6 +97,7 @@ VIEW_SETTING_KEYS = {
     "grid_columns": GRID_COLUMNS,
     "show_content_preview": CONTENT_PREVIEWS,
     "image_preview": IMAGE_PREVIEWS,
+    "story_display": STORY_DISPLAYS,
 }
 
 

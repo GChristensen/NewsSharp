@@ -80,7 +80,7 @@ export interface MarkReadUndoResult {
 
 export type View = 'original' | 'feed' | 'text' | 'story'
 export type Layout = 'full' | 'split' | 'list' | 'grid' | 'magazine'
-export type ViewKey = 'view' | 'layout' | 'order' | 'read_filter' | 'grid_columns' | 'show_content_preview' | 'image_preview'
+export type ViewKey = 'view' | 'layout' | 'order' | 'read_filter' | 'grid_columns' | 'show_content_preview' | 'image_preview' | 'story_display'
 export type Size = 'xs' | 's' | 'm' | 'l' | 'xl'
 
 export interface Prefs {
@@ -100,6 +100,7 @@ export interface Prefs {
   image_preview: 'none' | 'small-left' | 'small-right' | 'large-left' | 'large-right'
   grid_columns: number
   grid_height: Size
+  story_display: 'standard' | 'images'
   story_styling: string
   story_size: Size
   story_line_spacing: Size

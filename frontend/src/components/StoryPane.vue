@@ -26,6 +26,8 @@ const originalFramed = computed(() => view.value === 'original' && siteFrameable
 const allMode = computed(() => props.full || ((view.value === 'feed' || view.value === 'original') && !settings.prefs.feed_view_single_story))
 const position = computed(() => (settings.prefs.full_width_story ? 'stretch' : settings.prefs.story_position))
 const storyFramed = computed(() => !allMode.value && view.value === 'story')
+/** Full with "Images only": the stories are shown without titles or controls. */
+const bare = computed(() => props.full && settings.effective(stories.scope, 'story_display') === 'images')
 const { onScroll } = usePaneScroll(pane, () => props.full && allMode.value)
 
 function detailView(story: Story): 'feed' | 'text' | 'story' {
@@ -85,7 +87,7 @@ watch(
         </button>
         <StoryDetail
           v-for="story in stories.stories" :key="story.key" :story="story" :view="detailView(story)"
-          :show-feed-strip="stories.multiFeed" @click="clickStory(story)"
+          :show-feed-strip="stories.multiFeed" :bare="bare" @click="clickStory(story)"
         />
         <ListFooter />
       </template>

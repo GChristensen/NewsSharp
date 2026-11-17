@@ -24,7 +24,11 @@ ATTRIBUTES = {
     "*": GENERIC_ATTRIBUTES,
     "a": {"href", "title", "target"},
     "iframe": {"src", "width", "height", "allowfullscreen"},
+    # Only the display property survives (STYLE_PROPERTIES), so feeds can hide text kept for filters.
+    "div": GENERIC_ATTRIBUTES | {"style"},
+    "span": GENERIC_ATTRIBUTES | {"style"},
 }
+STYLE_PROPERTIES = {"display"}
 IFRAME_HOSTS = ("youtube.com", "youtube-nocookie.com", "player.vimeo.com")
 _YOUTUBE_EMBED = re.compile(r"/embed/([\w-]{6,})")
 
@@ -116,6 +120,7 @@ def sanitize(content: str, base_url: str = "") -> str:
         tags=ALLOWED_TAGS,
         clean_content_tags=REMOVED_WITH_CONTENT,
         attributes=ATTRIBUTES,
+        filter_style_properties=STYLE_PROPERTIES,
         link_rel="noopener noreferrer",
         url_schemes={"http", "https", "mailto"},
         strip_comments=True,
