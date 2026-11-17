@@ -37,8 +37,12 @@ import { selectedServices, share, shareInput } from '../utils/share'
 import FeedIcon from './FeedIcon.vue'
 import Icon from './Icon.vue'
 
-/** bare: only the content, without the feed strip, header, controls and notices (story_display "images"). */
-const props = defineProps<{ story: Story; view: 'feed' | 'text' | 'story'; showFeedStrip: boolean; fill?: boolean; bare?: boolean }>()
+/** bare: only the content, without the feed strip, header, controls and notices (story_display "images").
+ *  collapsible: a click on the empty margin above the title emits collapse (an inline story, as in NewsBlur). */
+const props = defineProps<{
+  story: Story; view: 'feed' | 'text' | 'story'; showFeedStrip: boolean; fill?: boolean; bare?: boolean; collapsible?: boolean
+}>()
+const emit = defineEmits<{ collapse: [] }>()
 const settings = useSettings()
 const stories = useStories()
 const tree = useTree()
@@ -190,6 +194,7 @@ function removeSaved() {
         <FeedIcon :feed-id="story.feed_id" />
         <span>{{ feed?.title ?? story.feed_title }}</span>
       </div>
+      <div v-if="!bare" class="story-top-margin" :class="{ collapsible }" @click="collapsible && emit('collapse')" />
       <div class="story-column">
         <header v-if="!bare" class="story-header">
           <h1><a :href="story.permalink" target="_blank" rel="noopener noreferrer">{{ title }}</a></h1>

@@ -414,7 +414,9 @@ a.start-row-title:hover { text-decoration: underline; }
 .story-pane.pos-right .story-column, .inline-story.pos-right .story-column { margin-right: 0; }
 .story-pane.pos-stretch .story-column, .inline-story.pos-stretch .story-column { max-width: none; }
 .story-feed-strip { display: flex; align-items: center; gap: 8px; padding: 5px 22px; font-size: 12px; font-weight: 600; background: var(--neutral-feed); cursor: pointer; }
-.story-header { padding: 18px 0 10px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 14px; }
+.story-top-margin { height: 18px; }
+.story-top-margin.collapsible { cursor: pointer; }
+.story-header { padding: 0 0 10px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 14px; }
 .story-header h1 { margin: 0 0 6px; font-size: 22px; line-height: 1.25; overflow-wrap: anywhere; }
 .story-header h1 a { color: var(--text); text-decoration: none; }
 .story-header h1 a:hover { color: var(--link); }

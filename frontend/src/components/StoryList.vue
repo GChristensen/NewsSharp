@@ -121,7 +121,7 @@ watch(
           @mousedown="middleDown($event, story)" @auxclick="middleClick($event, story)"
         />
         <div v-if="inline && stories.selectedKey === story.key" class="inline-story" :class="`pos-${position}`">
-          <StoryDetail :story="story" :view="inlineView" :show-feed-strip="stories.multiFeed" />
+          <StoryDetail :story="story" :view="inlineView" :show-feed-strip="stories.multiFeed" collapsible @collapse="selectStory(null)" />
         </div>
       </template>
     </div>
