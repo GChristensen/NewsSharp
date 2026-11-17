@@ -26,6 +26,10 @@ const TABS: Record<string, Field[]> = {
     { key: 'dateformat', label: 'Time format', type: 'select', options: [['24', '24 hours'], ['12', '12 hours']] },
     { key: 'timezone', label: 'Time zone', type: 'text', hint: 'An IANA zone such as Europe/Berlin' },
     { key: 'feedxcavator_url', label: 'feedxcavator address', type: 'text', hint: 'Shows a button in the sidebar header when set' },
+    {
+      key: 'feedxcavator_newspaper_url', label: 'feedxcavator news address', type: 'text',
+      hint: 'Shows a newspaper button that sends a GET request to this address',
+    },
   ],
   Reading: [
     { key: 'story_layout', label: 'Default layout', type: 'select', options: [['split', 'Split'], ['full', 'Full'], ['list', 'List'], ['magazine', 'Magazine'], ['grid', 'Grid']] },
@@ -83,7 +87,9 @@ function update(field: Field, event: Event) {
     } catch {
       return
     }
-  } else if (field.key === 'feedxcavator_url' && value && !/^https?:\/\//.test(value)) return
+  } else if ((field.key === 'feedxcavator_url' || field.key === 'feedxcavator_newspaper_url') && value && !/^https?:\/\//.test(value)) {
+    return
+  }
   settings.set(field.key, value)
 }
 

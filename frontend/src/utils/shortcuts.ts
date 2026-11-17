@@ -1,5 +1,6 @@
 // Keyboard shortcuts (frontend/src/utils/shortcuts.ts), item 11. The handler and the shortcuts
-// dialog use this one table (R11.3). No shortcut uses Ctrl, Alt or Meta (R11.2).
+// dialog use this one table (R11.3). No shortcut uses Alt or Meta (R11.2); the Ctrl shortcuts are
+// global: they also work while an input has the focus, and they replace the browser's own action.
 import {
   cycleSidebarMode, cycleView, effectiveLayout, markScopeRead, nextUnread, oldestUnread, openAll, openInNewTab, refreshFeed,
   selectStory, stepFeed, stepStory, toggleView,
@@ -104,7 +105,7 @@ export const SHORTCUTS: Shortcut[] = [
   { keys: ['Shift+e'], label: 'Open All Site Stories', run: () => openAll() },
   { keys: ['Shift+u'], label: 'Toggle the sidebar', run: () => useSettings().set('sidebar_collapsed', !useSettings().prefs.sidebar_collapsed) },
   { keys: ['Shift+f'], label: 'Full screen reading', run: () => (useUi().fullscreen = !useUi().fullscreen) },
-  { keys: ['Shift+l'], label: 'Toggle the read filter', run: toggleReadFilter },
+  { keys: ['Shift+l', 'Ctrl+u'], label: 'Toggle the read filter (Unread / All)', run: toggleReadFilter },
   { keys: ['+'], label: 'Next sidebar mode (All, Unread, Saved for Later)', run: () => cycleSidebarMode(1) },
   { keys: ['-'], label: 'Previous sidebar mode', run: () => cycleSidebarMode(-1) },
   { keys: ['g'], label: 'Jump to a feed by name', run: (context) => context.focusFilter() },
@@ -114,6 +115,7 @@ export const SHORTCUTS: Shortcut[] = [
 ]
 
 function combo(event: KeyboardEvent): string {
+  if (event.ctrlKey) return `Ctrl+${event.shiftKey ? 'Shift+' : ''}${event.key.toLowerCase()}`
   let key = event.key
   if (key === ' ') key = 'Space'
   if (key.length === 1) {
@@ -128,7 +130,7 @@ for (const shortcut of SHORTCUTS) for (const key of shortcut.keys) LOOKUP.set(ke
 
 /** Shortcuts are inactive in inputs and editable elements and while a dialog is open. */
 export function handleKey(event: KeyboardEvent, context: ShortcutContext): void {
-  if (event.ctrlKey || event.altKey || event.metaKey || event.defaultPrevented) return
+  if (event.altKey || event.metaKey || event.defaultPrevented) return
   const ui = useUi()
   if (event.key === 'Escape' && (ui.menu || ui.stylePopover)) {
     ui.closeMenu()
@@ -137,9 +139,9 @@ export function handleKey(event: KeyboardEvent, context: ShortcutContext): void 
   }
   if (ui.dialog) return
   const target = event.target as HTMLElement | null
-  if (target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)) return
+  const editing = !!target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)
   const shortcut = LOOKUP.get(combo(event))
-  if (!shortcut) return
+  if (!shortcut || (editing && !event.ctrlKey)) return
   event.preventDefault()
   shortcut.run(context)
 }

@@ -174,9 +174,8 @@ function removeSaved() {
       <div class="story-column">
         <header v-if="!bare" class="story-header">
           <h1><a :href="story.permalink" target="_blank" rel="noopener noreferrer">{{ title }}</a></h1>
-          <div class="byline">
+          <div v-if="story.author || story.tags.length" class="byline">
             <span v-if="story.author">{{ story.author }}</span>
-            <span>{{ date }}</span>
             <span v-for="tag in story.tags" :key="tag" class="tag">{{ tag }}</span>
           </div>
           <div class="story-actions">
@@ -194,6 +193,7 @@ function removeSaved() {
             <button v-if="mode === 'text' && text && !textLoading" class="btn" title="Extract the text again" @click="loadText(true)">
               <Icon name="refresh" /> Fetch again
             </button>
+            <span class="story-date">{{ date }}</span>
             <div v-if="tagEditor" class="tag-popover" @keydown.esc.stop="tagEditor = false">
               <label class="dim">Tags, separated by commas</label>
               <input v-model="tagText" class="input" placeholder="later, tech" @keydown.enter="saveTags" />

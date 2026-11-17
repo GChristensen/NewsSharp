@@ -41,6 +41,17 @@ function toggleFilter() {
   else ui.feedFilter = ''
 }
 
+/** Feedxcavator news: sends a GET request to the configured feedxcavator handler. The request is made by the
+ *  browser, so it carries the user's feedxcavator cookies; the response of the other origin is opaque and not read. */
+async function runNewspaperHandler() {
+  ui.toast('Requesting Feedxcavator news')
+  try {
+    await fetch(settings.prefs.feedxcavator_newspaper_url, { mode: 'no-cors', credentials: 'include' })
+  } catch {
+    ui.error('Feedxcavator news could not be requested.')
+  }
+}
+
 defineExpose({
   focusFilter: () => {
     if (!filterShown.value) settings.set('show_feed_filter', true)
@@ -330,11 +341,15 @@ function manageMenu(event: MouseEvent) {
 <template>
   <div class="bar">
     <button class="btn" title="Manage" @click="manageMenu"><Icon name="user" /> {{ session.user?.username }}</button>
+    <span class="spacer" />
+    <button
+      v-if="settings.prefs.feedxcavator_newspaper_url" class="btn icon-only" title="Feedxcavator news"
+      @click="runNewspaperHandler"
+    ><Icon name="newspaper" /></button>
     <button
       v-if="settings.prefs.feedxcavator_url" class="btn icon-only" title="Open feedxcavator"
       @click="openInNewTab(settings.prefs.feedxcavator_url)"
-    ><Icon name="stack" /></button>
-    <span class="spacer" />
+    ><Icon name="excavator" /></button>
     <button class="btn icon-only" :class="{ active: filterShown }" title="Filter feeds (G)" @click="toggleFilter"><Icon name="filter" /></button>
     <button class="btn icon-only" title="Collapse the sidebar (Shift+U)" @click="settings.set('sidebar_collapsed', true)">
       <Icon name="sidebar" />

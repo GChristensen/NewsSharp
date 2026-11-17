@@ -130,6 +130,7 @@ export interface Prefs {
   animations: boolean
   show_tooltips: boolean
   feedxcavator_url: string
+  feedxcavator_newspaper_url: string
 }
 
 export interface Bootstrap {

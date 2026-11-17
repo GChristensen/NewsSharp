@@ -96,6 +96,7 @@ CATALOG = {
     "animations": (_bool, True),
     "show_tooltips": (_bool, True),
     "feedxcavator_url": (_url_or_empty, ""),
+    "feedxcavator_newspaper_url": (_url_or_empty, ""),
 }
 
 VIEW_SETTING_KEYS = {

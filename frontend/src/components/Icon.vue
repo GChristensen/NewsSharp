@@ -108,6 +108,12 @@ const PATHS: Record<string, string> = {
   'theme-auto': 'M12 4a8 8 0 1 0 0 16a8 8 0 0 0 0-16zM12 4v16',
   sun: 'M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8zM12 2.500v2M12 19.500v2M2.500 12h2M19.500 12h2M5.300 5.300l1.400 1.400M17.300 17.300l1.400 1.400M5.300 18.700l1.400-1.400M17.300 6.700l1.400-1.400',
   moon: 'M20 14.500A8 8 0 1 1 9.500 4a6.500 6.500 0 0 0 10.500 10.500z',
+  // The feedxcavator logo, schematically: a trussed boom with a rounded head entering a bucket wheel
+  // whose right and lower rim carries saw-tooth buckets.
+  excavator: 'M.950 4.370L13.450 8.870A2.800 2.800 0 0 1 11.550 14.130L-.950 9.630M1.890 4.700L3.290 11.160L8.480 7.080'
+    + 'M6.900 6.510A7.500 7.500 0 0 1 19 7.750L22.450 10.450L20 11.500L21.640 15.570L19 15.250L18.380 19.590L16.250 18'
+    + 'L13.550 21.450L12.500 19L8.430 20.640L8.750 18L4.410 17.380L6 15.250A7.500 7.500 0 0 1 5.010 11.780',
+  newspaper: 'M4 5h13v14H6a2 2 0 0 1-2-2zM17 9h3v8a2 2 0 0 1-2 2h-1M7 8h7v3H7zM7 14h7M7 17h5',
 }
 
 /** The filled, translucent second tone of the two-tone icons, drawn under the stroke. */
@@ -142,6 +148,7 @@ const TINTS: Record<string, string> = {
   'theme-auto': 'M12 4a8 8 0 0 0 0 16z',
   sun: 'M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8z',
   moon: 'M20 14.500A8 8 0 1 1 9.500 4a6.500 6.500 0 0 0 10.500 10.500z',
+  newspaper: 'M7 8h7v3H7z',
 }
 defineProps<{ name: string }>()
 </script>
