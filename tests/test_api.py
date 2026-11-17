@@ -15,7 +15,7 @@ from reading import stories as story_service
 from reading import tree
 from reading.models import Folder, Subscription
 from worker import coordinator, pipeline, websub
-from worker.models import Job
+from worker.models import Job, WorkerEvent
 
 pytestmark = pytest.mark.django_db
 
@@ -505,9 +505,15 @@ def test_push_notifications(client, push, user, subscribe):
         assert response.status_code == 202
     jobs = list(Job.objects.filter(type="push_body"))
     assert len(jobs) == 2 and bytes(jobs[0].blob) == body and not jobs[0].interactive
-    # the worker processes the body through the pipeline, with no request to the feed address
+    # the worker processes the body through the pipeline, with no request to the feed address; a
+    # usable body clears the error state of a failed fetch and reports the feed as fetched
+    Feed.objects.filter(pk=push.feed_id).update(has_exception=True, exception_code=505, errors_since_good=2)
     outcome = pipeline.process_feed(push.feed_id, {"kind": "push", "body": body, "content_type": "application/rss+xml"})
     assert outcome["new"] == 1 and Story.objects.get(feed_id=push.feed_id).title == "Pushed story"
+    feed = Feed.objects.get(pk=push.feed_id)
+    assert not feed.has_exception and feed.exception_code == 0 and feed.errors_since_good == 0
+    fetched = WorkerEvent.objects.filter(feed_id=push.feed_id, type="feed_fetched").last()
+    assert fetched is not None and fetched.payload["has_exception"] is False
     empty = pipeline.process_feed(push.feed_id, {"kind": "push", "body": b"", "content_type": ""})
     assert empty == {"fetch_needed": True}
 

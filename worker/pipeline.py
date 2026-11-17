@@ -296,8 +296,14 @@ def process_feed(feed_id: int, fetch: dict) -> dict:
         with transaction.atomic():
             PushSubscription.objects.filter(feed_id=feed_id).update(last_push_at=ts)
             stats = _stats_fields(feed_id, ts)
-            Feed.objects.filter(pk=feed_id).update(**stats, **_schedule_fields(feed_id, stats, feed.errors_since_good, ts))
+            # A usable pushed body shows the feed is alive: clear a failed fetch's error state and tell
+            # the clients, as a successful fetch does.
+            Feed.objects.filter(pk=feed_id).update(
+                errors_since_good=0, has_exception=False, exception_code=0,
+                **stats, **_schedule_fields(feed_id, stats, 0, ts),
+            )  # fmt: skip
             store.log_fetch(feed_id, "push", 200, f"OK, {counts['new']} new, {counts['updated']} updated", elapsed())
+            _fetched_event(feed_id, ts)
         push = PushSubscription.objects.filter(feed_id=feed_id).first()
         if push and parsed.get("hubs"):
             topic = parsed.get("self") or push.topic
