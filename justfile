@@ -54,7 +54,7 @@ deploy:
     if (-not (Test-Path frontend\dist\index.html)) { throw 'frontend\dist is missing: run "just build" first.' }
     foreach ($d in 'config', 'accounts', 'feeds', 'reading', 'api', 'worker', 'deploy') { robocopy $d "{{remote}}\$d" /MIR /XD __pycache__ {{rc}}; if ($LASTEXITCODE -ge 8) { exit 1 } }; exit 0
     robocopy frontend\dist '{{remote}}\frontend\dist' /MIR {{rc}}{{ok}}
-    robocopy . '{{remote}}' manage.py pyproject.toml uv.lock requirements.txt requirements-dev.txt install.py README.md config.example.yaml newssharp.sh newssharp.cmd {{rc}}{{ok}}
+    robocopy . '{{remote}}' manage.py pyproject.toml uv.lock requirements.txt requirements-dev.txt install.py README.md config.example.yaml newssharp.sh newssharp.cmd ctl {{rc}}{{ok}}
     @echo 'Deployed. If dependencies changed, run python3 install.py there first. Then restart the server (it applies migrations).'
 
 # Update uv.lock from pyproject.toml and export the pinned versions for the pip path of install.py.

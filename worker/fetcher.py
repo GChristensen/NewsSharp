@@ -15,7 +15,7 @@ from feeds.util import InvalidUrl, normalize_url, site_root
 
 log = logging.getLogger("worker.fetcher")
 
-NEUTRAL_UA =f"{settings.APP_NAME}/{settings.APP_VERSION} feed fetcher"
+NEUTRAL_UA = f"{settings.APP_NAME}/{settings.APP_VERSION} feed fetcher"
 BROWSER_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/130.0.0.0 Safari/537.36"
@@ -111,10 +111,24 @@ async def download(
         result = await asyncio.wait_for(_get(client, url, request_headers, max_bytes, max_redirects), total_timeout)
     except (asyncio.TimeoutError, httpx.TimeoutException):
         result = Download(url=url, error_code=504, error="Timeout")
+    except httpx.InvalidURL:
+        # Not an HTTPError: an address (or a redirect target) httpx cannot build a request for.
+        result = Download(url=url, error_code=502, error="Invalid URL")
     except (httpx.HTTPError, ValueError, OSError) as e:
         result = Download(url=url, error_code=502, error=f"Connection error: {type(e).__name__}"[:200])
     result.ms = int((time.monotonic() - started) * 1000)
     return result
+
+
+def redirected_elsewhere(result: Download, address: str) -> bool:
+    """Whether a download went through a permanent redirect to an address other than `address`
+    (the comparison process_feed makes, R2.8)."""
+    if not result.permanent_url:
+        return False
+    try:
+        return normalize_url(result.permanent_url) != address
+    except InvalidUrl:
+        return False
 
 
 def _http_date(value: str) -> str:
@@ -124,16 +138,26 @@ def _http_date(value: str) -> str:
         return value
 
 
+def conditional_headers(feed: dict, forced: bool) -> dict:
+    """R2.6: If-None-Match / If-Modified-Since from the last good response, unless forced. A value
+    that is not ASCII cannot be sent as a header and is left out."""
+    if not feed["fetched_once"] or forced:
+        return {}
+    headers = {}
+    etag = feed["etag"] or ""
+    if etag and etag.isascii():
+        headers["If-None-Match"] = etag
+    last_modified = _http_date(feed["last_modified"]) if feed["last_modified"] else ""
+    if last_modified and last_modified.isascii():
+        headers["If-Modified-Since"] = last_modified
+    if headers:
+        headers["A-IM"] = "feed"
+    return headers
+
+
 async def download_feed(client: httpx.AsyncClient, feed: dict, forced: bool) -> Download:
     """R2.1-R2.5: neutral user agent, conditional headers unless forced, one retry as a browser."""
-    headers = {"User-Agent": NEUTRAL_UA, "Accept": FEED_ACCEPT}
-    if feed["fetched_once"] and not forced:
-        if feed["etag"]:
-            headers["If-None-Match"] = feed["etag"]
-        if feed["last_modified"]:
-            headers["If-Modified-Since"] = _http_date(feed["last_modified"])
-        if feed["etag"] or feed["last_modified"]:
-            headers["A-IM"] = "feed"
+    headers = {"User-Agent": NEUTRAL_UA, "Accept": FEED_ACCEPT, **conditional_headers(feed, forced)}
     result = await download(client, feed["feed_address"], headers=headers)
     if result.error_code in (502, 504) or result.status >= 400:
         first_ms = result.ms

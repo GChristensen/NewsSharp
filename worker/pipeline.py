@@ -9,10 +9,10 @@ from difflib import SequenceMatcher
 
 from django.conf import settings
 from django.db import IntegrityError, connection, transaction
-from django.db.models import Max
+from django.db.models import Max, Q
 
 from feeds import store
-from feeds.models import Feed, FeedStoryCount, PushSubscription, Story
+from feeds.models import Feed, FeedFetchLog, FeedStoryCount, PushSubscription, Story
 from feeds.parsing import build_stories, link_header_rels, looks_like_html, parse_feed
 from feeds.sanitize import extract_image_urls, sanitize
 from feeds.util import InvalidUrl, chunks, guid_hash, normalize_url, now
@@ -91,6 +91,9 @@ def store_stories(feed: Feed, parsed: dict, ts: int) -> dict:
     for chunk in chunks([e["guid_hash"] for e in prepared], 400):
         for story in Story.objects.filter(feed_id=feed.id, guid_hash__in=chunk):
             by_hash[story.guid_hash] = story
+    # A stored story stands for one entry of this fetch: the entry with its guid, or else the first
+    # similar one. Without this, two entries could take turns rewriting one story's guid.
+    claimed = {story.id for story in by_hash.values()}
     candidates = None
     operations, same, updates = [], 0, 0
     for entry in prepared:
@@ -98,9 +101,11 @@ def store_stories(feed: Feed, parsed: dict, ts: int) -> dict:
         if existing is None:
             if candidates is None:
                 recent = Story.objects.filter(feed_id=feed.id, story_date__gt=ts - 30 * 86400).order_by("-story_date")
-                merged = {s.id: s for s in list(recent[:300]) + list(by_hash.values())}
-                candidates = list(merged.values())
-            existing = _find_similar(entry, candidates, time.monotonic() + SIMILARITY_SECONDS)
+                candidates = list(recent[:300])
+            unclaimed = [story for story in candidates if story.id not in claimed]
+            existing = _find_similar(entry, unclaimed, time.monotonic() + SIMILARITY_SECONDS)
+            if existing is not None:
+                claimed.add(existing.id)
         if existing is None:
             operations.append(("insert", None, entry))
         elif existing.content != entry["content"] or existing.permalink != entry["permalink"]:
@@ -189,7 +194,24 @@ def _stats_fields(feed_id: int, ts: int) -> dict:
 
 
 def _push_active(feed_id: int) -> bool:
-    return PushSubscription.objects.filter(feed_id=feed_id, verified=True, removing=False, last_push_at__gt=0).exists()
+    """A verified subscription that has delivered before and whose lease has not run out."""
+    return (
+        PushSubscription.objects.filter(feed_id=feed_id, verified=True, removing=False, last_push_at__gt=0)
+        .filter(Q(lease_expires=0) | Q(lease_expires__gt=now()))
+        .exists()
+    )
+
+
+REDISCOVER_AFTER_552 = 3  # consecutive "Non-xml feed" fetches before a known-good feed is rediscovered
+
+
+def _repeated_552(feed_id: int) -> bool:
+    codes = list(
+        FeedFetchLog.objects.filter(feed_id=feed_id, type="feed")
+        .order_by("-id")
+        .values_list("status_code", flat=True)[:REDISCOVER_AFTER_552]
+    )
+    return len(codes) == REDISCOVER_AFTER_552 and all(code == 552 for code in codes)
 
 
 def _schedule_fields(feed_id: int, stats: dict, errors: int, ts: int, hint: int | None = None) -> dict:
@@ -225,11 +247,15 @@ def record_failure(feed_id: int, code: int, message: str, duration_ms: int = 0, 
         )  # fmt: skip
         store.log_fetch(feed_id, "feed", code, message, duration_ms)
         _fetched_event(feed_id, ts)
-    return {"error": code, "message": message, "rediscover": (not feed.known_good) or code == 552}
+        # R2.21. A feed that worked before is rediscovered only when it keeps answering with a page:
+        # one error page must not move its subscribers to whatever feed the site's home page links.
+        rediscover = not feed.known_good or (code == 552 and _repeated_552(feed_id))
+    return {"error": code, "message": message, "rediscover": rediscover}
 
 
-def record_not_modified(feed_id: int, duration_ms: int, headers: dict) -> dict:
-    """R2.6."""
+def record_not_modified(feed_id: int, duration_ms: int, headers: dict, redirected: bool = False) -> dict:
+    """R2.6. A 304 reached through a permanent redirect keeps the redirect count of R2.8 as it is;
+    one without a redirect ends the series."""
     ts = now()
     with transaction.atomic():
         feed = Feed.objects.filter(pk=feed_id).first()
@@ -237,9 +263,11 @@ def record_not_modified(feed_id: int, duration_ms: int, headers: dict) -> dict:
             return {"gone": True}
         stats = _stats_fields(feed_id, ts)
         fields = _schedule_fields(feed_id, stats, 0, ts, scheduling.server_hint_seconds(headers, ts))
+        if not redirected:
+            fields["redirects_in_row"] = 0
         Feed.objects.filter(pk=feed_id).update(
             errors_since_good=0, has_exception=False, exception_code=0, last_update=ts,
-            last_load_ms=duration_ms, redirects_in_row=0, stories_last_month=stats["stories_last_month"], **fields,
+            last_load_ms=duration_ms, stories_last_month=stats["stories_last_month"], **fields,
         )  # fmt: skip
         store.log_fetch(feed_id, "feed", 304, "Not modified", duration_ms)
         _fetched_event(feed_id, ts)
@@ -348,9 +376,11 @@ def process_feed(feed_id: int, fetch: dict) -> dict:
     counts = store_stories(feed, parsed, ts)
 
     first_fetch = not feed.fetched_once
+    etag, last_modified = headers.get("etag") or "", headers.get("last-modified") or ""
     fields = {
-        "etag": (headers.get("etag") or "")[:255],
-        "last_modified": (headers.get("last-modified") or "")[:64],
+        # R2.6: sent back as request headers, which must be ASCII.
+        "etag": etag[:255] if etag.isascii() else "",
+        "last_modified": last_modified[:64] if last_modified.isascii() else "",
         "fetched_once": True, "known_good": True, "errors_since_good": 0, "has_exception": False,
         "exception_code": 0, "last_update": ts, **redirect_fields,
     }  # fmt: skip

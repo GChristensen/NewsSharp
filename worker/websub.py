@@ -15,6 +15,7 @@ from worker.models import WorkerEvent
 log = logging.getLogger("worker.websub")
 
 WEEK = 7 * 86400
+RENEWAL_RETRY_SECONDS = 3600
 
 
 def detach(push: PushSubscription, ts: int) -> dict:
@@ -67,12 +68,36 @@ def plan(feed_id: int, hub: str | None, topic: str | None, force: bool) -> dict:
 
 
 def renewals_due() -> list[dict]:
+    """R4.9. A renewal is asked for at most once per RENEWAL_RETRY_SECONDS: the hub confirms it
+    later through the callback, and until then the lease still looks nearly over."""
     ts = now()
     due = []
-    for push in PushSubscription.objects.filter(verified=True, removing=False, feed__isnull=False):
+    pushes = PushSubscription.objects.filter(
+        verified=True, removing=False, feed__isnull=False, requested_at__lte=ts - RENEWAL_RETRY_SECONDS
+    )
+    for push in pushes:
         if lease_nearly_over(push, ts):
             due.append({"feed_id": push.feed_id, "hub": push.hub, "topic": push.topic})
     return due
+
+
+def expire_leases() -> None:
+    """A lease that ran out without renewal no longer delivers: the feed is polled as an ordinary
+    feed again, and the next successful fetch subscribes anew (plan(), at most every 300 s)."""
+    ts = now()
+    expired = list(
+        PushSubscription.objects.filter(
+            verified=True, removing=False, feed__isnull=False, lease_expires__gt=0, lease_expires__lt=ts
+        )
+    )
+    if not expired:
+        return
+    with transaction.atomic():
+        for push in expired:
+            PushSubscription.objects.filter(pk=push.pk).update(verified=False)
+            Feed.objects.filter(pk=push.feed_id).update(is_push=False)
+            WorkerEvent.objects.create(at=ts, type="push_state", feed_id=push.feed_id, payload={"is_push": False})
+            log.info("websub lease of feed %s expired", push.feed_id)
 
 
 def all_subscriptions() -> list[dict]:

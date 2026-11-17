@@ -9,8 +9,6 @@ MONTH = 30 * 86400
 MAX_ERROR_MINUTES = 7 * 24 * 60
 MAX_PUSH_MINUTES = 24 * 60
 MAX_HINT_SECONDS = 24 * 3600
-# Server hints shorter than this are raised to it: a "max-age=0" feed must not be polled in a loop.
-MIN_HINT_SECONDS = 15 * 60
 
 
 def base_interval_minutes(stories_last_month: int, last_story_date: int, now_ts: int) -> float:
@@ -30,14 +28,15 @@ def interval_minutes(
     stories_last_month: int, last_story_date: int, errors: int, push_active: bool, now_ts: int,
     hint_seconds: int | None = None,
 ) -> int:  # fmt: skip
-    """R3.2-R3.5."""
-    if hint_seconds and hint_seconds > 0:
-        return max(1, round(min(max(hint_seconds, MIN_HINT_SECONDS), MAX_HINT_SECONDS) / 60))
+    """R3.2-R3.5. A server hint (R2.15) only lengthens the interval: it never makes a quiet feed
+    polled more often or cancels the error backoff."""
     minutes = base_interval_minutes(stories_last_month, last_story_date, now_ts)
     if push_active:
         minutes = min(minutes * 12, MAX_PUSH_MINUTES)
     if errors > 0:
         minutes = min(minutes * errors, MAX_ERROR_MINUTES)
+    if hint_seconds and hint_seconds > 0:
+        minutes = max(minutes, min(hint_seconds, MAX_HINT_SECONDS) / 60)
     return max(1, round(minutes))
 
 

@@ -10,3 +10,4 @@ migration_map.json
 /CLAUDE.md
 /config.yaml
 /.env
+/.claude/

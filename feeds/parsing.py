@@ -18,21 +18,39 @@ MAX_ENTRIES = 2000
 MIN_DATE = 946684800  # 2000-01-01
 
 
-def _lenient_date(text: str) -> int | None:
+# UTC offsets in hours of the zone abbreviations feeds use; dateutil knows only UTC/GMT/Z by itself
+# and would read "10:00 EST" as 10:00 UTC.
+_ZONE_HOURS = {
+    "UT": 0, "UTC": 0, "GMT": 0, "Z": 0, "WET": 0, "WEST": 1, "BST": 1, "CET": 1, "CEST": 2, "MET": 1,
+    "MEST": 2, "EET": 2, "EEST": 3, "MSK": 3, "JST": 9, "KST": 9, "AEST": 10, "AEDT": 11, "NZST": 12,
+    "NZDT": 13, "EST": -5, "EDT": -4, "CST": -6, "CDT": -5, "MST": -7, "MDT": -6, "PST": -8, "PDT": -7,
+    "AKST": -9, "AKDT": -8, "HST": -10,
+}  # fmt: skip
+_TZINFOS = {name: hours * 3600 for name, hours in _ZONE_HOURS.items()}
+
+
+def _text_date(text: str) -> tuple[int | None, bool]:
+    """A date in free text as a timestamp, and whether the text gave its time zone. A date without
+    a zone is taken as UTC."""
     if not text or not isinstance(text, str):
-        return None
+        return None, False
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            parsed = date_parser.parse(text)
+            parsed = date_parser.parse(text, tzinfos=_TZINFOS)
     except (ValueError, OverflowError, TypeError):
-        return None
-    if parsed.tzinfo is None:
+        return None, False
+    zoned = parsed.tzinfo is not None
+    if not zoned:
         parsed = parsed.replace(tzinfo=timezone.utc)
     try:
-        return int(parsed.timestamp())
+        return int(parsed.timestamp()), zoned
     except (ValueError, OverflowError, OSError):
-        return None
+        return None, False
+
+
+def _lenient_date(text: str) -> int | None:
+    return _text_date(text)[0]
 
 
 def _struct_ts(value) -> int | None:
@@ -218,8 +236,11 @@ def _append_enclosures(content: str, media: list[dict]) -> str:
 
 
 def story_date(entry: dict, now_ts: int) -> int:
-    """R2.30: the entry's published text first, then feedparser's dates, then now."""
-    value = _lenient_date(entry.get("published"))
+    """R2.30: the entry's published text first, then feedparser's dates, then now. Text whose time
+    zone was not understood yields to feedparser's date, which knows more zone names."""
+    value, zoned = _text_date(entry.get("published"))
+    if value is not None and not zoned and entry.get("published_ts") is not None:
+        value = entry["published_ts"]
     if value is None:
         value = entry.get("published_ts")
     if value is None:

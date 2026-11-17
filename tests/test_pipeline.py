@@ -1,4 +1,5 @@
 """Acceptance checks of items 1, 2, 3, 8 and 18 (tests/test_pipeline.py)."""
+import asyncio
 import io
 import time
 from datetime import datetime, timezone
@@ -8,11 +9,12 @@ import pytest
 from PIL import Image
 
 from feeds.models import FeedFetchLog, FeedStoryCount, Story
+from feeds.parsing import story_date
 from feeds.sanitize import extract_image_urls, sanitize
 from feeds.util import InvalidUrl, guid_hash, normalize_url, now
 from reading import unread
 from reading.models import ReadStory
-from worker import pipeline, scheduling
+from worker import coordinator, fetcher, pipeline, scheduling
 from worker.models import WorkerEvent
 from worker.tasks import dominant_color, parse_page
 
@@ -305,3 +307,94 @@ def test_normalize_url():
 def test_similarity_gives_up_quickly():
     started = time.monotonic()
     assert pipeline._find_similar({"title": "x", "content": "y" * 2000, "story_date": 0, "permalink": ""}, [], started + 5) is None
+
+
+def test_non_ascii_validators_are_not_stored_or_sent(make_feed):
+    feed = make_feed()
+    fetch(feed, rss(item("a", date=now() - 5)), headers={"etag": 'W/"café"', "last-modified": "Moné"})
+    feed.refresh_from_db()
+    assert feed.etag == "" and feed.last_modified == ""
+    stored = {"fetched_once": True, "etag": 'W/"café"', "last_modified": "", "feed_address": feed.feed_address}
+    assert fetcher.conditional_headers(stored, forced=False) == {}
+    stored["etag"] = '"abc"'
+    assert fetcher.conditional_headers(stored, forced=False) == {"If-None-Match": '"abc"', "A-IM": "feed"}
+    assert fetcher.conditional_headers(stored, forced=True) == {}
+
+
+def test_invalid_url_is_a_download_error():
+    async def run():
+        client = fetcher.make_client()
+        try:
+            return await fetcher.download(client, "http://☃☃--.com/feed")
+        finally:
+            await client.aclose()
+
+    result = asyncio.run(run())
+    assert result.error_code == 502 and result.error == "Invalid URL"
+
+
+def test_one_html_page_does_not_rediscover_a_known_good_feed(make_feed):
+    feed = make_feed()
+    fetch(feed, rss(item("a", date=now() - 5)))
+    page = {"kind": "fetch", "body": b"<!doctype html><html><body>down</body></html>", "content_type": "text/html", "headers": {}}
+    outcomes = [pipeline.process_feed(feed.id, page) for _ in range(3)]
+    assert [o["error"] for o in outcomes] == [552, 552, 552]
+    assert [o["rediscover"] for o in outcomes] == [False, False, True]
+
+
+def test_rediscovery_never_merges_a_known_good_feed(make_feed, user, subscribe):
+    feed = make_feed("https://site.example/category/feed")
+    other = make_feed("https://site.example/feed")
+    subscribe(user, feed)
+    fetch(feed, rss(item("a", date=now() - 5)))
+    assert coordinator.change_address(feed.id, other.feed_address) is None
+    feed.refresh_from_db()
+    assert feed.feed_address == "https://site.example/category/feed" and Story.objects.filter(feed=feed).count() == 1
+
+
+def test_server_hint_only_lengthens_the_interval(settings):
+    settings.FETCH_INTERVAL_MINUTES = 24 * 60
+    ts = now()
+    quiet = scheduling.interval_minutes(0, ts - 90 * 86400, 0, False, ts)
+    assert scheduling.interval_minutes(0, ts - 90 * 86400, 0, False, ts, 600) == quiet
+    assert scheduling.interval_minutes(90, ts, 4, False, ts, 600) == 180
+    assert scheduling.interval_minutes(90, ts, 0, False, ts, 7 * 86400) == 24 * 60
+
+
+def test_zone_abbreviations_are_understood():
+    ts = int(datetime(2026, 11, 18, 15, 0, tzinfo=timezone.utc).timestamp())
+    assert story_date({"published": "Wed, 18 Nov 2026 10:00:00 EST"}, ts + 3600) == ts
+    assert story_date({"published": "Wed, 18 Nov 2026 08:00:00 PDT"}, ts + 3600) == ts
+    # an unknown abbreviation yields to feedparser's date
+    assert story_date({"published": "Wed, 18 Nov 2026 15:00:00 XYZ", "published_ts": ts - 60}, ts + 3600) == ts - 60
+
+
+def test_redirected_304_keeps_the_redirect_count(make_feed):
+    feed = make_feed("https://old.example/feed")
+    body = rss(item("a", date=now() - 5))
+    fetch(feed, body)
+    fetch(feed, body, permanent_url="https://new.example/feed")
+    pipeline.record_not_modified(feed.id, 0, {}, redirected=True)
+    feed.refresh_from_db()
+    assert feed.redirects_in_row == 1
+    fetch(feed, body, permanent_url="https://new.example/feed")
+    fetch(feed, body, permanent_url="https://new.example/feed")
+    feed.refresh_from_db()
+    assert feed.feed_address == "https://new.example/feed"
+    pipeline.record_not_modified(feed.id, 0, {})
+    feed.refresh_from_db()
+    assert feed.redirects_in_row == 0
+
+
+def test_one_story_matches_one_entry(make_feed):
+    feed = make_feed()
+    ts = now()
+    text = "Shared paragraph of a weekly digest. " * 60
+    fetch(feed, rss(item("week-5", "Weekly digest", "https://example.com/w", text + "five", date=ts - 3600)))
+    body = rss(
+        item("week-5", "Weekly digest", "https://example.com/w", text + "five", date=ts - 3600)
+        + item("week-6", "Weekly digest", "https://example.com/w", text + "six", date=ts - 60)
+    )
+    for _ in range(2):
+        fetch(feed, body)
+    assert sorted(Story.objects.filter(feed=feed).values_list("guid", flat=True)) == ["week-5", "week-6"]

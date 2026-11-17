@@ -97,8 +97,11 @@ def due_feeds() -> list[int]:
 
 
 def stale_icons() -> list[int]:
+    """The three icons checked longest ago, so a search that keeps failing cannot hold the queue."""
     return list(
-        Feed.objects.filter(fetched_once=True, favicon_checked_at__lt=now() - ICON_MAX_AGE).values_list("id", flat=True)[:3]
+        Feed.objects.filter(fetched_once=True, favicon_checked_at__lt=now() - ICON_MAX_AGE)
+        .order_by("favicon_checked_at", "id")
+        .values_list("id", flat=True)[:3]
     )
 
 
@@ -108,11 +111,16 @@ def icon_not_found(feed_id: int) -> None:
 
 
 def change_address(feed_id: int, address: str) -> int | None:
-    """Point a feed at a new address (R2.21). Returns the id of the feed to fetch, if any."""
+    """Point a feed at a new address (R2.21). Returns the id of the feed to fetch, if any.
+    A feed that worked before is never merged into another one: the merge deletes its stories and
+    read state, and the rediscovered address may be a different feed of the same site."""
     feed = Feed.objects.filter(pk=feed_id).first()
     if feed is None or feed.feed_address == address:
         return None
     target = Feed.objects.filter(feed_address=address).first()
+    if target is not None and feed.known_good:
+        log.info("feed %s: rediscovered address %s belongs to feed %s, not merging", feed_id, address, target.id)
+        return None
     if target is not None:
         pipeline._merge_into(feed, target, now())
         return target.id
@@ -317,8 +325,16 @@ class Coordinator:
             self.spawn(websub.check(self, due["feed_id"], due["hub"], due["topic"], force=True))
 
     async def scheduled_fetch(self, feed_id: int) -> None:
+        """A fetch that fails unexpectedly is recorded as an error, which also reschedules the feed;
+        otherwise it would stay due and be requested again on every tick."""
         try:
             await self.fetch_feed(feed_id)
+        except Exception:
+            log.exception("fetch of feed %s failed", feed_id)
+            try:
+                await self.db(pipeline.record_failure, feed_id, 500, "Error")
+            except Exception as e:
+                log.error("recording the failure of feed %s failed: %s", feed_id, e)
         finally:
             self.scheduled.discard(feed_id)
 
@@ -328,6 +344,7 @@ class Coordinator:
             try:
                 for request in await self.db(purge_deleted):
                     self.spawn(websub.send(self, request))
+                await self.db(websub.expire_leases)
                 if tick % 4 == 0:
                     for feed_id in await self.db(stale_icons):
                         self.spawn(self.fetch_icon(feed_id))
@@ -459,7 +476,7 @@ class Coordinator:
             host = urlsplit(feed["feed_address"]).hostname or ""
             async with self.host_locks.setdefault(host, asyncio.Lock()), self.fetch_slots:
                 result = await fetcher.download_feed(self.client_for(feed["use_proxy"]), feed, forced)
-        outcome = await self.process_download(feed_id, result, interactive)
+        outcome = await self.process_download(feed_id, feed["feed_address"], result, interactive)
         wakeup.notify()
         log.info(
             "fetch feed=%s %s status=%s new=%s updated=%s download=%dms process=%sms",
@@ -476,11 +493,12 @@ class Coordinator:
             self.spawn(self.fetch_feed(outcome["merged_into"]))
         return outcome
 
-    async def process_download(self, feed_id: int, result: fetcher.Download, interactive: bool) -> dict:
+    async def process_download(self, feed_id: int, address: str, result: fetcher.Download, interactive: bool) -> dict:
         if result.error_code:
             return await self.db(pipeline.record_failure, feed_id, result.error_code, result.error, result.ms)
         if result.status == 304:
-            return await self.db(pipeline.record_not_modified, feed_id, result.ms, result.headers)
+            redirected = fetcher.redirected_elsewhere(result, address)
+            return await self.db(pipeline.record_not_modified, feed_id, result.ms, result.headers, redirected)
         if result.status >= 400:
             try:
                 reason = http.HTTPStatus(result.status).phrase
@@ -567,6 +585,10 @@ class Coordinator:
                     stored = await self.icon_pass(feed, clients, tried, page, end)
         except (TaskTimeout, TaskCrashed, TaskFailed) as e:
             log.info("icon for feed %s failed: %r", feed_id, e)
+            stored = None
+        except Exception:
+            # Recorded as "not found" below, so the feed leaves the stale-icon queue.
+            log.exception("icon search for feed %s failed", feed_id)
             stored = None
         outcome["tried"] = len(tried)
         outcome["out_of_time"] = stored is None and loop.time() >= end - 1

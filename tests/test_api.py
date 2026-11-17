@@ -495,6 +495,24 @@ def test_push_verification(client, push):
     assert not websub.lease_nearly_over(push, push.lease_expires - 8 * 86400)
 
 
+def test_renewal_waits_for_the_hub_and_an_expired_lease_ends_push(client, push):
+    verify(client, push)
+    push.refresh_from_db()
+    soon = now() + 86400
+    PushSubscription.objects.filter(pk=push.pk).update(lease_expires=soon, last_push_at=now())
+    assert [d["feed_id"] for d in websub.renewals_due()] == []  # just requested
+    PushSubscription.objects.filter(pk=push.pk).update(requested_at=now() - 2 * 3600)
+    assert [d["feed_id"] for d in websub.renewals_due()] == [push.feed_id]
+    assert pipeline._push_active(push.feed_id)
+    PushSubscription.objects.filter(pk=push.pk).update(lease_expires=now() - 1)
+    assert not pipeline._push_active(push.feed_id)
+    websub.expire_leases()
+    push.refresh_from_db()
+    assert not push.verified and not Feed.objects.get(pk=push.feed_id).is_push
+    assert WorkerEvent.objects.filter(type="push_state", feed_id=push.feed_id, payload={"is_push": False}).exists()
+    assert websub.renewals_due() == []
+
+
 def test_push_notifications(client, push, user, subscribe):
     verify(client, push)
     body = (
