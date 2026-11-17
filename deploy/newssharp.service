@@ -4,7 +4,7 @@
 #   journalctl -u newssharp -f          # logs
 #
 # Adjust User, Group and the paths to the installation directory, which holds the code, config.yaml,
-# data/ and the .venv created there by `uv sync`. The service user must own data/.
+# data/ and the .venv created there by `python3 install.py`. The service user must own data/.
 
 [Unit]
 Description=NewsSharp RSS reader

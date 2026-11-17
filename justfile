@@ -2,7 +2,9 @@
 #
 #   just run                            start the server in a new cmd window
 #   just build                          clean install of the frontend packages and a frontend build
+#   just build-landing [--plain] [--out dir]   build the landing page into the root index.html (GitHub Pages)
 #   just test                           backend and frontend tests
+#   just lock                           update uv.lock and requirements*.txt after a dependency change
 #   just deploy                         copy the code to the server
 #   just pull-data                      replace local data/ with the server's
 #   just remote='\\host\share\dir' deploy   use another installation directory
@@ -25,13 +27,21 @@ _default:
 run:
     Start-Process cmd.exe -WorkingDirectory '{{justfile_directory()}}' -ArgumentList '/k', 'title NewsSharp && uv run python manage.py serve'
 
-# The frontend is built into frontend/dist, which whitenoise serves as is (no collectstatic).
+# The frontend is built into frontend/dist, which whitenoise serves as is (no collectstatic). frontend/dist is
+# committed, so commit it after a build.
 
 # Clean install of the frontend packages, then build the frontend into frontend/dist.
 [working-directory('frontend')]
 build:
     npm ci
     npm run build
+
+# Arguments go to landing/build.mjs: --plain for a readable, unminified page, --out <dir> to preview elsewhere.
+# Build landing/ into the repo-root index.html and media/landing/ (GitHub Pages); installs its packages on first use.
+[working-directory('landing')]
+build-landing *args:
+    if (-not (Test-Path node_modules)) { npm ci; if ($LASTEXITCODE) { exit 1 } }
+    node build.mjs {{args}}
 
 # Run the backend tests, then the frontend type check and unit tests.
 test:
@@ -44,8 +54,14 @@ deploy:
     if (-not (Test-Path frontend\dist\index.html)) { throw 'frontend\dist is missing: run "just build" first.' }
     foreach ($d in 'config', 'accounts', 'feeds', 'reading', 'api', 'worker', 'deploy') { robocopy $d "{{remote}}\$d" /MIR /XD __pycache__ {{rc}}; if ($LASTEXITCODE -ge 8) { exit 1 } }; exit 0
     robocopy frontend\dist '{{remote}}\frontend\dist' /MIR {{rc}}{{ok}}
-    robocopy . '{{remote}}' manage.py pyproject.toml uv.lock README.md config.example.yaml {{rc}}{{ok}}
-    @echo 'Deployed. Restart the server (it applies migrations); if pyproject.toml dependencies changed, run "uv sync" there first.'
+    robocopy . '{{remote}}' manage.py pyproject.toml uv.lock requirements.txt requirements-dev.txt install.py README.md config.example.yaml newssharp.sh newssharp.cmd {{rc}}{{ok}}
+    @echo 'Deployed. If dependencies changed, run python3 install.py there first. Then restart the server (it applies migrations).'
+
+# Update uv.lock from pyproject.toml and export the pinned versions for the pip path of install.py.
+lock:
+    uv lock
+    uv export --no-dev --no-hashes --no-emit-project --format requirements-txt -o requirements.txt --quiet
+    uv export --only-group dev --no-hashes --no-emit-project --format requirements-txt -o requirements-dev.txt --quiet
 
 # Replace local data/ with the server's copy. The image cache, collected static files and the worker lock are not copied.
 pull-data:

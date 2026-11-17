@@ -1,28 +1,39 @@
 # NewsSharp
 
-A personal, self-hosted RSS reader, a lightweight reimplementation of NewsBlurMod.
+A personal, self-hosted RSS reader, a lightweight reimplementation of [NewsBlur](https://github.com/samuelclay/NewsBlur).
 Three panes, a feed/folder tree with drag and drop, feed icon colors, five story layouts, four story
 views, unread tracking, Saved for Later, full-text search, text extraction, WebSub push and live updates.
 
 One SQLite file, two Python processes, no Docker, Redis, Celery, MongoDB, Elasticsearch or Node services.
 
-## Requirements
+## Installation
 
-- Python 3.12+ and [uv](https://docs.astral.sh/uv/)
-- Node.js 20+ (only to build the frontend)
-
-## Setup
+NewsSharp needs Python 3.12 or later. The built frontend is included in `frontend/dist`, so Node.js is
+only needed to change the frontend. From the installation directory:
 
 ```sh
-uv sync                                   # Python dependencies
-cd frontend && npm install && npm run build && cd ..
-cp config.example.yaml config.yaml       # optional: port, data directory, proxy, ...
-uv run python manage.py serve
+python3 install.py          # Windows: python install.py
+./newssharp.sh              # Windows: newssharp.cmd
 ```
 
-Open `http://localhost:10000`. The first visit shows a form that creates the administrator account.
+`install.py` creates `.venv` with the dependency versions pinned in `uv.lock` and creates `config.yaml` from
+`config.example.yaml` when there is none. When [uv](https://docs.astral.sh/uv/) is on PATH it is used, and it
+fetches a suitable Python by itself; otherwise the script uses venv and pip with `requirements.txt`.
 
-`serve` applies migrations and supervises two processes:
+| Option | Does |
+|---|---|
+| `--with-dev` | also installs the development tools (pytest, ruff), from `requirements-dev.txt` with pip |
+| `--without dev` | removes them again |
+| `--pip` | uses venv and pip even when uv is available |
+
+The choice is kept in `.venv/newssharp-install.json`. After updating the code, run `install.py` without options
+to reinstall with the new pinned versions. With pip, removed packages stay installed until `.venv` is deleted
+and recreated.
+
+Then open the address the script prints (`http://localhost:<port>`). The first visit shows a form that creates
+the administrator account.
+
+The launcher runs `manage.py serve`, which applies migrations and supervises two processes:
 
 | Process | Command | Does |
 |---|---|---|
@@ -93,8 +104,8 @@ piece:
 | `deploy/newssharp.service` | systemd system unit that runs `manage.py serve` as an unprivileged user |
 | `deploy/nginx.conf` | nginx site: TLS, HTTP/2, http → https redirect, unbuffered event stream |
 
-1. Put the code in the installation directory (`just deploy`, or a copy) and run `uv sync` and
-   `cp config.example.yaml config.yaml` there.
+1. Put the code in the installation directory (`git clone`, `just deploy` or a copy) and run
+   `python3 install.py` there.
 2. In `config.yaml`, set `bind: 127.0.0.1` so only nginx can reach the server, set `trust_proxy: true`, and use the
    same `port` as `proxy_pass` in `nginx.conf` (10000 in both examples).
 3. Edit `User`, `Group` and the paths in the unit, then install it:
@@ -113,21 +124,24 @@ piece:
    ```
 
 `serve` restarts a crashed web or worker process by itself. systemd restarts `serve` only if `serve`
-itself fails. After `just deploy`, run `sudo systemctl restart newssharp`, which also applies migrations.
+itself fails. After updating the code (`git pull` or `just deploy`), run `python3 install.py` if the
+dependencies changed, then `sudo systemctl restart newssharp`, which also applies migrations.
 
 See [When to set `trust_proxy: true`](#when-to-set-trust_proxy-true) for what the option changes and why the
 port must not be reachable around the proxy.
 
 ## Commands
 
+With the Python in `.venv` (`.venv\Scripts\python` on Windows), or `uv run python`:
+
 ```sh
-uv run python manage.py serve                 # everything
-uv run python manage.py web | worker          # one process
-uv run python manage.py backup <file>         # online backup of the database
-uv run python manage.py createsuperuser       # or changepassword <user>
-uv run python manage.py rebuild_counters [feed id]
-uv run python manage.py import_newsblur export.json
-uv run python manage.py purge_feeds [--saved] [--folders] [--yes]
+.venv/bin/python manage.py serve                 # everything (what the launchers run)
+.venv/bin/python manage.py web | worker          # one process
+.venv/bin/python manage.py backup <file>         # online backup of the database
+.venv/bin/python manage.py createsuperuser       # or changepassword <user>
+.venv/bin/python manage.py rebuild_counters [feed id]
+.venv/bin/python manage.py import_newsblur export.json
+.venv/bin/python manage.py purge_feeds [--saved] [--folders] [--yes]
 ```
 
 `purge_feeds` resets a database for testing: it deletes every feed with its stories, read state, icons,
@@ -140,12 +154,20 @@ Users are managed in the Django admin at `/admin/` (Manage → Administration).
 ## Development
 
 ```sh
+python install.py --with-dev     # or: uv sync
 uv run pytest                    # backend tests
 uv run ruff check .
 cd frontend
+npm install
 npm run dev                      # Vite dev server, proxies /api to http://127.0.0.1:8000
 npm run typecheck && npm test
+npm run build                    # rebuilds frontend/dist
+just lock                        # after changing dependencies in pyproject.toml
 ```
+
+The built frontend is committed in `frontend/dist`, so an installation needs no build step: rebuild it and
+commit the result with every frontend change. `just lock` updates `uv.lock` and exports `requirements.txt` and
+`requirements-dev.txt` from it, which the pip path of `install.py` uses; a test fails when they disagree.
 
 ## Layout
 
@@ -156,24 +178,10 @@ feeds/      Feed, Story, icons, fetch log, push subscriptions; parsing, sanitizi
 reading/    folders, subscriptions, read state, saved stories, view settings; tree, unread, search, OPML
 api/        HTTP views, event bus and stream, image proxy, push callback, job requests
 worker/     coordinator, process pool, tasks, pipeline, scheduler, fetcher, WebSub, management commands
-frontend/   Vue 3 + Vite + Pinia application (built into frontend/dist)
+frontend/   Vue 3 + Vite + Pinia application (built into frontend/dist, which is committed)
 deploy/     example systemd unit and nginx site
 tests/      pytest suite
 ```
-
-## Deviations from the requirements document
-
-- **Story sharing** (dropped in the requirements) is kept in a browser-only form: a Share menu in the
-  story header lists the services chosen under Preferences → Sharing (`share_services`). Each service
-  opens its share page, copies the link or text, prints the story or starts an email; nothing is sent
-  through the server. NewsBlur's Pocket, Delicious, Google+ and Evernote entries are left out because
-  those services or their share pages no longer exist.
-- **Start page**: `/` shows a start page instead of an empty content area. It shows the unread total
-  with a Start reading button (Enter), the last opened feed or folder to continue, top-level folders
-  ranked by unread count, the newest unread headlines, feeds that failed at least twice in a row and
-  the Saved for Later tags. With no subscriptions it offers Add, OPML import and a subscribe
-  bookmarklet. Shift+H and the sidebar's home button open it; the `start_page` preference can open
-  All Site Stories or the last scope at startup instead. The last scope is remembered per browser.
 
 ## License
 
