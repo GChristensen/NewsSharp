@@ -85,8 +85,7 @@ export const useEvents = defineStore('events', {
       on('feed:fetched', (data) => {
         const { feed_id, ...fields } = data
         delete fields.origin
-        tree.updateFeed(feed_id, fields)
-        tree.fetchedAt[feed_id] = Date.now()
+        tree.applyFetched(feed_id, fields)
         if (stories.pendingRefresh === feed_id) {
           stories.pendingRefresh = null
           stories.reload() // R17.10

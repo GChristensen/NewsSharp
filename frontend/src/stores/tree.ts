@@ -12,6 +12,9 @@ function itemPosition(item: TreeItem): number {
   return item.kind === 'feed' ? item.feed.position : item.folder.position
 }
 
+/** The fetch state of each feed from its latest feed:fetched event, re-applied to older snapshots. */
+const fetchedFields = new Map<number, Pick<Feed, 'fetched_once' | 'has_exception' | 'exception_code'>>()
+
 export const useTree = defineStore('tree', {
   state: () => ({
     folders: [] as Folder[],
@@ -69,6 +72,12 @@ export const useTree = defineStore('tree', {
   actions: {
     setTree(payload: TreePayload) {
       this.folders = payload.folders
+      // A snapshot can be older than a feed:fetched event already received (a new feed fetched
+      // before the subscribe or import response arrived); keep the newer fetch state.
+      for (const feed of payload.feeds) {
+        const fetched = fetchedFields.get(feed.id)
+        if (fetched && !feed.fetched_once && !feed.has_exception) Object.assign(feed, fetched)
+      }
       this.feeds = payload.feeds
       this.saved = payload.saved
       const waiting = this.unfetched
@@ -232,6 +241,18 @@ export const useTree = defineStore('tree', {
       } catch (error) {
         useUi().error(`Delete failed: ${errorMessage(error)}`)
       }
+    },
+    /** A feed:fetched event: update the feed and remember its fetch state for later snapshots. */
+    applyFetched(feedId: number, fields: Partial<Feed>) {
+      if (fields.fetched_once !== undefined && fields.has_exception !== undefined) {
+        fetchedFields.set(feedId, {
+          fetched_once: fields.fetched_once,
+          has_exception: fields.has_exception,
+          exception_code: fields.exception_code ?? 0,
+        })
+      }
+      this.updateFeed(feedId, fields)
+      this.fetchedAt[feedId] = Date.now()
     },
     updateFeed(feedId: number, fields: Partial<Feed>) {
       const feed = this.feedById.get(feedId)
