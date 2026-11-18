@@ -33,6 +33,15 @@ const inlineView = computed(() => {
   return view === 'original' ? 'feed' : view
 })
 const position = computed(() => (settings.prefs.full_width_story ? 'stretch' : settings.prefs.story_position))
+// List and Magazine: the headline indent and summary width of the open scope (styles.css).
+const paneStyle = computed(() => {
+  if (props.variant !== 'list' && props.variant !== 'magazine') return {}
+  const summaryWidth = Number(settings.effective(stories.scope, 'summary_width'))
+  return {
+    '--headline-indent': `${Number(settings.effective(stories.scope, 'headline_indent'))}px`,
+    '--summary-max-width': summaryWidth ? `${summaryWidth}px` : 'none',
+  }
+})
 const gridStyle = computed(() => {
   if (props.variant !== 'grid') return {}
   const columns = Number(settings.effective(stories.scope, 'grid_columns'))
@@ -102,7 +111,8 @@ watch(
 <template>
   <div
     ref="pane" :class="[variant === 'titles' ? 'titles-pane' : 'list-pane', { 'grid-pane': variant === 'grid' }]"
-    :data-show-content-preview="settings.effective(stories.scope, 'show_content_preview')" @scroll.passive="onScroll"
+    :data-show-content-preview="settings.effective(stories.scope, 'show_content_preview')" :style="paneStyle"
+    @scroll.passive="onScroll"
   >
     <button v-if="stories.newCount > 0" class="new-stories" @click="stories.reload()">
       {{ stories.newCount }} new {{ stories.newCount === 1 ? 'story' : 'stories' }}

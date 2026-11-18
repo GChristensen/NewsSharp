@@ -384,6 +384,34 @@ def test_grid_columns_per_scope(api, user, make_feed, subscribe):
     assert bad.status_code == 422
 
 
+def test_headline_indent_per_scope(api, user, make_feed, subscribe):
+    feed = make_feed()
+    subscribe(user, feed)
+    assert api.get("/api/bootstrap").json()["preferences"]["headline_indent"] == 0
+    scope = f"feed:{feed.id}"
+    put = api.put("/api/view-settings", data=json.dumps({"scope": scope, "key": "headline_indent", "value": "48"}),
+                  content_type="application/json")  # fmt: skip
+    assert put.json()["view_settings"] == {scope: {"headline_indent": "48"}}
+    for value in ("401", "-4", "12px"):
+        bad = api.put("/api/view-settings", data=json.dumps({"scope": scope, "key": "headline_indent", "value": value}),
+                      content_type="application/json")  # fmt: skip
+        assert bad.status_code == 422
+
+
+def test_summary_width_per_scope(api, user, make_feed, subscribe):
+    feed = make_feed()
+    subscribe(user, feed)
+    scope = f"feed:{feed.id}"
+    for value in ("0", "300", "1600"):
+        put = api.put("/api/view-settings", data=json.dumps({"scope": scope, "key": "summary_width", "value": value}),
+                      content_type="application/json")  # fmt: skip
+        assert put.json()["view_settings"] == {scope: {"summary_width": value}}
+    for value in ("299", "1601", "-1"):
+        bad = api.put("/api/view-settings", data=json.dumps({"scope": scope, "key": "summary_width", "value": value}),
+                      content_type="application/json")  # fmt: skip
+        assert bad.status_code == 422
+
+
 def test_story_display_per_scope(api, user, make_feed, subscribe):
     feed = make_feed()
     subscribe(user, feed)

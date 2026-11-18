@@ -81,7 +81,7 @@ export interface MarkReadUndoResult {
 
 export type View = 'original' | 'feed' | 'text' | 'story'
 export type Layout = 'full' | 'split' | 'list' | 'grid' | 'magazine'
-export type ViewKey = 'view' | 'layout' | 'order' | 'read_filter' | 'grid_columns' | 'show_content_preview' | 'image_preview' | 'story_display'
+export type ViewKey = 'view' | 'layout' | 'order' | 'read_filter' | 'grid_columns' | 'show_content_preview' | 'image_preview' | 'story_display' | 'headline_indent' | 'summary_width'
 export type Size = 'xs' | 's' | 'm' | 'l' | 'xl'
 /** Variants of the dark theme: the data-tint blocks of styles.css. */
 export type DarkTint = 'graphite' | 'oled' | 'ink' | 'navy' | 'warm' | 'moss' | 'teal' | 'plum' | 'ember' | 'rose' | 'dim'
@@ -103,8 +103,10 @@ export interface Prefs {
   image_preview: 'none' | 'small-left' | 'small-right' | 'large-left' | 'large-right'
   grid_columns: number
   grid_height: Size
-  /** Maximum width of the content preview in List and Magazine, in pixels; 0 means no limit. */
+  /** Default maximum width of the content preview in List and Magazine, in pixels (per scope); 0 means no limit. */
   summary_max_width: number
+  /** Default distance of the headlines from the left edge in List and Magazine, in pixels (per scope). */
+  headline_indent: number
   story_display: 'standard' | 'images'
   story_styling: string
   story_size: Size

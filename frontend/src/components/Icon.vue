@@ -47,6 +47,7 @@ const PATHS: Record<string, string> = {
   columns: 'M4 4h16v16H4zM9.330 4v16M14.670 4v16',
   height: 'M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4',
   width: 'M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4',
+  indent: 'M3 4v16M6 12h7M10 9l3 3-3 3M16 7h5M16 12h5M16 17h5',
   'preview-s': 'M4 7h16M4 13h10',
   'preview-m': 'M4 5h16M4 10h14M4 15h10',
   'preview-l': 'M4 4h16M4 9h16M4 14h16M4 19h10',

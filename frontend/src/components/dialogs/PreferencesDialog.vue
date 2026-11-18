@@ -18,6 +18,8 @@ interface Field {
   options?: [string, string][]
   min?: number
   max?: number
+  /** A further check of a number within min and max. */
+  valid?: (value: number) => boolean
   hint?: string
 }
 
@@ -52,15 +54,21 @@ const TABS: Record<string, Field[]> = {
     {
       key: 'dark_tint', label: 'Theme', type: 'tint', hint: 'Hover a square to preview it',
       options: [
-        ['light', 'Light'], ['graphite', 'Graphite, blue accent'], ['oled', 'OLED black, white accent'], ['ink', 'Ink, blue accent'],
+        ['light', 'Light'], ['graphite', 'Graphite, blue accent'], ['ink', 'Ink, blue accent'],
         ['navy', 'Midnight navy, periwinkle accent'], ['warm', 'Warm charcoal, amber accent'], ['moss', 'Moss, green accent'],
         ['teal', 'Deep teal, cyan accent'], ['plum', 'Plum, violet accent'], ['ember', 'Ember, coral accent'],
         ['rose', 'Rosé, pink accent'], ['dim', 'Dim grey, soft blue accent'],
+        ['oled', 'OLED black, white accent'],
       ],
     },
     { key: 'feed_size', label: 'Feed list and title size', type: 'select', options: SIZES },
     { key: 'show_content_preview', label: 'Default content preview', type: 'select', options: [['title', 'Title only'], ['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']] },
     { key: 'image_preview', label: 'Default image preview', type: 'select', options: [['none', 'No image'], ['small-left', 'Small, left'], ['large-left', 'Large, left'], ['large-right', 'Large, right'], ['small-right', 'Small, right']] },
+    { key: 'headline_indent', label: 'Default headline indent, px (List, Magazine)', type: 'number', min: 0, max: 400 },
+    {
+      key: 'summary_max_width', label: 'Default summary width, px (List, Magazine)', type: 'number', min: 0, max: 1600,
+      valid: (value) => value === 0 || value >= 300, hint: '0 = no limit, otherwise 300 to 1600',
+    },
     { key: 'show_all_site_stories', label: 'All Site Stories in the sidebar', type: 'bool' },
     { key: 'folder_counts', label: 'Unread counts on folders', type: 'bool' },
     { key: 'title_counts', label: 'Unread count in the browser tab title', type: 'bool' },
@@ -122,7 +130,7 @@ function update(field: Field, event: Event) {
   if (field.type === 'bool') value = input.checked
   else if (field.type === 'number') {
     value = Math.round(Number(input.value))
-    if (!Number.isFinite(value) || value < field.min! || value > field.max!) return
+    if (!Number.isFinite(value) || value < field.min! || value > field.max! || (field.valid && !field.valid(value))) return
   } else if (field.key === 'timezone') {
     try {
       new Intl.DateTimeFormat('en', { timeZone: value })
@@ -210,6 +218,8 @@ onMounted(async () => {
         <button class="btn outline" @click="reset('story_display', 'The story display')">Reset story display</button>
         <button class="btn outline" @click="reset('show_content_preview', 'The content preview')">Reset content preview</button>
         <button class="btn outline" @click="reset('image_preview', 'The image preview')">Reset image preview</button>
+        <button class="btn outline" @click="reset('headline_indent', 'The headline indent')">Reset headline indent</button>
+        <button class="btn outline" @click="reset('summary_width', 'The summary width')">Reset summary width</button>
       </div>
     </template>
 

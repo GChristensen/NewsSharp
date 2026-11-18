@@ -342,7 +342,8 @@
   --row-pad: 8px;
   --end-space-keep: 80px; /* pane height the end spacer leaves for the last story */
   --content-max: 720px;
-  --summary-max-width: none; /* the summary_max_width preference sets it on the root element */
+  --summary-max-width: none; /* the summary_width view setting sets it on the List and Magazine pane */
+  --headline-indent: 0px; /* the headline_indent view setting sets it on the List and Magazine pane */
   --ui-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --transition: 150ms;
 }
@@ -646,6 +647,10 @@ a.start-row-title:hover { text-decoration: underline; }
 /* List and Magazine (not the Split titles pane): the summary width limit of the style popover. */
 .list-pane .story-row .preview,
 .list-pane .mag-card .preview { max-width: var(--summary-max-width); }
+/* List and Magazine: the headline indent of the style popover (StoryList.vue sets it per scope). The
+   feed strip stays at the edge; everything after it moves right. */
+.list-pane .story-row .strip,
+.list-pane .mag-card .strip { margin-right: var(--headline-indent); }
 
 /* ---------- story ---------- */
 .story-detail { padding: 0 0 28px; }

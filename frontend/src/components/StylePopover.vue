@@ -32,6 +32,8 @@ interface RangeRow {
   current: number
   label: string
   pick(value: number): void
+  /** Called once the slider is released; without it, pick saves every step. */
+  commit?(value: number): void
 }
 interface Section {
   title: string
@@ -79,18 +81,38 @@ function viewRow(key: ViewKey, title: string, icon: string, choices: Choice[]): 
   }
 }
 
-// Summary width (accounts/prefs.py): the slider's last step, past the maximum, means no limit (stored as 0).
+/** A slider bound to a numeric view setting of the open scope: applied while dragging, saved on release. */
+function viewRangeRow(key: ViewKey, value: number, store: (value: number) => number) {
+  const set = (position: number, save: boolean) =>
+    stories.scope && settings.setView(stories.scope, key, String(store(position)), save)
+  return { current: value, pick: (position: number) => set(position, false), commit: (position: number) => set(position, true) }
+}
+
+// Summary width (accounts/prefs.py, a per-scope view setting): the slider's last step, past the
+// maximum, means no limit (stored as 0).
 const SUMMARY_WIDTH = { min: 300, max: 1600, step: 20 }
 const NO_LIMIT_POSITION = SUMMARY_WIDTH.max + SUMMARY_WIDTH.step
 
 function summaryWidthRow(): RangeRow {
-  const width = settings.prefs.summary_max_width
+  const width = Number(settings.effective(stories.scope, 'summary_width'))
   return {
-    title: 'Summary width (List and Magazine)', icon: 'width',
+    title: 'Summary width (this site)', icon: 'width',
     range: { min: SUMMARY_WIDTH.min, max: NO_LIMIT_POSITION, step: SUMMARY_WIDTH.step },
-    current: width || NO_LIMIT_POSITION,
     label: width ? `${width}px` : 'No limit',
-    pick: (value) => settings.set('summary_max_width', value >= NO_LIMIT_POSITION ? 0 : value),
+    ...viewRangeRow('summary_width', width || NO_LIMIT_POSITION, (position) => (position >= NO_LIMIT_POSITION ? 0 : position)),
+  }
+}
+
+// Headline indent (accounts/prefs.py, a per-scope view setting).
+const HEADLINE_INDENT = { min: 0, max: 400, step: 4 }
+
+function headlineIndentRow(): RangeRow {
+  const indent = Number(settings.effective(stories.scope, 'headline_indent'))
+  return {
+    title: 'Headline indent (this site)', icon: 'indent',
+    range: HEADLINE_INDENT,
+    label: `${indent}px`,
+    ...viewRangeRow('headline_indent', indent, (position) => position),
   }
 }
 
@@ -121,7 +143,7 @@ const listSections = computed<Section[]>(() => {
       ],
     },
   ]
-  if (layout === 'list' || layout === 'magazine') sections[0].rows.push(summaryWidthRow())
+  if (layout === 'list' || layout === 'magazine') sections[0].rows.push(summaryWidthRow(), headlineIndentRow())
   if (layout === 'split') {
     sections.push({
       title: 'Split',
@@ -210,6 +232,7 @@ const sections = computed(() => (props.part === 'list' ? listSections.value : st
           <input
             type="range" :min="row.range.min" :max="row.range.max" :step="row.range.step" :value="row.current"
             :aria-label="row.title" @input="row.pick(Number(($event.target as HTMLInputElement).value))"
+            @change="row.commit?.(Number(($event.target as HTMLInputElement).value))"
           >
           <span class="range-value">{{ row.label }}</span>
         </div>

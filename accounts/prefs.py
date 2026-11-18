@@ -61,9 +61,14 @@ IMAGE_PREVIEWS = ("none", "small-left", "small-right", "large-left", "large-righ
 STORY_DISPLAYS = ("standard", "images")
 # Variants of the dark theme (data-tint in frontend/src/styles.css); "graphite" is the base dark theme.
 DARK_TINTS = ("graphite", "oled", "ink", "navy", "warm", "moss", "teal", "plum", "ember", "rose", "dim")
-# Maximum width of the content preview in List and Magazine, in pixels (0: no limit).
+# Maximum width of the content preview in List and Magazine, in pixels (0: no limit). The preference
+# summary_max_width is the default of the per-scope view setting summary_width.
 SUMMARY_WIDTH_MIN = 300
 SUMMARY_WIDTH_MAX = 1600
+SUMMARY_WIDTHS = ("0", *(str(v) for v in range(SUMMARY_WIDTH_MIN, SUMMARY_WIDTH_MAX + 1)))
+# Distance of the headlines from the left edge in List and Magazine, in pixels; a per-scope setting.
+HEADLINE_INDENT_MAX = 400
+HEADLINE_INDENTS = tuple(str(v) for v in range(HEADLINE_INDENT_MAX + 1))
 
 # name -> (validator, default)
 CATALOG = {
@@ -84,6 +89,7 @@ CATALOG = {
     "grid_columns": (_int(1, 6), 4),
     "grid_height": (_enum(*_SIZES), "m"),
     "summary_max_width": (_summary_width, 0),
+    "headline_indent": (_int(0, HEADLINE_INDENT_MAX), 0),
     "story_display": (_enum(*STORY_DISPLAYS), "standard"),
     "story_styling": (_enum(*STORY_FONTS), "sans-serif"),
     "story_size": (_enum(*_SIZES), "m"),
@@ -128,6 +134,8 @@ VIEW_SETTING_KEYS = {
     "show_content_preview": CONTENT_PREVIEWS,
     "image_preview": IMAGE_PREVIEWS,
     "story_display": STORY_DISPLAYS,
+    "headline_indent": HEADLINE_INDENTS,
+    "summary_width": SUMMARY_WIDTHS,
 }
 
 
