@@ -687,11 +687,25 @@ _HTML_TAG = re.compile(r"<html\b[^>]*>")
 
 
 def _with_theme(html: str, user) -> str:
-    """Write the user's theme and dark tint into the html tag, so the first paint already uses them
+    """Write the user's theme, dark tint and color adjustments into the html tag, so the first paint already uses them
     (an inline script in index.html resolves "auto"). Anonymous visitors get the defaults."""
     values = prefs.effective(user.preferences if user.is_authenticated else None)
-    tag = f'<html lang="en" data-theme="{values["theme"]}" data-tint="{values["dark_tint"]}">'
+    style = theme_color_style(values["theme_colors"], values["dark_tint"])
+    tag = f'<html lang="en" data-theme="{values["theme"]}" data-tint="{values["dark_tint"]}" style="{style}">'
     return _HTML_TAG.sub(tag, html, count=1)
+
+
+def theme_color_style(theme_colors: dict, dark_tint: str) -> str:
+    """The color adjustments of the light theme and of the chosen dark tint as the --light-* and --dark-*
+    properties of styles.css (both, since "auto" is resolved in the browser); the values are validated
+    integers. Mirrors applyTheme() in frontend/src/stores/settings.ts."""
+    declarations = []
+    for mode, theme in (("light", "light"), ("dark", dark_tint)):
+        values = theme_colors.get(theme, {})
+        declarations += [f"--{mode}-{key.replace('_', '-')}: {value}" for key, value in values.items()]
+        if "bg_hue" in values:
+            declarations.append(f"--{mode}-bg-set: 1")
+    return "; ".join(declarations)
 
 
 def api_not_found(request, **kwargs):

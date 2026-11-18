@@ -727,3 +727,27 @@ def test_index_carries_the_theme(client, api, user, settings, tmp_path):
     assert bad.status_code == 422
     client.logout()
     assert 'data-theme="dark" data-tint="graphite"' in client.get("/login").content.decode()
+
+
+def test_index_carries_the_theme_colors(api, settings, tmp_path):
+    """The color adjustments of the light theme and the chosen dark tint reach the html tag as the --light-*
+    and --dark-* properties of styles.css; those of other themes do not."""
+    (tmp_path / "index.html").write_text('<!doctype html>\n<html lang="en"><head></head></html>')
+    settings.FRONTEND_DIST = tmp_path
+    assert 'style=""' in api.get("/").content.decode()
+    colors = {"oled": {"bg_hue": 150, "bg_strength": 40}, "light": {"text_contrast": -10}, "moss": {"accent_hue": 12}}
+    changes = {"dark_tint": "oled", "theme_colors": colors}
+    assert api.patch("/api/preferences", data=json.dumps(changes), content_type="application/json").status_code == 200
+    html = api.get("/").content.decode()
+    assert 'style="--light-text-contrast: -10; --dark-bg-hue: 150; --dark-bg-strength: 40; --dark-bg-set: 1"' in html
+    for bad in (
+        {"oled": {"bg_hue": 150}},  # hue without strength
+        {"oled": {"accent_hue": 31}},
+        {"oled": {"bg_hue": 10, "bg_strength": 2.5}},
+        {"oled": {"glow": 1}},
+        {"slate": {"accent_hue": 1}},
+        {"oled": {}},
+        [],
+    ):
+        response = api.patch("/api/preferences", data=json.dumps({"theme_colors": bad}), content_type="application/json")
+        assert response.status_code == 422, bad

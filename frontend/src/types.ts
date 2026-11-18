@@ -85,6 +85,12 @@ export type ViewKey = 'view' | 'layout' | 'order' | 'read_filter' | 'grid_column
 export type Size = 'xs' | 's' | 'm' | 'l' | 'xl'
 /** Variants of the dark theme: the data-tint blocks of styles.css. */
 export type DarkTint = 'graphite' | 'oled' | 'ink' | 'navy' | 'warm' | 'moss' | 'teal' | 'plum' | 'ember' | 'rose' | 'dim'
+/** A theme with its own color adjustments: the light theme or a tint of the dark theme. */
+export type ThemeChoice = 'light' | DarkTint
+/** The color adjustments of one theme (THEME_COLOR_RANGES in accounts/prefs.py); a missing one keeps the
+    theme's own color, and bg_hue and bg_strength are set together. */
+export type ThemeColorKey = 'accent_vividness' | 'accent_hue' | 'bg_hue' | 'bg_strength' | 'text_contrast'
+export type ThemeColors = Partial<Record<ThemeColorKey, number>>
 
 export interface Prefs {
   default_view: View
@@ -119,6 +125,8 @@ export interface Prefs {
   show_all_site_stories: boolean
   theme: 'auto' | 'light' | 'dark'
   dark_tint: DarkTint
+  /** Color adjustments per theme (utils/themeColors.ts). */
+  theme_colors: Partial<Record<ThemeChoice, ThemeColors>>
   dateformat: '12' | '24'
   timezone: string
   days_of_unread: number

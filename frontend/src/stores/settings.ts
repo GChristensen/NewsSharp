@@ -1,7 +1,8 @@
 // Preferences and per-scope view settings (frontend/src/stores/settings.ts), item 19.
 import { defineStore } from 'pinia'
 import { api, errorMessage } from '../api'
-import type { Layout, Prefs, View, ViewKey } from '../types'
+import type { Layout, Prefs, ThemeChoice, View, ViewKey } from '../types'
+import { THEME_COLOR_PROPERTIES, themeColorProperties } from '../utils/themeColors'
 import { useUi } from './ui'
 
 const DEFAULT_KEYS: Record<ViewKey, keyof Prefs> = {
@@ -50,10 +51,19 @@ export const useSettings = defineStore('settings', {
         this.applyTheme()
       })
     },
-    applyTheme() {
+    /** Put the theme, its color adjustments and the size preferences on the html element. `preview` shows
+        another theme with its own adjustments (the theme picker while a square is hovered). */
+    applyTheme(preview?: ThemeChoice) {
       const root = document.documentElement
-      root.dataset.theme = this.dark ? 'dark' : 'light'
-      root.dataset.tint = this.prefs.dark_tint
+      const dark = preview ? preview !== 'light' : this.dark
+      const tint = preview && preview !== 'light' ? preview : this.prefs.dark_tint
+      root.dataset.theme = dark ? 'dark' : 'light'
+      root.dataset.tint = tint
+      const properties = themeColorProperties(this.prefs.theme_colors, tint)
+      for (const name of THEME_COLOR_PROPERTIES) {
+        if (name in properties) root.style.setProperty(name, properties[name])
+        else root.style.removeProperty(name)
+      }
       const reduce = !this.prefs.animations || window.matchMedia('(prefers-reduced-motion: reduce)').matches
       root.dataset.animations = reduce ? 'off' : 'on'
       for (const key of ['story_size', 'story_line_spacing', 'feed_size', 'grid_height', 'density'] as const) {

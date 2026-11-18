@@ -70,6 +70,35 @@ SUMMARY_WIDTHS = ("0", *(str(v) for v in range(SUMMARY_WIDTH_MIN, SUMMARY_WIDTH_
 HEADLINE_INDENT_MAX = 400
 HEADLINE_INDENTS = tuple(str(v) for v in range(HEADLINE_INDENT_MAX + 1))
 
+# Color adjustments of each theme (preference theme_colors): theme -> {name: value}; a missing name keeps
+# the theme's own color. Ranges: vividness is a percentage of the accent chroma, accent_hue a turn in
+# degrees, bg_hue and bg_strength the hue and amount of the background color (set together; they replace
+# the theme's own cast), text_contrast a lightness shift towards more (+) or less (-) contrast.
+THEME_COLOR_RANGES = {
+    "accent_vividness": (30, 170),
+    "accent_hue": (-30, 30),
+    "bg_hue": (0, 359),
+    "bg_strength": (0, 100),
+    "text_contrast": (-50, 50),
+}
+THEMES = ("light", *DARK_TINTS)
+
+
+def _theme_colors(v):
+    if not isinstance(v, dict):
+        return False
+    for theme, values in v.items():
+        if theme not in THEMES or not isinstance(values, dict) or not values:
+            return False
+        if ("bg_hue" in values) != ("bg_strength" in values):
+            return False
+        for key, value in values.items():
+            limits = THEME_COLOR_RANGES.get(key)
+            if limits is None or not _int(*limits)(value):
+                return False
+    return True
+
+
 # name -> (validator, default)
 CATALOG = {
     "default_view": (_enum(*VIEWS), "feed"),
@@ -102,6 +131,7 @@ CATALOG = {
     "show_all_site_stories": (_bool, True),
     "theme": (_enum("auto", "light", "dark"), "dark"),
     "dark_tint": (_enum(*DARK_TINTS), "graphite"),
+    "theme_colors": (_theme_colors, {}),
     "dateformat": (_enum("12", "24"), "24"),
     "timezone": (_timezone, "UTC"),
     "days_of_unread": (_int(1, 365), 30),
@@ -155,6 +185,6 @@ def effective(stored: dict | None) -> dict:
     for key, (validator, default) in CATALOG.items():
         value = stored.get(key, default)
         value = value if validator(value) else default
-        # A list default must not be shared between users.
-        result[key] = list(value) if isinstance(value, list) else value
+        # A list or dict default must not be shared between users.
+        result[key] = list(value) if isinstance(value, list) else dict(value) if isinstance(value, dict) else value
     return result

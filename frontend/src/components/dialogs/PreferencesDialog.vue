@@ -1,20 +1,23 @@
 <!-- Preferences dialog (frontend/src/components/dialogs/PreferencesDialog.vue): the settings page of
-     item 19 with its General, Reading, Appearance, Sharing and Keyboard sections. -->
+     item 19 with its General, Reading, Appearance, Theme, Sharing and Keyboard sections. -->
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { api, errorMessage } from '../../api'
 import { useSession } from '../../stores/session'
 import { useSettings } from '../../stores/settings'
 import { useStories } from '../../stores/stories'
 import { useUi } from '../../stores/ui'
-import type { DarkTint, Prefs, ViewKey } from '../../types'
+import type { Prefs, ThemeChoice, ThemeColorKey, ViewKey } from '../../types'
 import { SHARE_SERVICES } from '../../utils/share'
+import { ADJUSTMENTS, type Adjustment, GREY_ACCENT, sliderValue, withAdjustment, withoutAdjustment } from '../../utils/themeColors'
+import Icon from '../Icon.vue'
 import Modal from '../Modal.vue'
+import ThemePreview from '../ThemePreview.vue'
 
 interface Field {
   key: keyof Prefs
   label: string
-  type: 'bool' | 'select' | 'number' | 'text' | 'tint'
+  type: 'bool' | 'select' | 'number' | 'text'
   options?: [string, string][]
   min?: number
   max?: number
@@ -51,16 +54,6 @@ const TABS: Record<string, Field[]> = {
     { key: 'new_window', label: 'Open story links in a new tab', type: 'bool' },
   ],
   Appearance: [
-    {
-      key: 'dark_tint', label: 'Theme', type: 'tint', hint: 'Hover a square to preview it',
-      options: [
-        ['light', 'Light'], ['graphite', 'Graphite, blue accent'], ['ink', 'Ink, blue accent'],
-        ['navy', 'Midnight navy, periwinkle accent'], ['warm', 'Warm charcoal, amber accent'], ['moss', 'Moss, green accent'],
-        ['teal', 'Deep teal, cyan accent'], ['plum', 'Plum, violet accent'], ['ember', 'Ember, coral accent'],
-        ['rose', 'Rosé, pink accent'], ['dim', 'Dim grey, soft blue accent'],
-        ['oled', 'OLED black, white accent'],
-      ],
-    },
     { key: 'feed_size', label: 'Feed list and title size', type: 'select', options: SIZES },
     { key: 'show_content_preview', label: 'Default content preview', type: 'select', options: [['title', 'Title only'], ['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']] },
     { key: 'image_preview', label: 'Default image preview', type: 'select', options: [['none', 'No image'], ['small-left', 'Small, left'], ['large-left', 'Large, left'], ['large-right', 'Large, right'], ['small-right', 'Small, right']] },
@@ -75,6 +68,8 @@ const TABS: Record<string, Field[]> = {
     { key: 'animations', label: 'Animations', type: 'bool' },
     { key: 'show_tooltips', label: 'Tooltips', type: 'bool' },
   ],
+  // No field rows: the theme picker, the color adjustments and the preview are in the template.
+  Theme: [],
   // No field rows: the tab is the checkbox list of share services in the template.
   Sharing: [],
   Keyboard: [
@@ -95,8 +90,16 @@ const instance = ref<{ public_base_url: string; manual: boolean; current_origin:
 const publicUrl = ref('')
 const message = ref('')
 
-/** A square of the theme picker: the light theme, or a tint of the dark theme. */
-type ThemeChoice = 'light' | DarkTint
+/** The squares of the theme picker: the light theme and the tints of the dark theme. */
+const THEME_CHOICES: [ThemeChoice, string][] = [
+  ['light', 'Light'], ['graphite', 'Graphite, blue accent'], ['ink', 'Ink, blue accent'],
+  ['navy', 'Midnight navy, periwinkle accent'], ['warm', 'Warm charcoal, amber accent'], ['moss', 'Moss, green accent'],
+  ['teal', 'Deep teal, cyan accent'], ['plum', 'Plum, violet accent'], ['ember', 'Ember, coral accent'],
+  ['rose', 'Rosé, pink accent'], ['dim', 'Dim grey, soft blue accent'],
+  ['oled', 'OLED black, white accent'],
+]
+
+const MODES: ['auto' | 'light' | 'dark', string, string][] = [['auto', 'Follow the system', 'theme-auto'], ['light', 'Light', 'sun'], ['dark', 'Dark', 'moon']]
 
 /** The framed square. "Follow the system" (set from the sidebar menu) frames the tint it uses when dark. */
 function isChosen(choice: ThemeChoice): boolean {
@@ -107,9 +110,7 @@ function isChosen(choice: ThemeChoice): boolean {
 /** Show a theme on the whole page while its square is hovered; leaving the row or closing the dialog
     restores the saved preferences. */
 function previewTheme(choice: ThemeChoice) {
-  const root = document.documentElement
-  root.dataset.theme = choice === 'light' ? 'light' : 'dark'
-  if (choice !== 'light') root.dataset.tint = choice
+  settings.applyTheme(choice)
 }
 
 function chooseTheme(choice: ThemeChoice) {
@@ -123,6 +124,39 @@ function chooseTheme(choice: ThemeChoice) {
 }
 
 onUnmounted(() => settings.applyTheme())
+
+/** The theme the sliders adjust: the one on screen. Each theme keeps its own adjustments. */
+const edited = computed<ThemeChoice>(() => (settings.dark ? settings.prefs.dark_tint : 'light'))
+const editedName = computed(() => THEME_CHOICES.find(([value]) => value === edited.value)![1].split(',')[0])
+const editedColors = computed(() => settings.prefs.theme_colors[edited.value])
+const greyAccent = computed(() => GREY_ACCENT.includes(edited.value))
+
+function adjustmentValue(key: ThemeColorKey): number {
+  return sliderValue(edited.value, editedColors.value, key)
+}
+
+function isAdjusted(key: ThemeColorKey): boolean {
+  return editedColors.value?.[key] !== undefined
+}
+
+function storeColors(colors: typeof editedColors.value) {
+  const all = { ...settings.prefs.theme_colors }
+  if (colors) all[edited.value] = colors
+  else delete all[edited.value]
+  settings.set('theme_colors', all)
+}
+
+/** Apply a slider position at once; settings.set saves it debounced. */
+function adjust(adjustment: Adjustment, event: Event) {
+  const value = Math.round(Number((event.target as HTMLInputElement).value))
+  if (!Number.isFinite(value) || value < adjustment.min || value > adjustment.max) return
+  storeColors(withAdjustment(edited.value, editedColors.value, adjustment.key, value))
+}
+
+/** Back to the theme's own color for one slider (both background sliders reset together). */
+function resetAdjustment(key: ThemeColorKey) {
+  storeColors(withoutAdjustment(editedColors.value, key))
+}
 
 function update(field: Field, event: Event) {
   const input = event.target as HTMLInputElement
@@ -189,15 +223,8 @@ onMounted(async () => {
       <button v-for="(_, name) in TABS" :key="name" class="btn" :class="{ active: tab === name }" @click="(tab = name as string), (message = '')">{{ name }}</button>
     </div>
     <div v-for="field in TABS[tab]" :key="field.key" class="form-row">
-      <label :id="`pref-label-${field.key}`" :for="field.type === 'tint' ? undefined : `pref-${field.key}`">{{ field.label }}<span v-if="field.hint" class="dim" style="display: block; font-size: 11px">{{ field.hint }}</span></label>
-      <div v-if="field.type === 'tint'" class="tint-picker" role="radiogroup" :aria-labelledby="`pref-label-${field.key}`" @mouseleave="settings.applyTheme()">
-        <button
-          v-for="[value, label] in field.options" :key="value" type="button" role="radio" class="tint-swatch"
-          :class="{ selected: isChosen(value as ThemeChoice) }" :data-swatch="value" :title="label" :aria-label="label"
-          :aria-checked="isChosen(value as ThemeChoice)" @mouseenter="previewTheme(value as ThemeChoice)" @click="chooseTheme(value as ThemeChoice)"
-        ></button>
-      </div>
-      <input v-else-if="field.type === 'bool'" :id="`pref-${field.key}`" type="checkbox" :checked="!!settings.prefs[field.key]" @change="update(field, $event)" />
+      <label :for="`pref-${field.key}`">{{ field.label }}<span v-if="field.hint" class="dim" style="display: block; font-size: 11px">{{ field.hint }}</span></label>
+      <input v-if="field.type === 'bool'" :id="`pref-${field.key}`" type="checkbox" :checked="!!settings.prefs[field.key]" @change="update(field, $event)" />
       <select v-else-if="field.type === 'select'" :id="`pref-${field.key}`" class="input" :value="settings.prefs[field.key]" @change="update(field, $event)">
         <option v-for="[value, label] in field.options" :key="value" :value="value">{{ label }}</option>
       </select>
@@ -205,6 +232,52 @@ onMounted(async () => {
         v-else :id="`pref-${field.key}`" class="input" :type="field.type === 'number' ? 'number' : 'text'" :min="field.min" :max="field.max"
         :value="settings.prefs[field.key]" @change="update(field, $event)"
       />
+    </div>
+
+    <div v-if="tab === 'Theme'" class="theme-tab">
+      <div class="theme-controls">
+        <h3 id="pref-theme-label" class="section">Theme</h3>
+        <div class="dim" style="font-size: 11px">Hover a square to preview it</div>
+        <div class="tint-picker" role="radiogroup" aria-labelledby="pref-theme-label" @mouseleave="settings.applyTheme()">
+          <button
+            v-for="[value, label] in THEME_CHOICES" :key="value" type="button" role="radio" class="tint-swatch"
+            :class="{ selected: isChosen(value) }" :data-swatch="value" :title="label" :aria-label="label"
+            :aria-checked="isChosen(value)" @mouseenter="previewTheme(value)" @click="chooseTheme(value)"
+          ></button>
+        </div>
+        <div class="form-row">
+          <span>Mode</span>
+          <div class="segmented" role="radiogroup" aria-label="Mode">
+            <button
+              v-for="[value, label, icon] in MODES" :key="value" type="button" role="radio" class="btn" :class="{ active: settings.prefs.theme === value }"
+              :title="label" :aria-label="label" :aria-checked="settings.prefs.theme === value" @click="settings.set('theme', value)"
+            ><Icon :name="icon" /></button>
+          </div>
+        </div>
+
+        <h3 class="section">Colors of {{ editedName }}</h3>
+        <div class="dim" style="font-size: 11px">Each theme keeps its own adjustments. Double-click a slider to return it to the theme's own color.</div>
+        <template v-for="adjustment in ADJUSTMENTS" :key="adjustment.key">
+          <div class="form-row" :class="{ 'adjust-off': greyAccent && adjustment.key.startsWith('accent') }">
+            <label :for="`pref-${adjustment.key}`">
+              {{ adjustment.label }}<span v-if="isAdjusted(adjustment.key)" class="adjust-mark" title="Changed from the theme's own color">●</span>
+              <span class="dim" style="display: block; font-size: 11px">{{ adjustment.hint }}</span>
+            </label>
+            <div class="adjust-range">
+              <input
+                :id="`pref-${adjustment.key}`" type="range" :class="{ 'hue-track': adjustment.hue }" :min="adjustment.min" :max="adjustment.max" step="1"
+                :disabled="greyAccent && adjustment.key.startsWith('accent')"
+                :value="adjustmentValue(adjustment.key)" @input="adjust(adjustment, $event)" @dblclick="resetAdjustment(adjustment.key)"
+              />
+              <output :for="`pref-${adjustment.key}`">{{ adjustmentValue(adjustment.key) }}{{ adjustment.unit }}</output>
+            </div>
+          </div>
+          <div v-if="greyAccent && adjustment.key === 'accent_hue'" class="dim adjust-note">{{ editedName }} has a grey accent, which has no color to change.</div>
+          <div v-if="edited === 'oled' && adjustment.key === 'bg_strength'" class="dim adjust-note">The page itself stays black; panes, bars and borders take the color.</div>
+        </template>
+        <button class="btn outline" style="margin-top: 8px" :disabled="!editedColors" @click="storeColors(undefined)">Reset {{ editedName }}</button>
+      </div>
+      <ThemePreview />
     </div>
 
     <template v-if="tab === 'Reading'">
