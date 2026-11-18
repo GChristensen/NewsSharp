@@ -53,7 +53,10 @@ async def wait_tick(timeout: float = 0.2) -> None:
 
 
 def _latest_event_id() -> int:
-    return WorkerEvent.objects.order_by("-id").values_list("id", flat=True).first() or 0
+    try:
+        return WorkerEvent.objects.order_by("-id").values_list("id", flat=True).first() or 0
+    finally:
+        connection.close()
 
 
 def _deliver(last_id: int) -> int:
@@ -100,14 +103,17 @@ def _check_worker() -> dict:
 
 
 async def _run() -> None:
+    """Every step runs inside the loop's error handling: an exception that escaped would end the
+    task silently and with it all live updates."""
     global _worker_state
-    last_id = await sync_to_async(_latest_event_id, thread_sensitive=False)()  # R21.5
-    await sync_to_async(connection.close, thread_sensitive=False)()
-    _worker_state = await sync_to_async(_check_worker, thread_sensitive=False)()
+    last_id: int | None = None
     last_check = 0.0
     loop = asyncio.get_running_loop()
     while True:
         try:
+            if last_id is None:
+                last_id = await sync_to_async(_latest_event_id, thread_sensitive=False)()  # R21.5
+                _worker_state = await sync_to_async(_check_worker, thread_sensitive=False)()
             last_id = await sync_to_async(_deliver, thread_sensitive=False)(last_id)
             if loop.time() - last_check > 5:
                 last_check = loop.time()

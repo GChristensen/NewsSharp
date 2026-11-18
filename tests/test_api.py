@@ -623,6 +623,21 @@ def test_feed_settings_proxy(api, user, other_user, make_feed, make_story, subsc
     assert api.get(f"/api/feeds/{stranger.id}/settings").status_code == 404
 
 
+def test_new_subscription_to_a_fresh_feed_is_fetched(user, make_feed):
+    """R3.8: subscribing again to a feed fetched minutes ago still fetches it, so a hub added to the
+    feed since is subscribed to (R4.2); subscribing to a feed already subscribed queues nothing."""
+    from api.views_async import _create_subscription
+
+    feed = make_feed(fetched_once=True, last_update=now() - 60)
+    found = {"feed_address": feed.feed_address, "title": feed.title}
+    assert _create_subscription(user, found, None, "")["created"]
+    fetches = Job.objects.filter(type="fetch_feed", feed_id=feed.id)
+    assert fetches.count() == 1
+    fetches.update(state="done")
+    assert not _create_subscription(user, found, None, "")["created"]
+    assert fetches.count() == 1
+
+
 @pytest.mark.django_db(transaction=True)
 def test_fetch_icon(api, user, make_feed, subscribe, monkeypatch):
     """The "Fetch icon" button waits for a forced fetch_icon job; a search that outlasts the wait is pending.

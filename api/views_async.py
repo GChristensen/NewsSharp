@@ -75,8 +75,9 @@ def _create_subscription(user, found: dict, folder_id, new_folder: str) -> dict:
             raise ApiError(422, "invalid", str(e)) from None
         feed, _ = store.get_or_create_feed(found["feed_address"], found.get("title") or "", found.get("site_link") or "")
         _, created = tree.subscribe(user, feed, folder_id)
-    if not feed.fetched_once or feed.last_update < now() - 86400:
-        # R3.8: a new subscription is fetched at once, ahead of scheduled fetches.
+    if created or not feed.fetched_once or feed.last_update < now() - 86400:
+        # R3.8: a new subscription is fetched at once, ahead of scheduled fetches, even when the feed
+        # was fetched recently for someone else: the fetch also picks up a hub added since (R4.2).
         active = jobs.Job.objects.filter(type="fetch_feed", feed_id=feed.id, state__in=("queued", "running")).exists()
         if not active:
             jobs.enqueue("fetch_feed", feed_id=feed.id, payload={"forced": False}, interactive=True)

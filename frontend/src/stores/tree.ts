@@ -15,6 +15,13 @@ function itemPosition(item: TreeItem): number {
 /** The fetch state of each feed from its latest feed:fetched event, re-applied to older snapshots. */
 const fetchedFields = new Map<number, Pick<Feed, 'fetched_once' | 'has_exception' | 'exception_code'>>()
 
+/**
+ * While feeds wait for their first fetch the tree is reloaded every UNFETCHED_CHECK ms, so a missed
+ * feed:fetched event (an event stream that never connected) does not leave the fetch progress stuck.
+ */
+const UNFETCHED_CHECK = 15000
+let unfetchedTimer: number | undefined
+
 export const useTree = defineStore('tree', {
   state: () => ({
     folders: [] as Folder[],
@@ -74,9 +81,13 @@ export const useTree = defineStore('tree', {
       this.folders = payload.folders
       // A snapshot can be older than a feed:fetched event already received (a new feed fetched
       // before the subscribe or import response arrived); keep the newer fetch state.
+      let outdated = false
       for (const feed of payload.feeds) {
         const fetched = fetchedFields.get(feed.id)
-        if (fetched && !feed.fetched_once && !feed.has_exception) Object.assign(feed, fetched)
+        if (fetched && !feed.fetched_once && !feed.has_exception) {
+          Object.assign(feed, fetched)
+          outdated = true
+        }
       }
       this.feeds = payload.feeds
       this.saved = payload.saved
@@ -86,6 +97,22 @@ export const useTree = defineStore('tree', {
         this.progressTotal = 0
         this.progressDismissed = false
       }
+      this.watchUnfetched()
+      // The counts and icon events of that fetch found no feed to update; a fresh snapshot has them.
+      if (outdated) this.reload().catch(() => {})
+    },
+    /** Schedule the next check of feeds still waiting for their first fetch, or stop checking. */
+    watchUnfetched() {
+      if (this.unfetched === 0) {
+        clearTimeout(unfetchedTimer)
+        unfetchedTimer = undefined
+        return
+      }
+      if (unfetchedTimer !== undefined) return
+      unfetchedTimer = window.setTimeout(() => {
+        unfetchedTimer = undefined
+        this.reload().catch(() => this.watchUnfetched())
+      }, UNFETCHED_CHECK)
     },
     async reload() {
       this.setTree(await api<TreePayload>('GET', '/api/tree'))
@@ -267,6 +294,7 @@ export const useTree = defineStore('tree', {
         this.progressTotal = 0
         this.progressDismissed = false
       }
+      this.watchUnfetched()
     },
   },
 })
