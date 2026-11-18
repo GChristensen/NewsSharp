@@ -1,5 +1,5 @@
 """ASGI entry point of the web process (config/asgi.py). Wraps Django's handler to run the web
-process's background loop (worker_events reader, R0.14) inside the server's event loop."""
+process's background loop (worker_events reader) inside the server's event loop."""
 import os
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")

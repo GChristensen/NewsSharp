@@ -1,5 +1,5 @@
 """Django settings for NewsSharp (config/settings.py). Shared by the web process, the worker coordinator
-and the pool children (R23.3)."""
+and the pool children."""
 import logging
 import os
 import secrets
@@ -9,7 +9,7 @@ from config.file import load_config, resolve_path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# --- config.yaml (R23.1; see config/file.py and config.example.yaml) ---
+# --- config.yaml (see config/file.py and config.example.yaml) ---
 _config = load_config(BASE_DIR / "config.yaml")
 PORT = _config["port"]
 BIND = _config["bind"]
@@ -40,7 +40,7 @@ if not _secret_file.exists():
 SECRET_KEY = _secret_file.read_text(encoding="ascii").strip()
 
 DEBUG = False
-ALLOWED_HOSTS = ["*"]  # R0.34: no host name is configured
+ALLOWED_HOSTS = ["*"]  # no host name is configured
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -86,7 +86,7 @@ TEMPLATES = [
     }
 ]
 
-# --- SQLite (R23.3, R0.18, R0.35) ---
+# --- SQLite ---
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -101,7 +101,7 @@ DATABASES = {
 ATOMIC_REQUESTS = False
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# --- accounts and sessions (item 22, R5.5, R5.6) ---
+# --- accounts and sessions ---
 AUTH_USER_MODEL = "accounts.User"
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.Argon2PasswordHasher",
@@ -124,7 +124,7 @@ CSRF_TRUSTED_ORIGINS = []
 CSRF_FAILURE_VIEW = "api.http.csrf_failure"
 LOGIN_URL = "/login"
 
-if TRUST_PROXY:  # R5.3
+if TRUST_PROXY:  # behind a reverse proxy
     USE_X_FORWARDED_HOST = True
     USE_X_FORWARDED_PORT = True
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -133,7 +133,7 @@ USE_TZ = True
 TIME_ZONE = "UTC"
 USE_I18N = False
 
-# --- static files: the built frontend is served by whitenoise (R20.8) ---
+# --- static files: the built frontend is served by whitenoise ---
 FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
 STATIC_URL = "/static/"
 STATIC_ROOT = DATA_DIR / "static"
@@ -143,11 +143,11 @@ WHITENOISE_USE_FINDERS = True
 WHITENOISE_AUTOREFRESH = False
 WHITENOISE_INDEX_FILE = False
 
-DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024  # pushed bodies up to 10 MB (R4.6)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024  # pushed bodies up to 10 MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
 
 
-# --- logging to stdout, prefixed by process (R23.6) ---
+# --- logging to stdout, prefixed by process ---
 class ProcFilter(logging.Filter):
     def filter(self, record):
         record.proc = os.environ.get("NEWSSHARP_PROC", "main")

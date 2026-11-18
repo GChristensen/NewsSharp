@@ -1,4 +1,4 @@
-"""Feed list, folders and ordering (reading/tree.py), item 7. Positions are 0-based within a
+"""Feed list, folders and ordering (reading/tree.py). Positions are 0-based within a
 container and shared by feeds and folders."""
 from django.core import signing
 from django.db import transaction
@@ -78,7 +78,7 @@ def create_folder(user, title: str, parent_id=None) -> Folder:
 
 
 def subscribe(user, feed, folder_id=None, user_title=None, mark_read_date=None) -> tuple[Subscription, bool]:
-    """Subscribe a user to a feed at the end of a container (R7.5). An existing subscription is
+    """Subscribe a user to a feed at the end of a container. An existing subscription is
     left where it is; a soft-deleted one is revived."""
     ts = now()
     with transaction.atomic():
@@ -86,7 +86,7 @@ def subscribe(user, feed, folder_id=None, user_title=None, mark_read_date=None) 
         if sub is not None and sub.deleted_at is None:
             return sub, False
         if mark_read_date is None:
-            mark_read_date = ts - user.days_of_unread * 86400  # R6.4
+            mark_read_date = ts - user.days_of_unread * 86400  # older stories start out read
         position = next_position(user, folder_id)
         if sub is not None:
             sub.folder_id, sub.position, sub.deleted_at, sub.user_title = folder_id, position, None, user_title
@@ -100,7 +100,7 @@ def subscribe(user, feed, folder_id=None, user_title=None, mark_read_date=None) 
 
 
 def move(user, item: str, parent_id, position: int) -> None:
-    """R7.7: one move operation; positions of the affected containers are renumbered in one transaction."""
+    """One move operation; positions of the affected containers are renumbered in one transaction."""
     kind, _, raw_id = item.partition(":")
     try:
         item_id = int(raw_id)
@@ -111,7 +111,7 @@ def move(user, item: str, parent_id, position: int) -> None:
         if kind == "folder":
             obj = live_folders(user).filter(pk=item_id).first()
             if obj is not None and parent_id is not None and parent_id in descendant_folder_ids(user, item_id):
-                raise TreeError("a folder cannot be moved into itself")  # R7.6
+                raise TreeError("a folder cannot be moved into itself")
             old_parent = obj.parent_id if obj else None
         elif kind == "feed":
             obj = live_subs(user).filter(feed_id=item_id).first()
@@ -134,7 +134,7 @@ def move(user, item: str, parent_id, position: int) -> None:
 
 
 def delete_feed(user, feed_id: int) -> str:
-    """R7.10: soft delete; returns an undo token."""
+    """Soft delete; returns an undo token."""
     ts = now()
     updated = live_subs(user).filter(feed_id=feed_id).update(deleted_at=ts)
     if not updated:

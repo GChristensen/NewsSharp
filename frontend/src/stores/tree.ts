@@ -1,4 +1,4 @@
-// The feed and folder tree (frontend/src/stores/tree.ts), item 7: order, counts, sidebar modes,
+// The feed and folder tree (frontend/src/stores/tree.ts): order, counts, sidebar modes,
 // optimistic moves and deletes with undo.
 import { defineStore } from 'pinia'
 import { api, errorMessage } from '../api'
@@ -172,7 +172,7 @@ export const useTree = defineStore('tree', {
       if (mode === 'saved') return (this.saved.feeds[feed.id] ?? 0) > 0
       return true
     },
-    /** R7.4: the rows of a container under the sidebar mode and the feed filter. */
+    /** The rows of a container under the sidebar mode and the feed filter. */
     visibleChildren(parent: number | null): TreeItem[] {
       const filtering = useUi().feedFilter.trim() !== '' || useSettings().prefs.sidebar_mode !== 'all'
       return this.children(parent).filter((item) => {
@@ -189,7 +189,7 @@ export const useTree = defineStore('tree', {
       }
       return false
     },
-    /** R7.7: apply a move locally at once, send one operation, restore on failure. */
+    /** Apply a move locally at once, send one operation, restore on failure. */
     async move(item: TreeItem, parentId: number | null, position: number) {
       const before = { folders: this.folders.map((f) => ({ ...f })), feeds: this.feeds.map((f) => ({ ...f })) }
       const same = (other: TreeItem) =>
@@ -247,7 +247,7 @@ export const useTree = defineStore('tree', {
       await api('POST', '/api/folders', { title, parent_id: parentId })
       await this.reload()
     },
-    /** R7.10: no confirmation; the row disappears and an Undo toast is shown for 10 s. */
+    /** Delete without confirmation; the row disappears and an Undo toast is shown for 10 s. */
     async remove(item: TreeItem) {
       const name = item.kind === 'feed' ? item.feed.title : item.folder.title
       const url = item.kind === 'feed' ? `/api/subscriptions/${item.feed.id}` : `/api/folders/${item.folder.id}`

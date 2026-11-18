@@ -1,5 +1,5 @@
 <!-- The content side of the shell (frontend/src/components/ContentArea.vue): top bar, the layout of
-     the open scope and the right taskbar (items 9, 10, 20). -->
+     the open scope and the right taskbar. -->
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -61,7 +61,7 @@ function overridden(key: ViewKey): boolean {
   return !!scope.value && settings.stored(scope.value, key) !== undefined
 }
 
-/** R19.3: a change is stored for the open scope; order and filter reload the list (R19.6). */
+/** A change is stored for the open scope; order and filter reload the list. */
 function setSetting(key: ViewKey, value: string) {
   if (!scope.value) return
   settings.setView(scope.value, key, value).then(() => {})
@@ -93,7 +93,7 @@ function markMenu(event: MouseEvent) {
   ])
 }
 
-// ------------------------------------------------------------------ search (R12.6)
+// ------------------------------------------------------------------ search
 
 function applySearch(value: string) {
   clearTimeout(searchTimer)

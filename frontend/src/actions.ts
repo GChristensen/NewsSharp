@@ -1,5 +1,5 @@
 // User actions that span stores and the router (frontend/src/actions.ts): opening scopes,
-// navigation between stories and feeds (R10.5), marking read (R10.7), views and layouts (item 9).
+// navigation between stories and feeds, marking read, views and layouts.
 import { nextTick } from 'vue'
 import { api, errorMessage } from './api'
 import { router, scopePath } from './router'
@@ -105,7 +105,7 @@ export function scopeTitle(scope: string | null): string {
   return prefix + (tree.folderById.get(id)?.title ?? 'Folder')
 }
 
-/** The layout in effect: below 900 px Split behaves as List (R20.9). */
+/** The layout in effect: below 900 px Split behaves as List. */
 export function effectiveLayout(): Layout {
   const layout = useSettings().layout(useStories().scope)
   return layout === 'split' && useUi().narrow ? 'list' : layout
@@ -119,7 +119,7 @@ export function viewAvailable(view: View, layout = effectiveLayout()): boolean {
   return true
 }
 
-/** R9.1: views that are not available fall back to Feed without changing the stored setting. */
+/** Views that are not available fall back to Feed without changing the stored setting. */
 export function effectiveView(): View {
   const view = useSettings().view(useStories().scope)
   return viewAvailable(view) ? view : 'feed'
@@ -140,7 +140,7 @@ export function cycleView(step: number) {
   setView(available[(index + step + available.length) % available.length])
 }
 
-/** Select a story and reflect it in the URL without a new history entry (R20.8). */
+/** Select a story and reflect it in the URL without a new history entry. */
 export function selectStory(story: Story | null) {
   const stories = useStories()
   stories.select(story)
@@ -159,7 +159,7 @@ export async function stepStory(step: 1 | -1) {
   let index = stories.selectedIndex + step
   if (stories.selectedIndex === -1) index = step === 1 ? 0 : -1
   if (index >= stories.stories.length && !stories.ended) {
-    await stories.loadMore() // R17.4: navigation passes the last loaded story
+    await stories.loadMore() // navigation passes the last loaded story
   }
   const story = stories.stories[index]
   if (story) selectStory(story)
@@ -203,7 +203,7 @@ export async function setFeedMuted(feed: Feed, muted: boolean) {
   if (river) stories.reload()
 }
 
-/** `n`: the next unread story; continues into the next feed with unread stories (R10.5). */
+/** `n`: the next unread story; continues into the next feed with unread stories. */
 export async function nextUnread() {
   const stories = useStories()
   if (stories.scope && !stories.isSaved) {
@@ -247,7 +247,7 @@ export function stepFeed(step: 1 | -1) {
 }
 
 /**
- * R10.7: mark the open scope read, with the confirmation for All Site Stories, then move on. With
+ * Mark the open scope read, with the confirmation for All Site Stories, then move on. With
  * `undoable` (the story titles header and `Shift+a`), a whole feed or folder gets an Undo toast.
  */
 export function markScopeRead(days = 0, scope = useStories().scope, options: { undoable?: boolean } = {}) {
@@ -296,7 +296,7 @@ export async function markFeedRead(feedId: number) {
   if (next) await openScope(`feed:${next.id}`)
 }
 
-/** `Shift+r` and the context menu: a forced fetch; the list reloads on feed:fetched (R17.10). */
+/** `Shift+r` and the context menu: a forced fetch; the list reloads on feed:fetched. */
 export async function refreshFeed(feedId: number) {
   const stories = useStories()
   try {
@@ -330,7 +330,7 @@ export function cycleSidebarMode(step: number) {
   settings.set('sidebar_mode', modes[(index + step + modes.length) % modes.length])
 }
 
-/** R19.7: the titles pane size is a width for west and a height for north / south. */
+/** The titles pane size is a width for west and a height for north / south. */
 export function setAnchor(anchor: 'west' | 'north' | 'south') {
   const settings = useSettings()
   const before = settings.prefs.story_pane_anchor

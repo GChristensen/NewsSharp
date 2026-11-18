@@ -131,7 +131,7 @@ export interface Prefs {
   timezone: string
   days_of_unread: number
   read_story_delay: number
-  mark_read_on_scroll_titles: boolean
+  mark_read_on_scroll: boolean
   open_feed_action: 'newest' | 'none'
   start_page: 'home' | 'all' | 'last'
   markread_nextfeed: 'nextfeed' | 'nothing'

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""NewsSharp command line (manage.py). `reader <command>` in the spec is `uv run python manage.py <command>`."""
+"""NewsSharp command line (manage.py). `reader <command>` stands for `uv run python manage.py <command>`."""
 import os
 import sys
 

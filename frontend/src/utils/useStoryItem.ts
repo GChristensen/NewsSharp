@@ -1,5 +1,5 @@
 // Shared computed values of a story row or card (frontend/src/utils/useStoryItem.ts): feed color
-// strip (R8.7), date, title and preview with search highlighting (R9.6, R9.7, R12.7).
+// strip, date, title and preview with search highlighting.
 import { computed } from 'vue'
 import { useSettings } from '../stores/settings'
 import { useStories } from '../stores/stories'

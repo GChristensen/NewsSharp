@@ -1,4 +1,4 @@
-<!-- Add site dialog (frontend/src/components/dialogs/AddDialog.vue), R7.12 and R20.10: a URL field,
+<!-- Add site dialog (frontend/src/components/dialogs/AddDialog.vue): a URL field,
      a folder picker and a "New folder" field; a /subscribe/<url> link arrives here pre-filled. -->
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'

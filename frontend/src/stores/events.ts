@@ -1,5 +1,5 @@
-// Live updates (frontend/src/stores/events.ts), item 21: an EventSource with manual reconnect and
-// backoff, replay through the last event id, and fallback polling of the counts (R17.8).
+// Live updates (frontend/src/stores/events.ts): an EventSource with manual reconnect and
+// backoff, replay through the last event id, and fallback polling of the counts.
 import { defineStore } from 'pinia'
 import { clientId } from '../api'
 import { useSession } from './session'
@@ -26,7 +26,7 @@ export const useEvents = defineStore('events', {
         }
         if (!this.connected) {
           clearTimeout(reconnectTimer)
-          this.connect() // R21.7: reconnect at once when the tab becomes visible
+          this.connect() // reconnect at once when the tab becomes visible
         } else if (hiddenAt && Date.now() - hiddenAt > 60000) {
           useTree().reloadCounts().catch(() => {})
         }
@@ -51,7 +51,7 @@ export const useEvents = defineStore('events', {
         this.stopPolling()
         if (wasDown || !this.lastEventId) {
           useTree().reloadCounts().catch(() => {})
-          useStories().flushRead() // R6.8: retry queued reads when the stream reconnects
+          useStories().flushRead() // retry queued reads when the stream reconnects
         }
       }
       stream.onerror = () => {
@@ -88,7 +88,7 @@ export const useEvents = defineStore('events', {
         tree.applyFetched(feed_id, fields)
         if (stories.pendingRefresh === feed_id) {
           stories.pendingRefresh = null
-          stories.reload() // R17.10
+          stories.reload() // the list reloads after a fetch
         } else if (stories.scope === `feed:${feed_id}` && !stories.stories.length && !stories.loading) {
           stories.reload()
         }
@@ -97,7 +97,7 @@ export const useEvents = defineStore('events', {
       on('feed:push', (data) => tree.updateFeed(data.feed_id, { is_push: data.is_push }))
       on('feed:settings', (data) => tree.updateFeed(data.feed_id, { use_proxy: data.use_proxy }))
       on('tree', (data) => {
-        if (data.origin !== clientId) tree.reload().catch(() => {}) // R21.4
+        if (data.origin !== clientId) tree.reload().catch(() => {}) // this tab already applied its own tree changes
       })
       on('preferences', (data) => {
         if (data.origin !== clientId) useSettings().applyRemote(data.preferences, data.view_settings)

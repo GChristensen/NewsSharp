@@ -1,5 +1,5 @@
-<!-- The end of a story list (frontend/src/components/ListFooter.vue): loading, error with retry
-     (R17.7), the end marker (R17.4) or the empty state. -->
+<!-- The end of a story list (frontend/src/components/ListFooter.vue): loading, error with retry,
+     the end marker or the empty state. -->
 <script setup lang="ts">
 import { useSettings } from '../stores/settings'
 import { useStories } from '../stores/stories'

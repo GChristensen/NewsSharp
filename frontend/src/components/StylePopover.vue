@@ -1,5 +1,5 @@
-<!-- The style popovers (frontend/src/components/StylePopover.vue): the display options of item 10's
-     toggle inventory as one-click segmented rows, like NewsBlur's style popover. The story list part
+<!-- The style popovers (frontend/src/components/StylePopover.vue): the display options of the story
+     list and story views as one-click segmented rows, like NewsBlur's style popover. The story list part
      opens from the top bar, the story part from the bottom bar. -->
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
@@ -72,7 +72,7 @@ function prefRow<K extends keyof Prefs>(key: K, title: string, icon: string, cho
   }
 }
 
-/** A row bound to a view setting of the open scope (R19.3); the preference is the default. */
+/** A row bound to a view setting of the open scope; the preference is the default. */
 function viewRow(key: ViewKey, title: string, icon: string, choices: Choice[]): Row {
   return {
     title, icon, choices,

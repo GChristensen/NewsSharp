@@ -1,4 +1,4 @@
-"""The story pipeline (worker/pipeline.py): R2.23-R2.36, statistics (item 18), pruning (R1.6) and
+"""The story pipeline (worker/pipeline.py): matching and storing stories, statistics, pruning and
 the recording of fetch outcomes. process_feed runs in a pool child; record_failure and
 record_not_modified are short database writes the coordinator runs itself."""
 import logging
@@ -39,7 +39,8 @@ def _ratio_at_least(a: str, b: str, threshold: float) -> bool:
 
 
 def _find_similar(entry: dict, candidates: list, deadline: float):
-    """R2.31 case 2. Gives up for this entry at the deadline (R2.36)."""
+    """A stored story with another guid that is the same story: similar titles, dates less than 2 days
+    apart and nearly identical content. Gives up for this entry at the deadline."""
     content = entry["content"]
     for existing in candidates:
         if time.monotonic() > deadline:
@@ -57,7 +58,7 @@ def _find_similar(entry: dict, candidates: list, deadline: float):
 
 
 def _upsert_counters(feed_id: int, dates: list[int]) -> None:
-    """R18.1: month, weekday and hour counters from story_date in UTC."""
+    """Month, weekday and hour counters from story_date in UTC."""
     counts: Counter = Counter()
     for ts in dates:
         moment = datetime.fromtimestamp(ts, timezone.utc)
@@ -75,7 +76,7 @@ def _upsert_counters(feed_id: int, dates: list[int]) -> None:
 
 def store_stories(feed: Feed, parsed: dict, ts: int) -> dict:
     """Match, insert and update the stories of one parse result. Computes first and writes
-    afterwards in transactions of at most 100 stories (R0.18)."""
+    afterwards in transactions of at most 100 stories."""
     base = feed.feed_link or parsed.get("link") or feed.feed_address
     prepared, seen = [], set()
     for entry in sorted(build_stories(parsed, ts), key=lambda s: s["story_date"]):
@@ -136,7 +137,7 @@ def store_stories(feed: Feed, parsed: dict, ts: int) -> dict:
                     store.index_story(story.id, e["title"], e["content"], e["author"], e["tags"])
                     inserted_dates.append(e["story_date"])
                 else:
-                    # R2.32: story_date never changes; the story id stays, so read state is kept.
+                    # story_date never changes; the story id stays, so read state is kept.
                     Story.objects.filter(pk=existing.pk).update(
                         guid=e["guid"], guid_hash=e["guid_hash"], title=e["title"], author=e["author"],
                         permalink=e["permalink"], content=e["content"], tags=e["tags"],
@@ -156,8 +157,8 @@ def store_stories(feed: Feed, parsed: dict, ts: int) -> dict:
 
 
 def prune(feed_id: int, ts: int) -> int:
-    """R1.6: keep the newest STORIES_PER_FEED stories; never prune a story unread for a subscriber.
-    Also drops read rows made redundant by the cutoffs (item 1 invariants)."""
+    """Keep the newest STORIES_PER_FEED stories; never prune a story unread for a subscriber.
+    Also drops read rows made redundant by the cutoffs."""
     overflow = list(
         Story.objects.filter(feed_id=feed_id)
         .order_by("-story_date", "-id")
@@ -232,7 +233,7 @@ def _fetched_event(feed_id: int, ts: int) -> None:
 
 
 def record_failure(feed_id: int, code: int, message: str, duration_ms: int = 0, headers: dict | None = None) -> dict:
-    """R2.9: a failed fetch. Returns the outcome record."""
+    """A failed fetch. Returns the outcome record."""
     ts = now()
     with transaction.atomic():
         feed = Feed.objects.filter(pk=feed_id).first()
@@ -247,14 +248,14 @@ def record_failure(feed_id: int, code: int, message: str, duration_ms: int = 0, 
         )  # fmt: skip
         store.log_fetch(feed_id, "feed", code, message, duration_ms)
         _fetched_event(feed_id, ts)
-        # R2.21. A feed that worked before is rediscovered only when it keeps answering with a page:
+        # A feed that worked before is rediscovered only when it keeps answering with a page:
         # one error page must not move its subscribers to whatever feed the site's home page links.
         rediscover = not feed.known_good or (code == 552 and _repeated_552(feed_id))
     return {"error": code, "message": message, "rediscover": rediscover}
 
 
 def record_not_modified(feed_id: int, duration_ms: int, headers: dict, redirected: bool = False) -> dict:
-    """R2.6. A 304 reached through a permanent redirect keeps the redirect count of R2.8 as it is;
+    """A 304 Not Modified. One reached through a permanent redirect keeps the redirect count as it is;
     one without a redirect ends the series."""
     ts = now()
     with transaction.atomic():
@@ -275,7 +276,7 @@ def record_not_modified(feed_id: int, duration_ms: int, headers: dict, redirecte
 
 
 def _merge_into(feed: Feed, target: Feed, ts: int) -> None:
-    """R1.5: a permanent redirect onto an existing feed moves the subscriptions and deletes the
+    """A permanent redirect onto an existing feed moves the subscriptions and deletes the
     redirecting feed."""
     with transaction.atomic():
         for sub in Subscription.objects.filter(feed_id=feed.id):
@@ -288,7 +289,7 @@ def _merge_into(feed: Feed, target: Feed, ts: int) -> None:
 
 
 def _hub_and_topic(feed: Feed, parsed: dict, headers: dict) -> tuple[str | None, str | None]:
-    """R4.1."""
+    """The WebSub hub and topic of a feed, from the feed document or the Link header."""
     rels = link_header_rels(headers.get("link", ""))
     hub = (parsed.get("hubs") or [None])[0] or rels.get("hub")
     if not hub and "youtube.com/feeds/videos.xml" in feed.feed_address:
@@ -298,7 +299,7 @@ def _hub_and_topic(feed: Feed, parsed: dict, headers: dict) -> tuple[str | None,
 
 
 def process_feed(feed_id: int, fetch: dict) -> dict:
-    """The process_feed pool task (R0.24). `fetch` is either a download result
+    """The process_feed pool task. `fetch` is either a download result
     {kind: "fetch", body, content_type, headers, permanent_url, download_ms} or a pushed body
     {kind: "push", body, content_type}."""
     started = time.monotonic()
@@ -352,7 +353,7 @@ def process_feed(feed_id: int, fetch: dict) -> dict:
             return record_failure(feed_id, 552, "Non-xml feed", elapsed())
         return record_failure(feed_id, 553, "Not an RSS feed", elapsed())
 
-    # R2.8: permanent redirects change the address after 3 in a row, or at once for a new feed.
+    # Permanent redirects change the address after 3 in a row, or at once for a new feed.
     redirect_fields = {"redirects_in_row": 0}
     permanent = fetch.get("permanent_url")
     if permanent:
@@ -378,7 +379,7 @@ def process_feed(feed_id: int, fetch: dict) -> dict:
     first_fetch = not feed.fetched_once
     etag, last_modified = headers.get("etag") or "", headers.get("last-modified") or ""
     fields = {
-        # R2.6: sent back as request headers, which must be ASCII.
+        # Sent back as request headers, which must be ASCII.
         "etag": etag[:255] if etag.isascii() else "",
         "last_modified": last_modified[:64] if last_modified.isascii() else "",
         "fetched_once": True, "known_good": True, "errors_since_good": 0, "has_exception": False,
@@ -404,7 +405,7 @@ def process_feed(feed_id: int, fetch: dict) -> dict:
             **fields, **stats, **_schedule_fields(feed_id, stats, 0, ts, hint), last_load_ms=elapsed()
         )
         if first_fetch and title:
-            # R15.3: an imported title equal to the feed's own title is not a custom title.
+            # An imported title equal to the feed's own title is not a custom title.
             Subscription.objects.filter(feed_id=feed_id, user_title=title).update(user_title=None)
         store.log_fetch(feed_id, "feed", 200, "OK", elapsed())
         _fetched_event(feed_id, ts)
@@ -427,7 +428,7 @@ def sanitize_title(value: str | None, limit: int = 255) -> str:
 
 
 def rebuild_counters(feed_id: int) -> int:
-    """R18.7: recompute the counters of a feed from its stored stories."""
+    """Recompute the counters of a feed from its stored stories."""
     dates = list(Story.objects.filter(feed_id=feed_id).values_list("story_date", flat=True))
     with transaction.atomic():
         FeedStoryCount.objects.filter(feed_id=feed_id).delete()

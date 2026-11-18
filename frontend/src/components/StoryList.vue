@@ -1,5 +1,5 @@
 <!-- The story list (frontend/src/components/StoryList.vue): the titles pane of Split and the single
-     pane of List, Magazine and Grid, where the selected story opens inline (item 9). -->
+     pane of List, Magazine and Grid, where the selected story opens inline. -->
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { copyLink, effectiveView, openInNewTab, selectStory } from '../actions'
@@ -22,9 +22,9 @@ const pane = ref<HTMLElement | null>(null)
 const inline = computed(() => props.variant !== 'titles')
 const rows = computed(() => props.variant === 'titles' || props.variant === 'list')
 const west = computed(() => props.variant === 'titles' && settings.prefs.story_pane_anchor === 'west')
-const markOnScroll = computed(() => inline.value || settings.prefs.mark_read_on_scroll_titles)
+const markOnScroll = computed(() => settings.prefs.mark_read_on_scroll)
 const { onScroll } = usePaneScroll(pane, () => markOnScroll.value)
-// R10.3: the end of the list is only reached once the last story has scrolled up to the top, so
+// The end of the list is only reached once the last story has scrolled up to the top, so
 // reaching it does not mark stories the user has not scrolled through (as NewsBlur pads its end line).
 const endSpace = computed(() => markOnScroll.value && !stories.isSaved && stories.ended && stories.stories.length > 0)
 
@@ -66,7 +66,7 @@ function middleDown(event: MouseEvent, story: Story) {
   if (event.button === 1 && !(inline.value && stories.selectedKey === story.key)) event.preventDefault()
 }
 
-/** R10.8. */
+/** The story context menu. */
 function menu(event: MouseEvent, story: Story) {
   const items: MenuItem[] = []
   if (!stories.isSaved && story.id !== null) {

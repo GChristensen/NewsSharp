@@ -1,5 +1,5 @@
-<!-- Preferences dialog (frontend/src/components/dialogs/PreferencesDialog.vue): the settings page of
-     item 19 with its General, Reading, Appearance, Theme, Sharing and Keyboard sections. -->
+<!-- Preferences dialog (frontend/src/components/dialogs/PreferencesDialog.vue): the settings page
+     with its General, Reading, Appearance, Theme, Sharing and Keyboard sections. -->
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { api, errorMessage } from '../../api'
@@ -46,7 +46,7 @@ const TABS: Record<string, Field[]> = {
     { key: 'story_display', label: 'Default story display (Full)', type: 'select', options: [['standard', 'Standard'], ['images', 'Content only']] },
     { key: 'days_of_unread', label: 'Days a story stays unread', type: 'number', min: 1, max: 365 },
     { key: 'read_story_delay', label: 'Mark a selected story read after (seconds)', type: 'number', min: -1, max: 60, hint: '0 = at once, -1 = never' },
-    { key: 'mark_read_on_scroll_titles', label: 'Mark stories read when scrolled past (Split)', type: 'bool' },
+    { key: 'mark_read_on_scroll', label: 'Mark stories read when scrolled past', type: 'bool' },
     { key: 'start_page', label: 'When NewsSharp opens', type: 'select', options: [['home', 'Show the start page'], ['all', 'Open All Site Stories'], ['last', 'Open the last feed or folder']] },
     { key: 'open_feed_action', label: 'When a feed opens (Split)', type: 'select', options: [['newest', 'Select the first story'], ['none', 'Select nothing']] },
     { key: 'markread_nextfeed', label: 'After marking a feed read', type: 'select', options: [['nextfeed', 'Open the next unread feed'], ['nothing', 'Stay']] },
@@ -185,7 +185,7 @@ function toggleShare(key: string, on: boolean) {
   settings.set('share_services', SHARE_SERVICES.map((service) => service.key).filter((k) => chosen.has(k)))
 }
 
-/** R19.4: reset a per-scope setting for all scopes. */
+/** Reset a per-scope setting for all scopes. */
 async function reset(key: ViewKey, label: string) {
   try {
     await settings.resetAll(key)

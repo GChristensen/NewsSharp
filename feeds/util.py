@@ -13,7 +13,7 @@ def now() -> int:
 
 
 def guid_hash(guid: str) -> str:
-    """Full SHA-1 hex of the guid (R1.3)."""
+    """Full SHA-1 hex of the guid."""
     return hashlib.sha1(guid.encode("utf-8", "replace")).hexdigest()
 
 
@@ -27,7 +27,7 @@ _YT_CHANNEL = re.compile(r"^/channel/([\w-]+)")
 
 
 def normalize_url(url: str, max_len: int = 764) -> str:
-    """Normalize a feed or site URL (R2.20, R2.22, R15.1). Raises InvalidUrl."""
+    """Normalize a feed or site URL. Raises InvalidUrl."""
     url = (url or "").strip()
     if not url or any(c.isspace() for c in url):
         raise InvalidUrl("invalid URL")
@@ -91,7 +91,7 @@ def plain_text(value: str, limit: int | None = None, breaks: bool = False) -> st
 
 
 def image_signature(url: str, secret: str) -> str:
-    """R14.4: HMAC-SHA256(image_secret, url), base64url, first 22 characters."""
+    """The image proxy signature: HMAC-SHA256(image_secret, url), base64url, first 22 characters."""
     digest = hmac.new(secret.encode("ascii"), url.encode("utf-8", "replace"), hashlib.sha256).digest()
     return base64.urlsafe_b64encode(digest).decode("ascii")[:22]
 

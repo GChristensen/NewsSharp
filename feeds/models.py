@@ -1,4 +1,4 @@
-"""Feed-side data model (feeds/models.py), item 1 of the requirements. All times are UTC integer seconds."""
+"""Feed-side data model (feeds/models.py). All times are UTC integer seconds."""
 import secrets
 
 from django.db import models
@@ -21,7 +21,7 @@ class Setting(models.Model):
 
     @classmethod
     def secret(cls, key: str) -> str:
-        """A random secret generated at first use and stored (R14.4)."""
+        """A random secret generated at first use and stored; it signs image proxy URLs."""
         value = cls.get(key)
         if not value:
             cls.objects.get_or_create(pk=key, defaults={"value": secrets.token_hex(32)})
@@ -35,7 +35,7 @@ class Feed(models.Model):
     feed_link_locked = models.BooleanField(default=False)
     title = models.CharField(max_length=255, blank=True, default="")
     tagline = models.TextField(blank=True, default="")
-    image_url = models.CharField(max_length=1000, blank=True, default="")  # <image>/<icon>/<logo>, R8.2
+    image_url = models.CharField(max_length=1000, blank=True, default="")  # <image>/<icon>/<logo>
     etag = models.CharField(max_length=255, blank=True, default="")
     last_modified = models.CharField(max_length=64, blank=True, default="")
     fetched_once = models.BooleanField(default=False)
@@ -43,7 +43,7 @@ class Feed(models.Model):
     has_exception = models.BooleanField(default=False)
     exception_code = models.IntegerField(default=0)
     errors_since_good = models.IntegerField(default=0)
-    redirects_in_row = models.IntegerField(default=0)  # consecutive permanent redirects, R2.8
+    redirects_in_row = models.IntegerField(default=0)  # consecutive permanent redirects
     last_update = models.IntegerField(default=0)
     next_scheduled_update = models.IntegerField(default=0, db_index=True)
     min_to_decay = models.IntegerField(default=0)
@@ -100,7 +100,7 @@ class Story(models.Model):
 
 
 class PushSubscription(models.Model):
-    """WebSub subscription of a feed (item 4). A row with removing=True waits for the hub to
+    """WebSub subscription of a feed. A row with removing=True waits for the hub to
     confirm an unsubscribe and no longer belongs to a feed."""
 
     feed = models.OneToOneField(Feed, null=True, blank=True, on_delete=models.SET_NULL, related_name="push")

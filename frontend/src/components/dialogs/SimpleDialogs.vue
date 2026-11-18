@@ -1,5 +1,5 @@
-<!-- The small dialogs (frontend/src/components/dialogs/SimpleDialogs.vue), R20.4: confirmation,
-     change password, import / export (item 15), keyboard shortcuts (R11.3). -->
+<!-- The small dialogs (frontend/src/components/dialogs/SimpleDialogs.vue): confirmation,
+     change password, import / export, keyboard shortcuts. -->
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api, errorMessage } from '../../api'

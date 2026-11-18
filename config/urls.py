@@ -1,5 +1,5 @@
 """URL configuration (config/urls.py). Everything outside /api, /img, /push and /admin returns the
-frontend shell (R20.8); /subscribe/<url> is resolved by the client from the raw location (R20.10)."""
+frontend shell; /subscribe/<url> is resolved by the client from the raw location."""
 from django.contrib import admin
 from django.urls import path, re_path
 

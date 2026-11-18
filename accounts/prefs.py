@@ -1,4 +1,4 @@
-"""Preference catalog (accounts/prefs.py): names, validators and defaults of item 19 (R19.8)."""
+"""Preference catalog (accounts/prefs.py): names, validators and defaults of every preference."""
 from zoneinfo import ZoneInfo
 
 
@@ -136,7 +136,8 @@ CATALOG = {
     "timezone": (_timezone, "UTC"),
     "days_of_unread": (_int(1, 365), 30),
     "read_story_delay": (_int(-1, 60), 0),
-    "mark_read_on_scroll_titles": (_bool, False),
+    # Off by default in every layout; opening a story is then the only way scrolling marks it read.
+    "mark_read_on_scroll": (_bool, False),
     "open_feed_action": (_enum("newest", "none"), "newest"),
     # What `/` shows when the app is opened: the start page, All Site Stories or the last open scope.
     "start_page": (_enum("home", "all", "last"), "home"),

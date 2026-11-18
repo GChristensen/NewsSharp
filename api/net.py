@@ -1,5 +1,5 @@
-"""Guarded outbound requests of the web process (api/net.py): the image proxy (item 14) and the
-frame check (R9.2). The destination is checked on the resolved address used for the connection (R14.6)."""
+"""Guarded outbound requests of the web process (api/net.py): the image proxy and the
+frame check. The destination is checked on the resolved address used for the connection."""
 import asyncio
 import ipaddress
 import socket

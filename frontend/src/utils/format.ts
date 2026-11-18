@@ -1,4 +1,4 @@
-// Dates and text helpers (frontend/src/utils/format.ts), R9.5, R9.7, R12.7. Dates use
+// Dates and text helpers (frontend/src/utils/format.ts). Dates use
 // Intl.DateTimeFormat in the user's time zone; there is no date library.
 
 function parts(date: Date, timeZone: string): { y: number; m: number; d: number } {
@@ -69,7 +69,7 @@ export function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-/** Escaped text with the search terms wrapped in <mark> (R12.7). */
+/** Escaped text with the search terms wrapped in <mark>. */
 export function highlight(text: string, terms: string[]): string {
   const escaped = escapeHtml(text)
   const words = terms.map((t) => t.trim()).filter((t) => t.length > 1)
@@ -81,7 +81,7 @@ export function highlight(text: string, terms: string[]): string {
 const PREVIEW_LINES: Record<string, number> = { title: 0, small: 300, medium: 600, large: 1000 }
 const PREVIEW_CARDS: Record<string, number> = { title: 0, small: 500, medium: 1000, large: 1500 }
 
-/** R9.7: the preview text of a title row (one line) or of a card (paragraph breaks kept). */
+/** The preview text of a title row (one line) or of a card (paragraph breaks kept). */
 export function previewText(preview: string, title: string, setting: string, card: boolean): string {
   const limit = (card ? PREVIEW_CARDS : PREVIEW_LINES)[setting] ?? 0
   if (!limit || !preview) return ''
@@ -91,7 +91,7 @@ export function previewText(preview: string, title: string, setting: string, car
   return line.slice(0, limit)
 }
 
-/** R2.26: a story without a title shows the start of its text, or its link. */
+/** A story without a title shows the start of its text, or its link. */
 export function displayTitle(title: string, preview: string, permalink: string): string {
   if (title) return title
   const text = preview.replace(/\s+/g, ' ').trim()
@@ -104,7 +104,7 @@ export function bytes(n: number): string {
   return `${(n / 1048576).toFixed(1)} MB`
 }
 
-/** R20.10: the feed URL appended to /subscribe/, with or without URL encoding. */
+/** The feed URL appended to /subscribe/, with or without URL encoding. */
 export function subscribeUrlFromLocation(pathAndQuery: string): string {
   let raw = pathAndQuery.replace(/^\/subscribe\/?/, '')
   if (!raw) return ''

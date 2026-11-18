@@ -1,5 +1,5 @@
-"""HTTP downloads of the worker's coordinator (worker/fetcher.py), R2.1-R2.8, R2.16 and feed
-discovery, R2.20-R2.22. Nothing is parsed here; parsing is a pool task."""
+"""HTTP downloads of the worker's coordinator (worker/fetcher.py) and feed
+discovery. Nothing is parsed here; parsing is a pool task."""
 import asyncio
 import logging
 import ssl
@@ -104,7 +104,7 @@ async def download(
     client: httpx.AsyncClient, url: str, *, headers: dict | None = None, max_bytes: int = FEED_BODY_LIMIT,
     total_timeout: float = 30, max_redirects: int = 10,
 ) -> Download:  # fmt: skip
-    """One GET with manual redirect handling, a body limit and a total time limit (R2.4)."""
+    """One GET with manual redirect handling, a body limit and a total time limit."""
     started = time.monotonic()
     request_headers = {"Accept-Encoding": "gzip, deflate", **(headers or {})}
     try:
@@ -122,7 +122,7 @@ async def download(
 
 def redirected_elsewhere(result: Download, address: str) -> bool:
     """Whether a download went through a permanent redirect to an address other than `address`
-    (the comparison process_feed makes, R2.8)."""
+    (the comparison process_feed makes)."""
     if not result.permanent_url:
         return False
     try:
@@ -139,7 +139,7 @@ def _http_date(value: str) -> str:
 
 
 def conditional_headers(feed: dict, forced: bool) -> dict:
-    """R2.6: If-None-Match / If-Modified-Since from the last good response, unless forced. A value
+    """If-None-Match / If-Modified-Since from the last good response, unless forced. A value
     that is not ASCII cannot be sent as a header and is left out."""
     if not feed["fetched_once"] or forced:
         return {}
@@ -156,7 +156,7 @@ def conditional_headers(feed: dict, forced: bool) -> dict:
 
 
 async def download_feed(client: httpx.AsyncClient, feed: dict, forced: bool) -> Download:
-    """R2.1-R2.5: neutral user agent, conditional headers unless forced, one retry as a browser."""
+    """Download a feed: neutral user agent, conditional headers unless forced, one retry as a browser."""
     headers = {"User-Agent": NEUTRAL_UA, "Accept": FEED_ACCEPT, **conditional_headers(feed, forced)}
     result = await download(client, feed["feed_address"], headers=headers)
     if result.error_code in (502, 504) or result.status >= 400:
@@ -176,7 +176,7 @@ class DiscoveryError(Exception):
 
 
 async def discover(client: httpx.AsyncClient, pool, url: str, interactive: bool = True) -> dict:
-    """R2.20: find the feed behind a feed URL or a site URL."""
+    """Find the feed behind a feed URL or a site URL."""
     try:
         url = normalize_url(url)
     except InvalidUrl:

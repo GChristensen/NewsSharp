@@ -1,7 +1,7 @@
-<!-- The video of a Grid card (frontend/src/components/CardVideo.vue), R9.10, after NewsBlurMod 4d60cf40f.
+<!-- The video of a Grid card (frontend/src/components/CardVideo.vue), after NewsBlurMod 4d60cf40f.
      A muted, looping video laid over the card's image area. With `autoplay` (a story whose only media is a
      video) it plays while the card is on screen; otherwise it is created on the first hover over the cover
-     image and plays while `hovered`. A failed load is retried once through the image proxy (R14.3), after
+     image and plays while `hovered`. A failed load is retried once through the image proxy, after
      which the video is dropped and the cover image, if any, stays. -->
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'

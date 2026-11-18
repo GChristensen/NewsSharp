@@ -1,4 +1,4 @@
-"""`reader backup <file>` (worker/management/commands/backup.py), R23.4: SQLite online backup."""
+"""`reader backup <file>` (worker/management/commands/backup.py): SQLite online backup."""
 import sqlite3
 
 from django.conf import settings

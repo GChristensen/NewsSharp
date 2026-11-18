@@ -1,5 +1,5 @@
 <!-- Table of a feed's recorded fetch attempts (frontend/src/components/FetchHistory.vue), shown by the
-     statistics (R18.6) and feed settings dialogs. -->
+     statistics and feed settings dialogs. -->
 <script setup lang="ts">
 import { useSettings } from '../stores/settings'
 import type { FetchLogEntry } from '../types'

@@ -1,5 +1,5 @@
-// Thin fetch wrapper (frontend/src/api.ts): relative URLs (R5.2), the CSRF header and X-Client-Id
-// (R21.4), a 15 s timeout and one retry for idempotent GET requests (R17.7).
+// Thin fetch wrapper (frontend/src/api.ts): relative URLs, the CSRF header and X-Client-Id,
+// a 15 s timeout and one retry for idempotent GET requests.
 
 export class ApiError extends Error {
   status: number

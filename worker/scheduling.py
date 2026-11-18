@@ -1,4 +1,4 @@
-"""Fetch interval computation (worker/scheduling.py), item 3 of the requirements."""
+"""Fetch interval computation (worker/scheduling.py)."""
 import random
 import re
 from email.utils import parsedate_to_datetime
@@ -12,7 +12,7 @@ MAX_HINT_SECONDS = 24 * 3600
 
 
 def base_interval_minutes(stories_last_month: int, last_story_date: int, now_ts: int) -> float:
-    """R3.2: the interval of a healthy feed without push."""
+    """The interval of a healthy feed without push."""
     spd = stories_last_month / 30
     if spd >= 1:
         minutes = 45
@@ -28,7 +28,7 @@ def interval_minutes(
     stories_last_month: int, last_story_date: int, errors: int, push_active: bool, now_ts: int,
     hint_seconds: int | None = None,
 ) -> int:  # fmt: skip
-    """R3.2-R3.5. A server hint (R2.15) only lengthens the interval: it never makes a quiet feed
+    """The fetch interval in minutes. A server hint only lengthens the interval: it never makes a quiet feed
     polled more often or cancels the error backoff."""
     minutes = base_interval_minutes(stories_last_month, last_story_date, now_ts)
     if push_active:
@@ -41,13 +41,13 @@ def interval_minutes(
 
 
 def next_update(minutes: int, now_ts: int) -> int:
-    """R3.6: next = now + interval + random(0, interval) / 4."""
+    """next = now + interval + random(0, interval) / 4."""
     seconds = minutes * 60
     return now_ts + seconds + int(random.uniform(0, seconds) / 4)
 
 
 def server_hint_seconds(headers: dict, now_ts: int) -> int | None:
-    """R2.15: the longer of Cache-Control max-age and Retry-After."""
+    """The server hint: the longer of Cache-Control max-age and Retry-After."""
     values = []
     match = re.search(r"max-age\s*=\s*(\d+)", headers.get("cache-control", ""), re.I)
     if match:

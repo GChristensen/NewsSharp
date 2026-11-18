@@ -1,5 +1,5 @@
-<!-- The story pane of Split and Full (frontend/src/components/StoryPane.vue), item 9: one story, or
-     all loaded stories one after another; the Original view frames the feed's site (R9.2). -->
+<!-- The story pane of Split and Full (frontend/src/components/StoryPane.vue): one story, or
+     all loaded stories one after another; the Original view frames the feed's site. -->
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { effectiveView, selectStory } from '../actions'
@@ -28,7 +28,7 @@ const position = computed(() => (settings.prefs.full_width_story ? 'stretch' : s
 const storyFramed = computed(() => !allMode.value && view.value === 'story')
 /** Full with "Images only": the stories are shown without titles or controls. */
 const bare = computed(() => props.full && settings.effective(stories.scope, 'story_display') === 'images')
-const { onScroll } = usePaneScroll(pane, () => props.full && allMode.value)
+const { onScroll } = usePaneScroll(pane, () => props.full && allMode.value && settings.prefs.mark_read_on_scroll)
 
 function detailView(story: Story): 'feed' | 'text' | 'story' {
   const selected = stories.selectedKey === story.key

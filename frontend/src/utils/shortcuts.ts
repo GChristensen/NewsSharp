@@ -1,5 +1,5 @@
-// Keyboard shortcuts (frontend/src/utils/shortcuts.ts), item 11. The handler and the shortcuts
-// dialog use this one table (R11.3). No shortcut uses Alt or Meta (R11.2); the Ctrl shortcuts are
+// Keyboard shortcuts (frontend/src/utils/shortcuts.ts). The handler and the shortcuts
+// dialog use this one table. No shortcut uses Alt or Meta; the Ctrl shortcuts are
 // global: they also work while an input has the focus, and they replace the browser's own action.
 import {
   cycleSidebarMode, cycleView, effectiveLayout, markScopeRead, nextUnread, oldestUnread, openAll, openHome, openInNewTab, refreshFeed,

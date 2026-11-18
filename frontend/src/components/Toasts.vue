@@ -1,4 +1,4 @@
-<!-- Toasts at the bottom center (frontend/src/components/Toasts.vue), R20.5. -->
+<!-- Toasts at the bottom center (frontend/src/components/Toasts.vue). -->
 <script setup lang="ts">
 import { useUi, type Toast } from '../stores/ui'
 

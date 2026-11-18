@@ -1,4 +1,4 @@
-<!-- A story card for Grid and Magazine (frontend/src/components/StoryCard.vue), R9.9, R9.10.
+<!-- A story card for Grid and Magazine (frontend/src/components/StoryCard.vue).
      Cover images and videos are contained, never cropped. A click anywhere on the card opens the story
      inline; a middle click opens the article (handled by StoryList). A Grid card with a video plays it
      muted (CardVideo): on hover over the cover image, or continuously when there is no image. -->

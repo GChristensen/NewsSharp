@@ -1,5 +1,5 @@
-"""Database helpers shared by both processes (feeds/store.py): full-text index rows (R12.8), fetch
-log retention (R18.3), story and feed deletion (R1.2, R1.6)."""
+"""Database helpers shared by both processes (feeds/store.py): full-text index rows, fetch
+log retention, story and feed deletion."""
 from django.db import connection, transaction
 
 from .models import Feed, FeedFetchLog
@@ -43,7 +43,7 @@ def delete_stories(story_ids: list[int]) -> None:
 
 
 def log_fetch(feed_id: int, log_type: str, code: int, message: str, duration_ms: int = 0) -> None:
-    """Add a fetch log entry and apply the retention of R18.3."""
+    """Add a fetch log entry and apply the log retention."""
     FeedFetchLog.objects.create(
         feed_id=feed_id, type=log_type, at=now(), status_code=code, message=message[:255], duration_ms=duration_ms
     )
@@ -58,7 +58,7 @@ def log_fetch(feed_id: int, log_type: str, code: int, message: str, duration_ms:
 
 
 def purge_feed(feed_id: int) -> None:
-    """Remove a feed with its stories, icon, logs, counters and push subscription (R1.2)."""
+    """Remove a feed with its stories, icon, logs, counters and push subscription."""
     with transaction.atomic(), connection.cursor() as cur:
         params = [feed_id]
         cur.execute("DELETE FROM stories_fts WHERE rowid IN (SELECT id FROM feeds_story WHERE feed_id = %s)", params)

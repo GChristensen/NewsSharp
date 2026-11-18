@@ -8,7 +8,7 @@ from django.core.management.base import BaseCommand, CommandError
 
 
 def take_lock(path):
-    """R23.7: only one worker may run against a database."""
+    """Only one worker may run against a database."""
     handle = open(path, "a+")
     try:
         if os.name == "nt":

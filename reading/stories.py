@@ -1,5 +1,5 @@
-"""Story lists, search and saved stories (reading/stories.py): items 10, 12, 17. Keyset paging
-with raw SQL (R17.2); results of a search are ordered by date, not relevance (R12.5)."""
+"""Story lists, search and saved stories (reading/stories.py). Keyset paging
+with raw SQL; results of a search are ordered by date, not relevance."""
 import json
 import re
 
@@ -32,7 +32,7 @@ def image_secret() -> str:
 
 
 def parse_scope(user, scope: str) -> dict:
-    """Resolve a scope string (0.3) into {kind, feed_ids | None, tag}. feed_ids None means all.
+    """Resolve a scope string (feed:<id>, folder:<id>, all, saved...) into {kind, feed_ids | None, tag}. feed_ids None means all.
     Live `all` and `folder` scopes leave out muted feeds; a muted feed opened by itself is listed."""
     parts = (scope or "").split(":")
     try:
@@ -188,7 +188,7 @@ def list_stories(user, scope: str, read_filter: str, order: str, query: str, cur
                 where.append(f"s.feed_id IN ({_in_list(resolved['feed_ids'])})")
             if not scope.startswith("feed:"):
                 where.append("NOT sub.muted")
-            if read_filter == "unread" and not match_expression:  # R12.5: the filter is ignored while searching
+            if read_filter == "unread" and not match_expression:  # the filter is ignored while searching
                 where.append("s.story_date > MAX(sub.mark_read_date, %s) AND r.id IS NULL")
                 params.append(cutoff)
         if match_expression:
@@ -208,7 +208,7 @@ def list_stories(user, scope: str, read_filter: str, order: str, query: str, cur
     except DatabaseError:
         if not match:
             raise
-        match, terms = plain_match(query)  # R12.3: never an error for the user
+        match, terms = plain_match(query)  # never an error for the user
         rows = run(match) if match else []
     more = len(rows) > limit
     rows = rows[:limit]
@@ -234,7 +234,7 @@ def get_saved(user, saved_id: int) -> dict | None:
     return story_json(rows[0]) if rows else None
 
 
-# ---------------------------------------------------------------- Saved for Later (R10.10-R10.12)
+# ---------------------------------------------------------------- Saved for Later
 
 _TAG_SPLIT = re.compile(r"\s*,\s*")
 
@@ -304,7 +304,7 @@ def live_story_id(saved: SavedStory) -> int | None:
 
 
 def saved_counts(user) -> dict:
-    """Totals of saved stories per feed and per tag; titles of feeds no longer subscribed (R7.4)."""
+    """Totals of saved stories per feed and per tag; titles of feeds no longer subscribed."""
     feeds: dict[int, int] = {}
     tags: dict[str, int] = {}
     titles: dict[int, str] = {}

@@ -1,4 +1,4 @@
-<!-- Login and first-run setup form (frontend/src/components/LoginView.vue), item 22. The route is
+<!-- Login and first-run setup form (frontend/src/components/LoginView.vue). The route is
      kept, so the requested page opens after login. The brand panel's rows are decoration: an
      abstract stream of stories drawn behind the logo. -->
 <script setup lang="ts">

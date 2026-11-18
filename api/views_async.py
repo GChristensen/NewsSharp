@@ -1,4 +1,4 @@
-"""Async API views (api/views_async.py): the endpoints that wait for a worker job (R0.12, R0.32).
+"""Async API views (api/views_async.py): the endpoints that wait for a worker job.
 They reach the ORM through sync_to_async."""
 import asyncio
 from urllib.parse import urlsplit
@@ -39,7 +39,7 @@ def _normalize(url: str) -> str:
 
 
 async def _find_feed(user, url: str, proxy: bool = False) -> dict:
-    """An existing feed by address, or a `discover` job (R2.20), through the proxy with `proxy`."""
+    """An existing feed by address, or a `discover` job, through the proxy with `proxy`."""
     address = _normalize(url)
 
     def existing():
@@ -76,8 +76,8 @@ def _create_subscription(user, found: dict, folder_id, new_folder: str) -> dict:
         feed, _ = store.get_or_create_feed(found["feed_address"], found.get("title") or "", found.get("site_link") or "")
         _, created = tree.subscribe(user, feed, folder_id)
     if created or not feed.fetched_once or feed.last_update < now() - 86400:
-        # R3.8: a new subscription is fetched at once, ahead of scheduled fetches, even when the feed
-        # was fetched recently for someone else: the fetch also picks up a hub added since (R4.2).
+        # A new subscription is fetched at once, ahead of scheduled fetches, even when the feed
+        # was fetched recently for someone else: the fetch also picks up a hub added since.
         active = jobs.Job.objects.filter(type="fetch_feed", feed_id=feed.id, state__in=("queued", "running")).exists()
         if not active:
             jobs.enqueue("fetch_feed", feed_id=feed.id, payload={"forced": False}, interactive=True)
@@ -91,7 +91,7 @@ def tree_response(user) -> dict:
 
 
 async def _subscribe(request, data):
-    """POST /api/subscriptions {url, folder_id?, new_folder?} (R7.12)."""
+    """POST /api/subscriptions {url, folder_id?, new_folder?}."""
     found = await _find_feed(request.user, require_str(data, "url", ""))
     folder_id = data.get("folder_id")
     if folder_id is not None and type(folder_id) is not int:
@@ -103,7 +103,7 @@ async def _subscribe(request, data):
 
 
 def _change_address(user, feed_id: int, address: str) -> int:
-    """R7.11: replace the address of a (broken) feed, keeping its stories."""
+    """Replace the address of a (broken) feed, keeping its stories."""
     with transaction.atomic():
         sub = tree.live_subs(user).filter(feed_id=feed_id).first()
         if sub is None:
@@ -150,14 +150,14 @@ def _saved_text_state(user, saved_id: int):
 
 
 async def _text(request, loader, key: str, item_id: int) -> dict:
-    """R13.6, R13.9: answer from the cache when possible; otherwise queue a job and wait."""
+    """Answer from the cache when possible; otherwise queue a job and wait."""
     force = request.GET.get("force") == "1"
     state = await _in_thread(loader)(request.user, item_id)
     if state is None:
         raise ApiError(404, "not_found", "Story not found.")
     if state["original_text"] and not force:
         return {"text": state["original_text"], "url": state["permalink"], "failed": False, "reason": ""}
-    slots = _text_slots.setdefault(request.user.id, asyncio.Semaphore(2))  # R13.8
+    slots = _text_slots.setdefault(request.user.id, asyncio.Semaphore(2))  # at most 2 extractions per user at a time
     async with slots:
         result = await jobs.run_and_wait("extract_text", user_id=request.user.id, payload={key: item_id, "force": force})
     if result.get("failed"):
@@ -199,7 +199,7 @@ def _set_icon_link(feed_id: int, url: str) -> None:
 
 async def _fetch_icon(request, data, feed_id):
     """POST /api/feeds/<id>/icon/fetch {url?}: look for the feed's icon again now, retrying through the
-    proxy when one is configured (R8.1). A `url` is kept as the feed's icon address, which every later
+    proxy when one is configured. A `url` is kept as the feed's icon address, which every later
     search fetches instead of looking the icon up; an empty one returns to looking it up. The address
     belongs to the feed, so it applies to all its subscribers. Answers {found, icon_url, favicon_color,
     tried, out_of_time}, or {pending: true} when the search outlasts the wait; other tabs learn of a

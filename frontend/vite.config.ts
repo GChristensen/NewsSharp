@@ -1,5 +1,5 @@
 // Vite configuration (frontend/vite.config.ts). In development the Vite server proxies the backend
-// routes to Django (0.5); the build is written to frontend/dist and served by whitenoise.
+// routes to Django; the build is written to frontend/dist and served by whitenoise.
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vitest/config'
 

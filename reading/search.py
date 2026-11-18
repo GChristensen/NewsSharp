@@ -1,4 +1,4 @@
-"""Search query translation (reading/search.py), R12.3: the user's query becomes an FTS5 MATCH
+"""Search query translation (reading/search.py): the user's query becomes an FTS5 MATCH
 expression. A syntax error never reaches the user: anything unparseable is searched as plain words."""
 import re
 

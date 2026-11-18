@@ -1,4 +1,4 @@
-<!-- A story title row for Split and List (frontend/src/components/StoryRow.vue), R9.6-R9.8. -->
+<!-- A story title row for Split and List (frontend/src/components/StoryRow.vue). -->
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useSettings } from '../stores/settings'
@@ -16,7 +16,7 @@ const item = useStoryItem(() => props.story, false)
 
 const thumbSetting = computed(() => settings.effective(stories.scope, 'image_preview'))
 const cover = computed(() => props.story.image_urls[0] ?? null)
-// R9.8: without an image no thumbnail in Split with a west anchor; otherwise the space is kept.
+// Without an image no thumbnail in Split with a west anchor; otherwise the space is kept.
 const showThumb = computed(() => thumbSetting.value !== 'none' && (cover.value !== null || !props.narrowPane))
 const thumbClass = computed(() => (thumbSetting.value.startsWith('large') ? 'large' : 'small'))
 </script>

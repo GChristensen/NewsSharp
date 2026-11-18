@@ -1,6 +1,6 @@
-"""`reader serve` (worker/management/commands/serve.py), R23.2: a small supervisor that applies
-migrations, starts the web and worker processes, connects them with the wake-up pipes (R0.17),
-restarts them (R0.20) and forwards termination (R23.5). It does no other work."""
+"""`reader serve` (worker/management/commands/serve.py): a small supervisor that applies
+migrations, starts the web and worker processes, connects them with the wake-up pipes,
+restarts them and forwards termination. It does no other work."""
 import os
 import signal
 import subprocess
@@ -35,7 +35,7 @@ class Managed:
         self.started_at = time.monotonic()
 
     def check(self) -> None:
-        """Restart an exited process with a delay of 1 s doubling to 30 s (R0.20)."""
+        """Restart an exited process with a delay of 1 s doubling to 30 s."""
         if self.process is not None and self.process.poll() is None:
             if time.monotonic() - self.started_at > 60:
                 self.delay = 1.0
@@ -86,7 +86,7 @@ class Command(BaseCommand):
             self.shutdown(processes)
 
     def check_heartbeat(self, worker: Managed) -> None:
-        """R0.20: kill and restart a worker whose heartbeat is older than 120 s."""
+        """Kill and restart a worker whose heartbeat is older than 120 s."""
         if not worker.alive() or time.monotonic() - worker.started_at < HEARTBEAT_LIMIT:
             return
         try:
@@ -100,7 +100,7 @@ class Command(BaseCommand):
             worker.process.kill()
 
     def shutdown(self, processes: list[Managed]) -> None:
-        """R23.5: signal both processes; kill what has not exited after 15 s."""
+        """Signal both processes; kill what has not exited after 15 s."""
         print("supervisor: stopping", flush=True)
         for managed in processes:
             if managed.alive() and os.name != "nt":

@@ -1,4 +1,4 @@
-"""Acceptance checks of items 1, 2, 3, 8 and 18 (tests/test_pipeline.py)."""
+"""Checks of fetching, parsing, story storage, scheduling, icons and statistics (tests/test_pipeline.py)."""
 import asyncio
 import io
 import time
@@ -92,7 +92,7 @@ def test_guid_fallbacks(make_feed):
 
 def test_six_character_hash_collisions_do_not_merge(make_feed):
     feed = make_feed()
-    # Stories are identified by the full SHA-1, so any two different guids are two stories (R1.3).
+    # Stories are identified by the full SHA-1, so any two different guids are two stories.
     assert fetch(feed, rss(item("guid-x", "X", date=now() - 10) + item("guid-y", "Y", date=now() - 5)))["new"] == 2
     assert len({s.guid_hash for s in Story.objects.filter(feed=feed)}) == 2
 

@@ -1,4 +1,4 @@
-"""The worker's process pool (worker/pool.py), R0.23-R0.31: spawned children with one pipe each,
+"""The worker's process pool (worker/pool.py): spawned children with one pipe each,
 killed on time limit, recycled after 200 tasks or 500 MB, one task per feed at a time, priority
 for interactive tasks."""
 import asyncio
@@ -31,8 +31,8 @@ class TaskFailed(Exception):
 
 
 def child_main(conn, index: int) -> None:
-    """Entry point of a pool child. Imports everything up front so tasks start without cost (R0.25)
-    and exits when the coordinator's end of the pipe closes (R23.5)."""
+    """Entry point of a pool child. Imports everything up front so tasks start without cost
+    and exits when the coordinator's end of the pipe closes."""
     os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings"
     os.environ["NEWSSHARP_PROC"] = f"worker/{index}"
     try:
@@ -126,7 +126,7 @@ class Pool:
 
     @property
     def queued(self) -> int:
-        """Tasks waiting for a free child (R0.31)."""
+        """Tasks waiting for a free child."""
         return len(self.waiting_background) + len(self.waiting_interactive)
 
     def _spawn(self, extra: bool = False) -> Child:
@@ -145,7 +145,7 @@ class Pool:
         if self.idle:
             return self.idle.popleft()
         if interactive and self.extras < MAX_EXTRA_CHILDREN:
-            self.extras += 1  # R0.30: one extra child for an interactive task when all are busy
+            self.extras += 1  # one extra child for an interactive task when all are busy
             return self._spawn(extra=True)
         future = asyncio.get_running_loop().create_future()
         (self.waiting_interactive if interactive else self.waiting_background).append(future)
@@ -195,11 +195,11 @@ class Pool:
                 try:
                     ok, result = await asyncio.wait_for(future, limit)
                 except asyncio.TimeoutError:
-                    child.kill()  # R0.26
+                    child.kill()  # a task over its time limit kills the child
                     log.warning("killed child worker/%d: task %s exceeded %ss", child.index, name, limit)
                     raise TaskTimeout(name) from None
                 except (EOFError, OSError, BrokenPipeError):
-                    child.kill()  # R0.27
+                    child.kill()  # the child died; make sure it is gone
                     log.warning("child worker/%d exited during task %s", child.index, name)
                     raise TaskCrashed(name) from None
                 except asyncio.CancelledError:
@@ -219,7 +219,7 @@ class Pool:
                     self.feed_locks.pop(feed_id, None)
 
     async def shutdown(self, grace: float = 10) -> None:
-        """R23.5: let running tasks finish for up to `grace` seconds, then stop the children."""
+        """Let running tasks finish for up to `grace` seconds, then stop the children."""
         self.closed = True
         loop = asyncio.get_running_loop()
         deadline = loop.time() + grace

@@ -1,4 +1,4 @@
-"""Jobs requested by the web process (api/jobs.py), R0.9-R0.12."""
+"""Jobs requested by the web process (api/jobs.py)."""
 import asyncio
 
 from asgiref.sync import sync_to_async
@@ -11,7 +11,7 @@ from worker.models import INTERACTIVE_TYPES, Job
 from . import background
 from .http import ApiError
 
-WAIT_SECONDS = 30  # R0.12
+WAIT_SECONDS = 30  # how long the web process waits for an interactive job
 
 
 def enqueue(job_type: str, feed_id=None, user_id=None, payload=None, blob=None, interactive=None) -> Job:
@@ -31,7 +31,7 @@ def enqueue(job_type: str, feed_id=None, user_id=None, payload=None, blob=None, 
 
 
 def request_fetch(feed_id: int, forced: bool = False) -> tuple[Job, bool]:
-    """R0.11, R3.9: at most one fetch_feed job per feed is queued or running, and at most one
+    """At most one fetch_feed job per feed is queued or running, and at most one
     forced fetch per 10 s. Returns (job, created)."""
     with transaction.atomic():
         active = Job.objects.filter(type="fetch_feed", feed_id=feed_id, state__in=("queued", "running")).first()
@@ -63,7 +63,7 @@ def _state(job_id: int):
 
 
 async def run_and_wait(job_type: str, feed_id=None, user_id=None, payload=None) -> dict:
-    """Queue a job and wait for its result, up to 30 s; then 504 worker_timeout (R0.12)."""
+    """Queue a job and wait for its result, up to 30 s; then 504 worker_timeout."""
     job_id = await sync_to_async(_create, thread_sensitive=False)(job_type, feed_id, user_id, payload)
     loop = asyncio.get_running_loop()
     deadline = loop.time() + WAIT_SECONDS

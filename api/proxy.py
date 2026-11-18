@@ -1,5 +1,5 @@
-"""The image proxy (api/proxy.py), item 14, and the frame check, R9.2. Both only move bytes or
-inspect headers; nothing is decoded in the web process (R14.9)."""
+"""The image proxy (api/proxy.py) and the frame check. Both only move bytes or
+inspect headers; nothing is decoded in the web process."""
 import hashlib
 import hmac
 import logging
@@ -51,7 +51,7 @@ def _cache_read(url: str):
 
 
 def _cache_write(url: str, data: bytes, content_type: str) -> None:
-    """R14.7: least-recently-used eviction by file time."""
+    """Least-recently-used eviction by file time."""
     try:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         data_path, type_path = _cache_paths(url)
@@ -71,7 +71,7 @@ def _cache_write(url: str, data: bytes, content_type: str) -> None:
 
 
 async def image_proxy(request):
-    """GET /img?u=<url>&sig=<sig> (R14.5)."""
+    """GET /img?u=<url>&sig=<sig>."""
     user = await request.auser()
     if not user.is_authenticated:
         return error_response(401, "unauthenticated", "Log in to continue.")
@@ -150,7 +150,7 @@ _frame_cache: dict[str, tuple[float, dict]] = {}
 
 
 async def _frameable(request, data):
-    """R9.2: may this URL be shown in an iframe? Headers only are inspected; cached per host for 24 h."""
+    """May this URL be shown in an iframe? Headers only are inspected; cached per host for 24 h."""
     url = request.GET.get("url", "")
     parts = urlsplit(url)
     if parts.scheme not in ("http", "https") or not parts.hostname:

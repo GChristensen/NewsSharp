@@ -1,4 +1,4 @@
-"""Content sanitization at store time (feeds/sanitize.py), R2.35, and story image extraction, R2.34."""
+"""Content sanitization at store time (feeds/sanitize.py) and story image extraction."""
 import html
 import re
 from urllib.parse import urljoin, urlsplit
@@ -128,7 +128,7 @@ def sanitize(content: str, base_url: str = "") -> str:
 
 
 def extract_image_urls(content: str) -> list[str]:
-    """R2.34: img sources, video posters and YouTube stills, in document order, without duplicates.
+    """Story images: img sources, video posters and YouTube stills, in document order, without duplicates.
     Expects sanitized content (URLs already absolute)."""
     if not content or ("<img" not in content and "<video" not in content and "<iframe" not in content):
         return []
@@ -159,7 +159,7 @@ _SRCSET_ATTR = re.compile(r'\bsrcset="([^"]+)"')
 
 
 def media_urls(content: str) -> list[str]:
-    """src / poster / srcset URLs of sanitized content, for image_sigs (R14.3)."""
+    """src / poster / srcset URLs of sanitized content, for image_sigs."""
     urls = [html.unescape(u) for u in _MEDIA_ATTR.findall(content or "")]
     for srcset in _SRCSET_ATTR.findall(content or ""):
         for candidate in html.unescape(srcset).split(","):

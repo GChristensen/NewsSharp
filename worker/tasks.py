@@ -1,4 +1,4 @@
-"""Pool tasks (worker/tasks.py), R0.24: the CPU-bound stages. They run in pool children and make
+"""Pool tasks (worker/tasks.py): the CPU-bound stages. They run in pool children and make
 no network requests."""
 import io
 import logging
@@ -25,7 +25,7 @@ ICON_FORMATS = {"ICO", "PNG", "GIF", "JPEG", "WEBP"}
 Image.MAX_IMAGE_PIXELS = 4096 * 4096
 
 
-# ---------------------------------------------------------------- parse_page (R2.20, R8.2)
+# ---------------------------------------------------------------- parse_page
 
 
 def _icon_size(link) -> int:
@@ -61,16 +61,16 @@ def parse_page(body: bytes, base_url: str, content_type: str = "") -> dict:
             result["feed_links"].append(urljoin(base_url, href))
         elif "icon" in rel and "mask-icon" not in rel:
             if "svg" in kind or href.lower().split("?")[0].endswith(".svg"):
-                continue  # R8.3: SVG icons are skipped
+                continue  # SVG icons are skipped
             icons.append((urljoin(base_url, href), _icon_size(link)))
-    # R8.2: prefer the largest declared size up to 64 px, else the first.
+    # Prefer the largest declared size up to 64 px, else the first.
     sized = sorted((i for i in icons if 0 < i[1] <= 64), key=lambda i: -i[1])
     ordered = [url for url, _ in sized] + [url for url, _ in icons]
     result["icon_links"] = list(dict.fromkeys(ordered))
     return result
 
 
-# ---------------------------------------------------------------- process_icon (R8.3, R8.4)
+# ---------------------------------------------------------------- process_icon
 
 
 def _kmeans(points: np.ndarray, k: int, iterations: int = 20) -> tuple[np.ndarray, np.ndarray]:
@@ -94,7 +94,8 @@ def _kmeans(points: np.ndarray, k: int, iterations: int = 20) -> tuple[np.ndarra
 
 
 def dominant_color(image: Image.Image) -> str | None:
-    """Port of NewsBlur's determine_dominant_color_in_image with the changes of R8.4."""
+    """Port of NewsBlur's determine_dominant_color_in_image with one change: pixels with alpha below 128
+    are ignored. K-means uses a fixed seed, so the same image always gives the same color."""
     pixels = np.asarray(image.convert("RGBA"), dtype=np.float64).reshape(-1, 4)
     points = pixels[pixels[:, 3] >= 128][:, :3]
     if len(points) == 0:
@@ -138,7 +139,7 @@ def process_icon(feed_id: int, data: bytes, icon_url: str) -> dict:
     return {"ok": True, "color": color}
 
 
-# ---------------------------------------------------------------- extract_text (R13.3-R13.6)
+# ---------------------------------------------------------------- extract_text
 
 
 def _extract_html(page: str, url: str) -> str:

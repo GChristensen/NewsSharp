@@ -1,4 +1,4 @@
-"""OPML import and export (reading/opml.py), item 15. Import makes no network request (R15.4)."""
+"""OPML import and export (reading/opml.py). Import makes no network request."""
 from datetime import datetime, timezone
 
 from django.db import transaction
@@ -40,7 +40,7 @@ def import_opml(user, data: bytes) -> dict:
                 name = (outline.get("text") or outline.get("title") or "").strip()[:255]
                 if not name:
                     continue
-                folder = siblings.get(name)  # R15.2: matched to an existing sibling with the same title
+                folder = siblings.get(name)  # matched to an existing sibling with the same title
                 if folder is None:
                     folder = Folder.objects.create(user=user, parent_id=parent_id, title=name, position=position)
                     siblings[name] = folder
@@ -67,7 +67,7 @@ def import_opml(user, data: bytes) -> dict:
             if feed.id in subscribed:
                 result["feeds_existing"] += 1
                 continue
-            # R15.3: the outline's title is shown until the first fetch decides whether it is custom.
+            # The outline's title is shown until the first fetch decides whether it is custom.
             user_title = title[:255] if title and title != feed.title else None
             revived = Subscription.objects.filter(user=user, feed=feed).first()
             if revived is not None:
@@ -89,7 +89,7 @@ def import_opml(user, data: bytes) -> dict:
 
 
 def export_opml(user) -> bytes:
-    """R15.6: OPML 2.0 with the user's tree in display order."""
+    """OPML 2.0 with the user's tree in display order."""
     root = etree.Element("opml", version="2.0")
     head = etree.SubElement(root, "head")
     etree.SubElement(head, "title").text = f"{user.username}'s feeds"

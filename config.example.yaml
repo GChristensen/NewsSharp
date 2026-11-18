@@ -1,4 +1,4 @@
-# NewsSharp configuration (config.example.yaml, R23.1). Copy to config.yaml and adjust; every key is
+# NewsSharp configuration (config.example.yaml). Copy to config.yaml and adjust; every key is
 # optional and falls back to the default shown in README.md. There is no host name key.
 
 port: 20000

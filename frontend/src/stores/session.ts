@@ -1,4 +1,4 @@
-// Session and initial load (frontend/src/stores/session.ts), R17.1 and item 22.
+// Session and initial load (frontend/src/stores/session.ts).
 import { defineStore } from 'pinia'
 import { api, ApiError, onUnauthorized } from '../api'
 import type { Bootstrap } from '../types'

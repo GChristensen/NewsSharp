@@ -1,4 +1,4 @@
-"""Acceptance checks of item 16 (tests/test_import.py)."""
+"""Checks of the NewsBlur import (tests/test_import.py)."""
 import base64
 import io
 import json

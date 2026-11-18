@@ -1,4 +1,4 @@
-<!-- Modal dialog frame (frontend/src/components/Modal.vue), R20.4: modal, closes with Esc, traps focus. -->
+<!-- Modal dialog frame (frontend/src/components/Modal.vue): modal, closes with Esc, traps focus. -->
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import Icon from './Icon.vue'

@@ -1,4 +1,4 @@
-<!-- A feed's icon or the neutral default (frontend/src/components/FeedIcon.vue), R8.6, R8.9. -->
+<!-- A feed's icon or the neutral default (frontend/src/components/FeedIcon.vue). -->
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useTree } from '../stores/tree'

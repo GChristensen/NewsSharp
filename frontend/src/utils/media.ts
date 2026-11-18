@@ -1,4 +1,4 @@
-// Media fallback through the image proxy (frontend/src/utils/media.ts), R14.3: when an image,
+// Media fallback through the image proxy (frontend/src/utils/media.ts): when an image,
 // video, audio or source fails to load, it is retried once through /img with the story's signature.
 
 export function proxyUrl(url: string | null, sigs: Record<string, string>): string | null {
@@ -31,8 +31,8 @@ function attribute(attrs: string, name: string): string {
   return match ? match[1].replace(/&amp;/g, '&') : ''
 }
 
-/** The video a grid card plays (R9.10): the first MP4 among the `<video>` and `<source>` URLs of the
- *  sanitized content, otherwise the first of them. Sanitized URLs are already absolute (R2.35). */
+/** The video a grid card plays: the first MP4 among the `<video>` and `<source>` URLs of the
+ *  sanitized content, otherwise the first of them. Sanitized URLs are already absolute. */
 export function firstVideo(content: string | undefined): string | null {
   if (!content || !content.includes('<video')) return null
   const candidates: { src: string; type: string }[] = []

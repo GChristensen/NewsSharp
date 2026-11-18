@@ -1,4 +1,4 @@
-"""Admin registration for subscriptions and folders (reading/admin.py), R22.6."""
+"""Admin registration for subscriptions and folders (reading/admin.py)."""
 from django.contrib import admin
 
 from .models import Folder, Subscription

@@ -1,4 +1,4 @@
-"""User-side data model (reading/models.py), item 1 of the requirements. Times are UTC integer seconds."""
+"""User-side data model (reading/models.py). Times are UTC integer seconds."""
 from django.conf import settings
 from django.db import models
 
@@ -9,7 +9,7 @@ class Folder(models.Model):
     title = models.CharField(max_length=255)
     position = models.IntegerField(default=0)
     collapsed = models.BooleanField(default=False)
-    deleted_at = models.IntegerField(null=True, blank=True)  # soft delete with undo, R7.10
+    deleted_at = models.IntegerField(null=True, blank=True)  # soft delete with undo
 
     def __str__(self):
         return self.title
@@ -44,7 +44,7 @@ class ReadStory(models.Model):
 
 
 class SavedStory(models.Model):
-    """A copy of a story saved for later (R10.10). feed_id is kept after the feed is gone."""
+    """A copy of a story saved for later. feed_id is kept after the feed is gone."""
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="saved_stories")
     feed_id = models.BigIntegerField(null=True, blank=True)
@@ -69,7 +69,7 @@ class SavedStory(models.Model):
 
 
 class ViewSetting(models.Model):
-    """Per-scope view settings (item 19). target_type is feed, folder, all or saved; target_id is 0
+    """Per-scope view settings. target_type is feed, folder, all or saved; target_id is 0
     for all and saved."""
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

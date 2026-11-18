@@ -1,4 +1,4 @@
-"""Admin registration for feed data (feeds/admin.py), R22.6."""
+"""Admin registration for feed data (feeds/admin.py)."""
 from django.contrib import admin
 
 from .models import Feed, FeedFetchLog, PushSubscription, Setting

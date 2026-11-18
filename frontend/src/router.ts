@@ -1,5 +1,5 @@
-// Routes (frontend/src/router.ts), R20.8. Every route renders the reader; the scope is derived
-// from the route. /subscribe/<url> is parsed from the raw location (R20.10).
+// Routes (frontend/src/router.ts). Every route renders the reader; the scope is derived
+// from the route. /subscribe/<url> is parsed from the raw location.
 import { createRouter, createWebHistory, type RouteLocationNormalizedLoaded } from 'vue-router'
 
 const Empty = { render: () => null }

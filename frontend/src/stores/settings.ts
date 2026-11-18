@@ -1,4 +1,4 @@
-// Preferences and per-scope view settings (frontend/src/stores/settings.ts), item 19.
+// Preferences and per-scope view settings (frontend/src/stores/settings.ts).
 import { defineStore } from 'pinia'
 import { api, errorMessage } from '../api'
 import type { Layout, Prefs, ThemeChoice, View, ViewKey } from '../types'
@@ -47,7 +47,7 @@ export const useSettings = defineStore('settings', {
       this.viewSettings = viewSettings
       this.applyTheme()
       media.addEventListener('change', (event) => {
-        this.systemDark = event.matches // R20.7: reacts while the page is open
+        this.systemDark = event.matches // reacts while the page is open
         this.applyTheme()
       })
     },
@@ -70,7 +70,7 @@ export const useSettings = defineStore('settings', {
         root.dataset[key.replace(/_(\w)/g, (_, c) => c.toUpperCase())] = String(this.prefs[key])
       }
     },
-    /** Apply a preference locally at once and save it debounced by 500 ms (R19.8). */
+    /** Apply a preference locally at once and save it debounced by 500 ms. */
     set<K extends keyof Prefs>(key: K, value: Prefs[K]) {
       if (this.prefs[key] === value) return
       this.prefs[key] = value
@@ -89,7 +89,7 @@ export const useSettings = defineStore('settings', {
         useUi().error(`Settings were not saved: ${errorMessage(error)}`)
       }
     },
-    /** Preferences announced by another tab (item 21). Local unsaved changes win. */
+    /** Preferences announced by another tab. Local unsaved changes win. */
     applyRemote(prefs: Prefs, viewSettings?: Record<string, Record<string, string>>) {
       this.prefs = { ...prefs, ...pending }
       if (viewSettings) this.viewSettings = viewSettings
@@ -98,7 +98,7 @@ export const useSettings = defineStore('settings', {
     stored(scope: string, key: ViewKey): string | undefined {
       return this.viewSettings[settingsScope(scope)]?.[key]
     },
-    /** R19.2: the stored value for the scope, else the global default, with NewsBlur's overrides. */
+    /** The stored value for the scope, else the global default, with NewsBlur's overrides. */
     effective(scope: string | null, key: ViewKey): string {
       if (scope) {
         if (key === 'read_filter' && scope.startsWith('saved')) return 'all'
@@ -125,7 +125,7 @@ export const useSettings = defineStore('settings', {
         useUi().error(`The setting was not saved: ${errorMessage(error)}`)
       }
     },
-    /** "Use default": delete the override of one scope (R19.3). */
+    /** "Use default": delete the override of one scope. */
     async clearView(scope: string, key: ViewKey) {
       const target = settingsScope(scope)
       const copy = { ...this.viewSettings[target] }
@@ -137,7 +137,7 @@ export const useSettings = defineStore('settings', {
         useUi().error(`The setting was not saved: ${errorMessage(error)}`)
       }
     },
-    /** R19.4: reset one setting for all scopes. */
+    /** Reset one setting for all scopes. */
     async resetAll(key: ViewKey) {
       const result = await api('DELETE', `/api/view-settings?key=${key}`)
       this.viewSettings = result.view_settings

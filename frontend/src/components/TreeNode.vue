@@ -1,4 +1,4 @@
-<!-- One container of the feed tree, recursive (frontend/src/components/TreeNode.vue), R7.1-R7.3. -->
+<!-- One container of the feed tree, recursive (frontend/src/components/TreeNode.vue). -->
 <script setup lang="ts">
 import { inject } from 'vue'
 import { useSettings } from '../stores/settings'

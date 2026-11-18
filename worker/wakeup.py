@@ -1,6 +1,6 @@
-"""The optional wake-up pipe between the web and worker processes (worker/wakeup.py), R0.17.
+"""The optional wake-up pipe between the web and worker processes (worker/wakeup.py).
 It carries single bytes as "check your inbox" signals; losing it only degrades latency to the
-200 ms polling interval (R0.16)."""
+200 ms polling interval."""
 import os
 import threading
 

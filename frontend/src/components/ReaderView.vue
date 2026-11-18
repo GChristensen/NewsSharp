@@ -1,5 +1,5 @@
-<!-- The application shell (frontend/src/components/ReaderView.vue), item 20: sidebar and content,
-     route to scope synchronization (R20.8), keyboard shortcuts (item 11), dialogs, menus and toasts. -->
+<!-- The application shell (frontend/src/components/ReaderView.vue): sidebar and content,
+     route to scope synchronization, keyboard shortcuts, dialogs, menus and toasts. -->
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -49,7 +49,7 @@ function startupScope(): string | null {
 
 function sync() {
   if (route.name === 'subscribe') {
-    // R20.10: everything after /subscribe/ in the raw location, query string included, is the URL.
+    // Everything after /subscribe/ in the raw location, query string included, is the URL.
     const url = subscribeUrlFromLocation(window.location.pathname + window.location.search)
     router.replace('/')
     if (url) ui.openDialog('add', { url })
@@ -78,7 +78,7 @@ function sync() {
   if (scope !== stories.scope) {
     if (!query) rememberScope(scope)
     stories.open(scope, { storyId, query }).then(() => {
-      // R10.6: `newest` selects the first story when a scope opens in Split layout.
+      // `newest` selects the first story when a scope opens in Split layout.
       const first = stories.stories[0]
       const auto = settings.prefs.open_feed_action === 'newest' && effectiveLayout() === 'split' && !stories.isSaved
       if (auto && !storyId && first && stories.scope === scope && !stories.selected) selectStory(first)
@@ -114,7 +114,7 @@ onMounted(() => {
   window.addEventListener('keydown', onKey)
   window.addEventListener('resize', onResize)
   window.addEventListener('beforeunload', onBeforeUnload)
-  if (ui.narrow && !settings.prefs.sidebar_collapsed) ui.fullscreen = true // R20.9: starts collapsed below 900 px
+  if (ui.narrow && !settings.prefs.sidebar_collapsed) ui.fullscreen = true // starts collapsed below 900 px
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
@@ -122,14 +122,14 @@ onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', onBeforeUnload)
 })
 
-// R20.11: "(N) <scope title>" in the browser tab.
+// "(N) <scope title>" in the browser tab.
 watchEffect(() => {
   const title = scopeTitle(stories.scope)
   const count = tree.totalUnread
   document.title = settings.prefs.title_counts && count > 0 ? `(${count}) ${title}` : title
 })
 
-// R20.1: the sidebar is resizable, at least 225 px wide.
+// The sidebar is resizable, at least 225 px wide.
 function dragSidebar(event: PointerEvent) {
   const start = event.clientX
   const initial = settings.prefs.feed_pane_size

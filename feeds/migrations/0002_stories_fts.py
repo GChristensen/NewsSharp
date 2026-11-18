@@ -1,4 +1,4 @@
-"""Full-text index of stories (feeds/migrations/0002_stories_fts.py), item 12. rowid = stories.id."""
+"""Full-text index of stories (feeds/migrations/0002_stories_fts.py). rowid = stories.id."""
 from django.db import migrations
 
 

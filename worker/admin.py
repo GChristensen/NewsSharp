@@ -1,4 +1,4 @@
-"""Admin registration for jobs (worker/admin.py), R22.6."""
+"""Admin registration for jobs (worker/admin.py)."""
 from django.contrib import admin
 
 from .models import Job

@@ -1,4 +1,4 @@
-"""`reader import_newsblur export.json` (worker/management/commands/import_newsblur.py), item 16:
+"""`reader import_newsblur export.json` (worker/management/commands/import_newsblur.py):
 reads the file written by NewsBlurMod's utils/export_for_reader.py into an empty database.
 Stories, read state, saved stories and passwords are not migrated."""
 import base64
@@ -19,7 +19,7 @@ VIEW_KEYS = {"v": "view", "l": "layout", "o": "order", "r": "read_filter"}
 
 
 def convert_preferences(profile: dict) -> dict:
-    """R16.6: only catalog keys with valid values are taken."""
+    """Only catalog keys with valid values are taken."""
     candidates = dict(profile.get("preferences") or {})
     for key in ("timezone", "days_of_unread", "feed_pane_size"):
         if profile.get(key) is not None:
@@ -42,7 +42,7 @@ class Command(BaseCommand):
         with open(options["file"], encoding="utf-8") as handle:
             data = json.load(handle)
         if User.objects.exists() or Feed.objects.exists():
-            raise CommandError("The database is not empty; import_newsblur only runs on an empty database.")  # R16.8
+            raise CommandError("The database is not empty; import_newsblur only runs on an empty database.")
         with transaction.atomic():
             feed_map, passwords = self.run_import(data)
         with open(options["map"], "w", encoding="utf-8") as handle:
@@ -82,7 +82,7 @@ class Command(BaseCommand):
                     feed_address=address, feed_link=(row.get("feed_link") or "")[:1000],
                     title=(row.get("feed_title") or "")[:255], favicon_color=(row.get("favicon_color") or "")[:6],
                     favicon_not_found=bool(row.get("favicon_not_found")), created_at=ts,
-                    next_scheduled_update=ts + random.randint(0, 300),  # R16.7
+                    next_scheduled_update=ts + random.randint(0, 300),  # spread over the first 5 minutes
                 )  # fmt: skip
                 by_address[address] = feed
             feed_map[row["id"]] = feed.id
@@ -119,7 +119,7 @@ class Command(BaseCommand):
                 _placed.add(feed_id)
 
             def walk(items, parent_id, _user=user, _old=old_user_id, _placed=placed, _first=first_folder, _collapsed=collapsed):
-                """R16.3: an integer is a feed, an object is a folder; positions are list indexes."""
+                """An integer is a feed, an object is a folder; positions are list indexes."""
                 position = 0
                 for item in items if isinstance(items, list) else []:
                     if isinstance(item, int):
@@ -152,7 +152,7 @@ class Command(BaseCommand):
         return feed_map, passwords
 
     def import_view_settings(self, user, settings: dict, feed_map: dict, folders: dict) -> None:
-        """R16.5."""
+        """Map NewsBlur's view settings keys to scopes: feed ids, river:<folder>, river: and starred."""
         for key, value in settings.items():
             if str(key).isdigit():
                 target = ("feed", feed_map.get(int(key)))

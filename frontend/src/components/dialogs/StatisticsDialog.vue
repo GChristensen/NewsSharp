@@ -1,4 +1,4 @@
-<!-- Feed statistics dialog (frontend/src/components/dialogs/StatisticsDialog.vue), R18.6. Opening it
+<!-- Feed statistics dialog (frontend/src/components/dialogs/StatisticsDialog.vue). Opening it
      reads stored values only. -->
 <script setup lang="ts">
 import { Chart, registerables } from 'chart.js'

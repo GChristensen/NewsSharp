@@ -1,5 +1,5 @@
-"""The worker's coordinator (worker/coordinator.py), R0.23: one event loop running the scheduler
-(item 3), job intake (R0.9), every outbound request, the heartbeat and the pool. It parses nothing."""
+"""The worker's coordinator (worker/coordinator.py): one event loop running the scheduler,
+job intake, every outbound request, the heartbeat and the pool. It parses nothing."""
 import asyncio
 import contextlib
 import functools
@@ -28,13 +28,13 @@ from worker.tasks import TIME_LIMITS
 
 log = logging.getLogger("worker")
 
-FETCH_CONCURRENCY = 4  # R2.16
-INTERACTIVE_CONCURRENCY = 4  # R0.10
+FETCH_CONCURRENCY = 4  # scheduled downloads at a time
+INTERACTIVE_CONCURRENCY = 4  # interactive downloads at a time
 FORCED_ICON_SECONDS = 24  # the downloads of a "Fetch icon" search, within the web process's 30 s wait
-MAX_WAITING_BODIES = 8  # R0.31
-PURGE_AFTER = 60  # R7.10
-ICON_MAX_AGE = 30 * 86400  # R8.1
-TEXT_FAILURE_TTL = 600  # R13.6
+MAX_WAITING_BODIES = 8  # downloaded bodies waiting for a pool child
+PURGE_AFTER = 60  # seconds a soft delete can be undone
+ICON_MAX_AGE = 30 * 86400  # icons are looked up again after 30 days
+TEXT_FAILURE_TTL = 600  # a failed text extraction is not retried for 10 min
 FEED_FIELDS = (
     "id", "feed_address", "feed_link", "image_url", "etag", "last_modified", "fetched_once", "use_proxy", "icon_link",
 )  # fmt: skip
@@ -49,7 +49,8 @@ def migrations_pending() -> bool:
 
 
 def recover_at_start() -> None:
-    """R0.13 and R3.10."""
+    """Requeue jobs left running by a previous worker (interactive ones older than 60 s fail) and
+    spread overdue feeds over the first 5 minutes instead of fetching them at once."""
     ts = now()
     with transaction.atomic():
         Job.objects.filter(state="running", interactive=True, created_at__lt=ts - 60).update(
@@ -111,7 +112,7 @@ def icon_not_found(feed_id: int) -> None:
 
 
 def change_address(feed_id: int, address: str) -> int | None:
-    """Point a feed at a new address (R2.21). Returns the id of the feed to fetch, if any.
+    """Point a feed at a new address. Returns the id of the feed to fetch, if any.
     A feed that worked before is never merged into another one: the merge deletes its stories and
     read state, and the rediscovered address may be a different feed of the same site."""
     feed = Feed.objects.filter(pk=feed_id).first()
@@ -142,8 +143,8 @@ def text_source(story_id: int | None, saved_id: int | None) -> tuple[str, bool]:
 
 
 def purge_deleted() -> list[dict]:
-    """R7.10, R1.2, R22.5: purge soft-deleted subscriptions and folders older than 60 s, then feeds
-    left without any subscription. Returns the hub unsubscribe requests to send (R4.10)."""
+    """Purge soft-deleted subscriptions and folders older than 60 s, then feeds
+    left without any subscription. Returns the hub unsubscribe requests to send."""
     ts = now()
     limit = ts - PURGE_AFTER
     requests = []
@@ -171,7 +172,7 @@ def purge_deleted() -> list[dict]:
 
 
 def cleanup() -> None:
-    """R0.13, R0.14: forget finished jobs and delivered events after an hour."""
+    """Forget finished jobs and delivered events after an hour."""
     limit = now() - 3600
     Job.objects.filter(state__in=("done", "failed"), finished_at__lt=limit).delete()
     WorkerEvent.objects.filter(at__lt=limit).delete()
@@ -211,7 +212,7 @@ class Waker:
 class Coordinator:
     def __init__(self):
         self.pool = Pool(settings.WORKER_PROCESSES)
-        self.db_thread = ThreadPoolExecutor(max_workers=1, thread_name_prefix="db")  # one connection (R0.18)
+        self.db_thread = ThreadPoolExecutor(max_workers=1, thread_name_prefix="db")  # one connection
         self.client = None
         self.proxy_client = None  # only when config.yaml sets proxy.url
         self.waker = Waker()
@@ -272,7 +273,7 @@ class Coordinator:
             log.info("worker stopping")
             for task in loops:
                 task.cancel()
-            await self.pool.shutdown(10)  # R23.5
+            await self.pool.shutdown(10)  # let running tasks finish
             for task in list(self.tasks):
                 task.cancel()
             await asyncio.gather(*self.tasks, return_exceptions=True)
@@ -288,7 +289,7 @@ class Coordinator:
         return self.client
 
     async def heartbeat_loop(self) -> None:
-        """R0.19."""
+        """Write the heartbeat every 10 s; the web process and the supervisor watch it."""
         while True:
             try:
                 await self.db(heartbeat)
@@ -297,7 +298,7 @@ class Coordinator:
             await asyncio.sleep(10)
 
     async def intake_loop(self) -> None:
-        """R0.16: poll the jobs table every 200 ms, or at once when the web process signals."""
+        """Poll the jobs table every 200 ms, or at once when the web process signals."""
         while True:
             try:
                 for job in await self.db(claim_jobs):
@@ -308,7 +309,7 @@ class Coordinator:
             await self.waker.wait(0.2)
 
     async def scheduler_loop(self) -> None:
-        """R3.1: every 30 s start the feeds that are due."""
+        """Every 30 s start the feeds that are due."""
         while True:
             try:
                 await self.schedule_tick()
@@ -393,7 +394,7 @@ class Coordinator:
         return {k: v for k, v in outcome.items() if k in ("status", "error", "message", "new", "updated", "same")}
 
     async def job_push_body(self, job: dict) -> dict:
-        """R4.7: a pushed body goes through the pipeline without an HTTP request."""
+        """A pushed body goes through the pipeline without an HTTP request."""
         body = await self.db(job_blob, job["id"])
         fetch = {"kind": "push", "body": body, "content_type": job["payload"].get("content_type", "")}
         try:
@@ -413,7 +414,7 @@ class Coordinator:
         return {k: v for k, v in outcome.items() if k in ("status", "error", "new", "updated", "same")}
 
     async def job_extract_text(self, job: dict) -> dict:
-        """R13.2, R13.9: download the page here, extract in a pool child."""
+        """Download the page here, extract in a pool child."""
         payload = job["payload"]
         story_id, saved_id = payload.get("story_id"), payload.get("saved_id")
         key = (story_id, saved_id)
@@ -451,7 +452,7 @@ class Coordinator:
         return await self.fetch_icon(job["feed_id"], forced=bool(job["payload"].get("force")))
 
     async def job_websub_resubscribe_all(self, job: dict) -> dict:
-        """R4.11."""
+        """Renew every push subscription, for example after the callback address changed."""
         subscriptions = await self.db(websub.all_subscriptions)
         for sub in subscriptions:
             await websub.check(self, sub["feed_id"], sub["hub"], sub["topic"], force=True)
@@ -515,12 +516,12 @@ class Coordinator:
                 limit=TIME_LIMITS["process_feed"], feed_id=feed_id, interactive=interactive,
             )  # fmt: skip
         except TaskTimeout:
-            return await self.db(pipeline.record_failure, feed_id, 505, "Timeout", result.ms)  # R0.26
+            return await self.db(pipeline.record_failure, feed_id, 505, "Timeout", result.ms)
         except (TaskCrashed, TaskFailed):
-            return await self.db(pipeline.record_failure, feed_id, 500, "Error", result.ms)  # R0.27
+            return await self.db(pipeline.record_failure, feed_id, 500, "Error", result.ms)
 
     async def rediscover(self, feed_id: int) -> None:
-        """R2.21: repair the address of a feed that never fetched successfully."""
+        """Repair the address of a feed that never fetched successfully."""
         feed = await self.db(load_feed, feed_id)
         if feed is None:
             return
@@ -535,7 +536,7 @@ class Coordinator:
             self.spawn(self.fetch_feed(target))
 
     async def fetch_icon(self, feed_id: int, forced: bool = False) -> dict:
-        """R8.1, R8.2: look for a feed's icon; one search per feed at a time, later requests share it.
+        """Look for a feed's icon; one search per feed at a time, later requests share it.
         A forced search (the "Fetch icon" button) that the running one cannot satisfy starts another.
         Returns {found, icon_url, via_proxy, tried}."""
         if feed_id in self.icon_searches:
@@ -558,7 +559,7 @@ class Coordinator:
         that finds nothing directly repeats the whole search through the proxy, since sites that block
         automated clients usually answer 403 or with a page instead of failing to connect.
         A forced search is someone waiting in the feed settings dialog, so both passes together stay
-        within FORCED_ICON_SECONDS, which the web process's 30 s wait (R0.12) covers; the direct pass
+        within FORCED_ICON_SECONDS, which the web process's 30 s wait covers; the direct pass
         gets the first part of it when the proxy pass may follow."""
         outcome = {"found": False, "icon_url": "", "favicon_color": "", "tried": 0, "out_of_time": False}
         feed = await self.db(load_feed, feed_id)
@@ -594,7 +595,7 @@ class Coordinator:
         outcome["out_of_time"] = stored is None and loop.time() >= end - 1
         if stored is None:
             log.info("icon feed=%s: no icon found, %d addresses tried", feed_id, len(tried))
-            await self.db(icon_not_found, feed_id)  # R8.6
+            await self.db(icon_not_found, feed_id)  # the default icon is shown
             return outcome
         wakeup.notify()
         return {**outcome, "found": True, "icon_url": stored[0], "favicon_color": stored[1]}

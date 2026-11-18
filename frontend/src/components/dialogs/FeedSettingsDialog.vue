@@ -1,5 +1,5 @@
 <!-- Feed settings dialog (frontend/src/components/dialogs/FeedSettingsDialog.vue), after NewsBlur's site
-     settings: the feed address (R7.11), the site it belongs to, fetching through the proxy of
+     settings: the feed address, the site it belongs to, fetching through the proxy of
      config.yaml, and the recorded fetch attempts. The feed fields come from the tree, so changes made in
      other tabs show up here as well. -->
 <script setup lang="ts">

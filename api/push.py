@@ -1,4 +1,4 @@
-"""The WebSub callback routes (api/push.py), R4.5 and R4.6: the web process's only part in WebSub.
+"""The WebSub callback routes (api/push.py): the web process's only part in WebSub.
 Both are unauthenticated, outside /api and exempt from CSRF (they are authenticated by their token)."""
 import hashlib
 import hmac
@@ -83,7 +83,7 @@ def callback(request, push_id: int, token: str):
         return HttpResponse(status=413)
     signature = request.headers.get("X-Hub-Signature") or request.headers.get("X-Hub-Signature-256") or ""
     if not valid_signature(signature, push.secret, body):
-        # R4.6: answered 202 and discarded, as the protocol prescribes.
+        # Answered 202 and discarded, as the protocol prescribes.
         store.log_fetch(push.feed_id, "push", 0, "Bad signature", 0)
         log.info("push for feed %s discarded: bad signature", push.feed_id)
         return HttpResponse(status=202)

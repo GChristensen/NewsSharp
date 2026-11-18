@@ -1,4 +1,4 @@
-// Feed color derivations (frontend/src/utils/colors.ts), R8.5, R8.7, R8.8. Only favicon_color is
+// Feed color derivations (frontend/src/utils/colors.ts). Only favicon_color is
 // stored; fade, border and text color are computed here with NewsBlur's formulas.
 
 type Rgb = [number, number, number]
@@ -46,7 +46,7 @@ export interface FeedColors {
   barStyle: Record<string, string>
 }
 
-/** Colors of a feed bar and strip. `dark` selects the stops of R8.8. Null when the feed has no color. */
+/** Colors of a feed bar and strip. `dark` selects the dark-theme stops. Null when the feed has no color. */
 export function feedColors(hex: string | null | undefined, dark: boolean): FeedColors | null {
   const rgb = parseHex(hex)
   if (!rgb) return null

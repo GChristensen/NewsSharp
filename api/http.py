@@ -1,5 +1,5 @@
-"""The thin API layer (api/http.py): plain Django views with hand-written validation, the fallback
-named in decision 25. Errors are {"error": code, "message": text} with an HTTP status (0.3)."""
+"""The thin API layer (api/http.py): plain Django views with hand-written validation.
+Errors are {"error": code, "message": text} with an HTTP status."""
 import inspect
 import json
 import logging
@@ -68,7 +68,7 @@ def client_id(request) -> str | None:
 
 def endpoint(auth: bool = True, admin: bool = False, **handlers):
     """Build a view from per-method handlers `fn(request, data, **kwargs)`. The view is async when
-    any handler is (R0.32); every /api route except login and setup requires a session (0.3)."""
+    any handler is; every /api route except login and setup requires a session."""
     is_async = any(inspect.iscoroutinefunction(fn) for fn in handlers.values())
 
     if is_async:
@@ -101,7 +101,7 @@ def endpoint(auth: bool = True, admin: bool = False, **handlers):
                         return error_response(401, "unauthenticated", "Log in to continue.")
                     if admin and not request.user.is_superuser:
                         return error_response(403, "forbidden", "Administrators only.")
-                    # R22.3: the 90-day session is renewed once a day on use.
+                    # The 90-day session is renewed once a day on use.
                     if now() - request.session.get("_renewed", 0) > 86400:
                         request.session["_renewed"] = now()
                 return _finish(handler(request, _body(request), **kwargs))

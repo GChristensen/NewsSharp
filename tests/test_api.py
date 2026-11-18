@@ -1,5 +1,5 @@
-"""Acceptance checks of items 4, 6, 7, 10, 12, 15, 17, 19, 21 and 22 through the HTTP API
-(tests/test_api.py)."""
+"""Checks of sessions, read state, the tree, story lists, search, settings, OPML, WebSub and live
+events through the HTTP API (tests/test_api.py)."""
 import hashlib
 import hmac
 import json
@@ -28,7 +28,7 @@ def counts(client):
     return client.get("/api/counts").json()["feeds"]
 
 
-# ------------------------------------------------------------------ session (item 22)
+# ------------------------------------------------------------------ session
 
 
 def test_unauthenticated_requests_are_rejected(client):
@@ -73,7 +73,7 @@ def test_csrf_is_enforced(user):
     assert strict.post("/api/read", data="{}", content_type="application/json").status_code == 403
 
 
-# ------------------------------------------------------------------ unread state (item 6)
+# ------------------------------------------------------------------ unread state
 
 
 def test_unread_counts_and_marking(api, user, make_feed, make_story, subscribe):
@@ -180,7 +180,7 @@ def test_users_do_not_share_read_state(api, user, other_user, make_feed, make_st
     assert unread_counts(user) == {feed.id: 0} and unread_counts(other_user) == {feed.id: 1}
 
 
-# ------------------------------------------------------------------ tree (item 7)
+# ------------------------------------------------------------------ tree
 
 
 def test_tree_move_delete_and_undo(api, user, make_feed, make_story, subscribe):
@@ -337,7 +337,7 @@ def test_image_signatures_are_delivered(api, user, make_feed, make_story, subscr
     assert story["image_sigs"] == {"http://img.example/a.png": image_signature("http://img.example/a.png", secret)}
 
 
-# ------------------------------------------------------------------ settings (item 19)
+# ------------------------------------------------------------------ settings
 
 
 def test_preferences_and_view_settings(api, user, make_feed, subscribe):
@@ -442,7 +442,7 @@ def test_story_title_previews_per_scope(api, user, make_feed, subscribe):
     assert prefs["show_content_preview"] == "medium" and prefs["image_preview"] == "small-left"  # defaults kept
 
 
-# ------------------------------------------------------------------ OPML (item 15)
+# ------------------------------------------------------------------ OPML
 
 OPML = b"""<?xml version="1.0"?><opml version="2.0"><head><title>Feeds</title></head><body>
 <outline text="Tech" title="Tech"><outline text="Kernel" title="Kernel">
@@ -489,7 +489,7 @@ def test_opml_upload_with_csrf_checks(user):
     assert response.status_code == 200 and response.json()["feeds_added"] == 2
 
 
-# ------------------------------------------------------------------ WebSub (item 4)
+# ------------------------------------------------------------------ WebSub
 
 
 @pytest.fixture
@@ -587,7 +587,7 @@ def test_changed_hub_resubscribes_and_missing_hub_unsubscribes(client, push):
     assert response.content == b"bye" and not PushSubscription.objects.exists()
 
 
-# ------------------------------------------------------------------ events (item 21)
+# ------------------------------------------------------------------ events
 
 
 def test_events_are_per_user_and_replayable(api, user, other_user, make_feed, make_story, subscribe):
@@ -652,8 +652,8 @@ def test_feed_settings_proxy(api, user, other_user, make_feed, make_story, subsc
 
 
 def test_new_subscription_to_a_fresh_feed_is_fetched(user, make_feed):
-    """R3.8: subscribing again to a feed fetched minutes ago still fetches it, so a hub added to the
-    feed since is subscribed to (R4.2); subscribing to a feed already subscribed queues nothing."""
+    """Subscribing again to a feed fetched minutes ago still fetches it, so a hub added to the
+    feed since is subscribed to; subscribing to a feed already subscribed queues nothing."""
     from api.views_async import _create_subscription
 
     feed = make_feed(fetched_once=True, last_update=now() - 60)

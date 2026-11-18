@@ -1,5 +1,5 @@
 // Scroll behavior of a story pane (frontend/src/utils/usePaneScroll.ts): loading the next page
-// near the end or when the pane is not filled (R17.4) and marking stories read on scroll (R10.3).
+// near the end or when the pane is not filled and marking stories read on scroll.
 import { nextTick, watch, type Ref } from 'vue'
 import { useStories } from '../stores/stories'
 

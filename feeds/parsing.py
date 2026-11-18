@@ -1,4 +1,4 @@
-"""Feed parsing and entry normalization (feeds/parsing.py), R2.13, R2.17, R2.23-R2.30.
+"""Feed parsing and entry normalization (feeds/parsing.py).
 Runs only in worker pool children; never fetches anything."""
 import calendar
 import html
@@ -203,7 +203,7 @@ def looks_like_html(body: bytes, content_type: str) -> bool:
 
 
 def _clean_tags(raw: list[str]) -> list[str]:
-    """R2.29."""
+    """Tags split on `,` and `/`, lower-cased, whitespace collapsed, without duplicates; at most 12."""
     result = []
     for value in raw:
         for part in re.split(r"[,/]", value or ""):
@@ -214,7 +214,7 @@ def _clean_tags(raw: list[str]) -> list[str]:
 
 
 def _append_enclosures(content: str, media: list[dict]) -> str:
-    """R2.25."""
+    """Append audio, video and image enclosures that the content does not already contain."""
     for item in media:
         url = item.get("url") or ""
         kind = (item.get("type") or "").lower()
@@ -236,7 +236,7 @@ def _append_enclosures(content: str, media: list[dict]) -> str:
 
 
 def story_date(entry: dict, now_ts: int) -> int:
-    """R2.30: the entry's published text first, then feedparser's dates, then now. Text whose time
+    """The story date: the entry's published text first, then feedparser's dates, then now. Text whose time
     zone was not understood yields to feedparser's date, which knows more zone names."""
     value, zoned = _text_date(entry.get("published"))
     if value is not None and not zoned and entry.get("published_ts") is not None:
@@ -251,7 +251,7 @@ def story_date(entry: dict, now_ts: int) -> int:
 
 
 def build_stories(parsed: dict, now_ts: int) -> list[dict]:
-    """Normalize parsed entries into story dicts (R2.23-R2.30). Content is not yet sanitized."""
+    """Normalize parsed entries into story dicts. Content is not yet sanitized."""
     stories = []
     for entry in parsed["entries"]:
         title = strip_tags(entry.get("title") or "")
@@ -274,7 +274,7 @@ def build_stories(parsed: dict, now_ts: int) -> list[dict]:
         )
     if len(stories) > MAX_ENTRIES:
         stories = sorted(stories, key=lambda s: s["story_date"], reverse=True)[:MAX_ENTRIES]
-    # R2.28: when every entry shares one guid, fall back to the permalink, then to the date.
+    # When every entry shares one guid, fall back to the permalink, then to the date.
     if len(stories) > 1 and len({s["guid"] for s in stories}) == 1:
         if len({s["permalink"] for s in stories}) > 1:
             for s in stories:
@@ -289,7 +289,7 @@ _LINK_HEADER = re.compile(r'<([^>]+)>\s*;[^,]*?rel="?([\w\s-]+)"?', re.I)
 
 
 def link_header_rels(value: str) -> dict[str, str]:
-    """rel -> URL of an HTTP Link header (R4.1)."""
+    """rel -> URL of an HTTP Link header."""
     result: dict[str, str] = {}
     for url, rels in _LINK_HEADER.findall(value or ""):
         for rel in rels.lower().split():

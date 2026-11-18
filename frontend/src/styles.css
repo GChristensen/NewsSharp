@@ -1,5 +1,5 @@
-/* NewsSharp stylesheet (frontend/src/styles.css). Colors exist only as the custom properties of
-   R20.7 / R20.13; sizes behind named values are the custom properties of R19.9. */
+/* NewsSharp stylesheet (frontend/src/styles.css). Colors and the sizes behind named values exist
+   only as the custom properties below. */
 
 /* Dark theme. Text in every tint sits at OKLCH lightness 0.92 (main), 0.83 (dim) and 0.75 (read): about
    15.5, 11.6 and 8.9:1 on Graphite, APCA Lc 90, 73 and 58. Brighter main text glows on near-black

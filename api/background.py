@@ -1,5 +1,5 @@
 """The web process's background loop (api/background.py): reads worker_events and turns them into
-per-user events (R0.14, R21.2), watches the worker's heartbeat (R0.21) and wakes job waiters (R0.16)."""
+per-user events, watches the worker's heartbeat and wakes job waiters."""
 import asyncio
 import logging
 
@@ -17,7 +17,7 @@ from .events import bus
 
 log = logging.getLogger("web.background")
 
-HEARTBEAT_ALIVE = 120  # R0.19
+HEARTBEAT_ALIVE = 120  # seconds; an older heartbeat means the worker is dead or stuck
 
 _task: asyncio.Task | None = None
 _tick: asyncio.Event | None = None
@@ -25,7 +25,7 @@ _worker_state = {"alive": True, "last_heartbeat": 0}
 
 
 def worker_state() -> dict:
-    """{alive, last_heartbeat} for the bootstrap response and the `worker` event (R0.21)."""
+    """{alive, last_heartbeat} for the bootstrap response and the `worker` event."""
     try:
         heartbeat = int(Setting.get("worker_heartbeat") or 0)
     except ValueError:
@@ -112,7 +112,7 @@ async def _run() -> None:
     while True:
         try:
             if last_id is None:
-                last_id = await sync_to_async(_latest_event_id, thread_sensitive=False)()  # R21.5
+                last_id = await sync_to_async(_latest_event_id, thread_sensitive=False)()  # only events written from now on
                 _worker_state = await sync_to_async(_check_worker, thread_sensitive=False)()
             last_id = await sync_to_async(_deliver, thread_sensitive=False)(last_id)
             if loop.time() - last_check > 5:

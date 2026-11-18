@@ -1,5 +1,5 @@
-<!-- One story: header and body in Feed, Text or Story view (frontend/src/components/StoryDetail.vue),
-     R9.2-R9.4, R9.11, item 13. Story view falls back to Text when the site cannot be framed. -->
+<!-- One story: header and body in Feed, Text or Story view (frontend/src/components/StoryDetail.vue).
+     Story view falls back to Text when the site cannot be framed. -->
 <script lang="ts">
 import { api } from '../api'
 import type { TextResult } from '../types'
@@ -7,7 +7,7 @@ import type { TextResult } from '../types'
 const textCache = new Map<string, TextResult>()
 const frameCache = new Map<string, boolean>()
 
-/** R9.2: ask the server whether a URL may be shown in an iframe. */
+/** Ask the server whether a URL may be shown in an iframe. */
 export async function isFrameable(url: string): Promise<boolean> {
   if (!/^https?:\/\//.test(url)) return false
   const cached = frameCache.get(url)
@@ -60,7 +60,7 @@ const title = computed(() => displayTitle(props.story.title, props.story.preview
 const date = computed(() => storyDate(props.story.story_date, settings.prefs.timezone, settings.hour12))
 const stripStyle = computed(() => feedColors(feed.value?.favicon_color, settings.dark)?.barStyle ?? {})
 
-/** What is actually shown: Story view needs a frameable site, otherwise Text (decision 13). */
+/** What is actually shown: Story view needs a frameable site, otherwise Text. */
 const mode = computed<'feed' | 'text' | 'frame' | 'checking'>(() => {
   if (props.view === 'story') {
     if (frameable.value === null) return 'checking'
@@ -123,7 +123,7 @@ async function prepare() {
 
 watch(() => [props.story.key, props.view], prepare)
 onMounted(prepare)
-// R14.3: error events do not bubble, so the listener captures them on the content container.
+// Error events do not bubble, so the listener captures them on the content container.
 watch(contentEl, (el) => el?.addEventListener('error', (event) => mediaFallback(event, props.story.image_sigs), true))
 
 function openLink(href: string) {

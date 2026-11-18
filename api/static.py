@@ -1,4 +1,4 @@
-"""Static files under ASGI (api/static.py), R20.8. WhiteNoise's middleware is synchronous and returns
+"""Static files under ASGI (api/static.py). WhiteNoise's middleware is synchronous and returns
 a FileResponse over a plain file, which Django can only drain through a thread with a warning. This
 subclass is async and streams the file through an async generator that reads it in a worker thread."""
 import asyncio

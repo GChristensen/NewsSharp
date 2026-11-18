@@ -1,4 +1,4 @@
-"""`reader rebuild_counters [feed id]` (worker/management/commands/rebuild_counters.py), R18.7."""
+"""`reader rebuild_counters [feed id]` (worker/management/commands/rebuild_counters.py)."""
 from django.core.management.base import BaseCommand
 
 from feeds.models import Feed

@@ -1,4 +1,4 @@
-"""Admin registration for users (accounts/admin.py). The admin is for superusers only (R22.6)."""
+"""Admin registration for users (accounts/admin.py). The admin is for superusers only."""
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 

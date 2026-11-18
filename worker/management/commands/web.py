@@ -1,4 +1,4 @@
-"""`reader web` (worker/management/commands/web.py): the web process - one uvicorn server (0.5)."""
+"""`reader web` (worker/management/commands/web.py): the web process - one uvicorn server."""
 import os
 import sqlite3
 
@@ -16,7 +16,7 @@ class Command(BaseCommand):
         if sqlite3.sqlite_version_info < (3, 43):
             raise CommandError(f"SQLite 3.43 or newer is required, found {sqlite3.sqlite_version}")
         if not os.environ.get("NEWSSHARP_SUPERVISED"):
-            call_command("migrate", interactive=False, verbosity=0)  # started on its own (item 1)
+            call_command("migrate", interactive=False, verbosity=0)  # started on its own
         if not settings.FRONTEND_DIST.exists():
             self.stderr.write("frontend/dist is missing: run `npm install && npm run build` in frontend/")
         uvicorn.run(

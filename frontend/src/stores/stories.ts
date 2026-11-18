@@ -1,4 +1,4 @@
-// The open story list (frontend/src/stores/stories.ts): items 6, 10, 12 and 17. Keyset paging,
+// The open story list (frontend/src/stores/stories.ts): keyset paging,
 // request cancellation, optimistic read state with a batched upload queue, saved stories.
 import { defineStore } from 'pinia'
 import { api, ApiError, errorMessage, isAbort } from '../api'
@@ -7,8 +7,8 @@ import { useSettings } from './settings'
 import { useTree } from './tree'
 import { useUi } from './ui'
 
-const PAGE_SIZE = 30 // R17.3
-const READ_FLUSH_MS = 500 // R6.8
+const PAGE_SIZE = 30
+const READ_FLUSH_MS = 500 // read marks are sent in batches this often
 
 let controller: AbortController | null = null
 let readTimer: number | undefined
@@ -70,7 +70,7 @@ export const useStories = defineStore('stories', {
     order(): string {
       return useSettings().effective(this.scope, 'order')
     },
-    /** Open a scope: abort requests of the previous one (R17.6) and load the first page. */
+    /** Open a scope: abort requests of the previous one and load the first page. */
     open(scope: string, options: { storyId?: number | null; query?: string } = {}): Promise<void> {
       this.generation++
       controller?.abort()
@@ -117,7 +117,7 @@ export const useStories = defineStore('stories', {
       this.error = ''
       try {
         const page = await api<Page>('GET', `/api/stories?${params}`, undefined, { signal: controller?.signal })
-        if (generation !== this.generation) return // R17.6: the scope is no longer open
+        if (generation !== this.generation) return // the scope is no longer open
         const known = new Set(this.stories.map((s) => s.key))
         for (const story of page.stories) {
           story.key = storyKey(story, this.isSaved)
@@ -136,7 +136,7 @@ export const useStories = defineStore('stories', {
     loadMore(): Promise<void> {
       return this.fetchPage()
     },
-    /** Reload from the start, keeping the selected story selected (R10.1, R17.10). */
+    /** Reload from the start, keeping the selected story selected. */
     async reload() {
       if (!this.scope) return
       const selected = this.selected
@@ -165,7 +165,7 @@ export const useStories = defineStore('stories', {
     find(key: string): Story | undefined {
       return this.stories.find((s) => s.key === key) ?? (this.selected?.key === key ? this.selected : undefined)
     },
-    /** A deep link to a story that is not in the first page loads the story directly (R20.8). */
+    /** A deep link to a story that is not in the first page loads the story directly. */
     async selectById(storyId: number) {
       let story = this.stories.find((s) => s.id === storyId)
       if (!story) {
@@ -178,7 +178,7 @@ export const useStories = defineStore('stories', {
       }
       this.select(story)
     },
-    /** Select a story and mark it read after read_story_delay (R10.2). */
+    /** Select a story and mark it read after read_story_delay. */
     select(story: Story | null) {
       clearTimeout(selectTimer)
       if (!story) {
@@ -200,7 +200,7 @@ export const useStories = defineStore('stories', {
       if (story) this.select(story)
     },
 
-    // ---------------------------------------------------------- read state (R6.8)
+    // ---------------------------------------------------------- read state
 
     markRead(story: Story) {
       if (story.read || story.id === null || this.isSaved) return
@@ -241,7 +241,7 @@ export const useStories = defineStore('stories', {
       if (story.read) this.markUnread(story)
       else this.markRead(story)
     },
-    /** Mark the stories newer or older than one story as read (R10.8). */
+    /** Mark the stories newer or older than one story as read. */
     async markRelative(story: Story, direction: 'newer' | 'older') {
       if (!this.scope || this.isSaved) return
       await this.flushRead()
@@ -258,7 +258,7 @@ export const useStories = defineStore('stories', {
       }
     },
     /**
-     * Mark a whole scope read, optionally only stories older than N days (R10.7). Returns null on
+     * Mark a whole scope read, optionally only stories older than N days. Returns null on
      * failure; a whole feed or folder comes back with an undo token when anything was marked.
      */
     async markScope(scope: string, days = 0): Promise<MarkReadResult | null> {
@@ -292,7 +292,7 @@ export const useStories = defineStore('stories', {
       }
     },
 
-    // ---------------------------------------------------------- saved stories (R10.10)
+    // ---------------------------------------------------------- saved stories
 
     async save(story: Story, userTags?: string[]) {
       try {
@@ -328,7 +328,7 @@ export const useStories = defineStore('stories', {
       if (!event.saved && this.isSaved) this.stories = this.stories.filter((s) => s.saved_id !== event.saved_id)
     },
 
-    // ---------------------------------------------------------- events from other tabs (item 21)
+    // ---------------------------------------------------------- events from other tabs
 
     applyRead(ids: number[], read: boolean) {
       const set = new Set(ids)
@@ -351,7 +351,7 @@ export const useStories = defineStore('stories', {
       const folder = this.scope.match(/^folder:(\d+)$/)
       return folder ? useTree().folderFeedIds(Number(folder[1])).includes(feedId) : false
     },
-    /** R17.12: new stories do not change the list; a bar offers them. */
+    /** New stories do not change the list; a bar offers them. */
     noteNewStories(feedId: number, count: number) {
       if (this.inScope(feedId) && this.query.trim().length < 2) this.newCount += count
     },

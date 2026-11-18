@@ -1,4 +1,4 @@
-"""Unread state and counting (reading/unread.py), item 6. Counts are computed by query (R6.3)."""
+"""Unread state and counting (reading/unread.py). Counts are computed by query."""
 from django.core import signing
 from django.db import connection, transaction
 from django.db.models import Max
@@ -22,7 +22,7 @@ def unread_cutoff(user, ts: int | None = None) -> int:
 
 
 def unread_counts(user, feed_ids=None) -> dict[int, int]:
-    """Unread count per subscribed feed (R6.1, R6.3)."""
+    """Unread count per subscribed feed."""
     sql = (
         "SELECT sub.feed_id, COUNT(s.id) FROM reading_subscription sub "
         "LEFT JOIN feeds_story s ON s.feed_id = sub.feed_id AND s.story_date > MAX(sub.mark_read_date, %s) "
@@ -45,7 +45,7 @@ def _subscribed_feed_ids(user) -> set[int]:
 
 
 def mark_stories_read(user, story_ids: list[int]) -> tuple[list[int], set[int]]:
-    """Insert read rows (idempotent, R6.7). Returns the ids marked and the feeds affected."""
+    """Insert read rows (idempotent). Returns the ids marked and the feeds affected."""
     subscribed = _subscribed_feed_ids(user)
     ts = now()
     rows, feeds = [], set()
@@ -60,7 +60,7 @@ def mark_stories_read(user, story_ids: list[int]) -> tuple[list[int], set[int]]:
 
 
 def mark_feeds_read(user, subs: list[Subscription], cutoff: int | None = None, direction: str | None = None) -> dict:
-    """R6.5 for a list of subscriptions. Returns {feed_id: mark_read_date} of the dates that moved
+    """Mark a list of subscriptions read. Returns {feed_id: mark_read_date} of the dates that moved
     and the story ids marked individually."""
     ts = now()
     moved, marked_ids = {}, []
@@ -146,7 +146,7 @@ def _unread_ids(user, sub: Subscription, ts: int, min_date: int | None = None):
 
 
 def mark_unread(user, story_id: int) -> int | None:
-    """R6.6. Returns the feed id, or None when the story is not the user's. Raises TooOld."""
+    """Mark one story unread. Returns the feed id, or None when the story is not the user's. Raises TooOld."""
     story = Story.objects.filter(pk=story_id).values("id", "feed_id", "story_date").first()
     if story is None:
         return None

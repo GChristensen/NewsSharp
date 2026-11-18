@@ -1,5 +1,5 @@
 """Synchronous API views (api/views.py): session, tree, read state, saved stories, story lists,
-settings, OPML, statistics. Each runs in a request thread (R0.32) and never calls the network (R0.6)."""
+settings, OPML, statistics. Each runs in a request thread and never calls the network."""
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -67,14 +67,14 @@ def request_origin(request) -> str:
 
 
 def learn_public_url(request) -> None:
-    """R5.4: the public address is the origin of the most recent successful login, unless pinned."""
+    """The public address is the origin of the most recent successful login, unless pinned."""
     if Setting.get("public_base_url_manual") == "1":
         return
     origin = request_origin(request)
     if Setting.get("public_base_url") != origin:
         Setting.put("public_base_url", origin)
         if PushSubscription.objects.filter(removing=False).exists():
-            jobs.enqueue("websub_resubscribe_all")  # R4.11
+            jobs.enqueue("websub_resubscribe_all")  # renew every push subscription with the new callback
 
 
 def _set_timezone(user, data: dict) -> None:
@@ -91,7 +91,7 @@ def _wrap_tree_error(fn, *args, **kwargs):
         raise ApiError(422, "invalid", str(e)) from None
 
 
-# ------------------------------------------------------------------ session (item 22)
+# ------------------------------------------------------------------ session
 
 
 def _bootstrap(request, data):
@@ -118,7 +118,7 @@ def _client_address(request) -> str:
 
 
 def _throttled(keys: list[str]) -> bool:
-    """R22.4: 10 attempts per 5 minutes per user name and per client address."""
+    """10 attempts per 5 minutes per user name and per client address."""
     blocked = False
     for key in keys:
         count = cache.get(key, 0)
@@ -148,7 +148,7 @@ def _logout(request, data):
 
 
 def _setup(request, data):
-    """R22.2: the first user is created as superuser when the user table is empty."""
+    """The first user is created as superuser when the user table is empty."""
     username = require_str(data, "username", "", 150).strip()
     password = require_str(data, "password", "", 1000)
     if not username or len(password) < 6:
@@ -172,7 +172,7 @@ def _password(request, data):
         raise ApiError(422, "invalid", "The new password needs at least 6 characters.")
     request.user.set_password(new)
     request.user.save()
-    update_session_auth_hash(request, request.user)  # R22.3: other sessions are logged out
+    update_session_auth_hash(request, request.user)  # other sessions are logged out
     return {"ok": True}
 
 
@@ -209,7 +209,7 @@ def _instance_put(request, data):
 
 instance_view = endpoint(admin=True, GET=_instance_get, PUT=_instance_put)
 
-# ------------------------------------------------------------------ tree (item 7)
+# ------------------------------------------------------------------ tree
 
 
 def _tree(request, data):
@@ -219,7 +219,7 @@ def _tree(request, data):
 def _sub_patch(request, data, feed_id):
     fields = {}
     if "title" in data:
-        fields["user_title"] = require_str(data, "title", "", 255).strip() or None  # R7.9
+        fields["user_title"] = require_str(data, "title", "", 255).strip() or None  # an empty title restores the feed's own
     if "muted" in data:
         if not isinstance(data["muted"], bool):
             raise ApiError(422, "invalid", "'muted' must be true or false.")
@@ -291,7 +291,7 @@ folder_view = endpoint(PATCH=_folder_patch, DELETE=_folder_delete)
 undo_view = endpoint(POST=_undo)
 move_view = endpoint(POST=_move)
 
-# ------------------------------------------------------------------ read state (item 6)
+# ------------------------------------------------------------------ read state
 
 
 def _counts_for(user, feed_ids) -> dict:
@@ -389,7 +389,7 @@ mark_read_view = endpoint(POST=_mark_read)
 mark_read_undo_view = endpoint(POST=_mark_read_undo)
 counts_view = endpoint(GET=_counts)
 
-# ------------------------------------------------------------------ stories (items 10, 12, 17)
+# ------------------------------------------------------------------ stories
 
 
 def _stories(request, data):
@@ -445,7 +445,7 @@ story_view = endpoint(GET=_story)
 saved_view = endpoint(POST=_save)
 saved_item_view = endpoint(PATCH=_saved_patch, DELETE=_saved_delete)
 
-# ------------------------------------------------------------------ settings (item 19)
+# ------------------------------------------------------------------ settings
 
 
 def _publish_settings(request) -> None:
@@ -478,7 +478,7 @@ def _view_delete(request, data):
         target_type, target_id = scope_target(scope)
         rows.filter(target_type=target_type, target_id=target_id, key=key).delete()
     else:
-        # R19.4: reset for all scopes; resetting the order also resets the read filter.
+        # Reset for all scopes; resetting the order also resets the read filter.
         rows.filter(key__in=["order", "read_filter"] if key == "order" else [key]).delete()
     _publish_settings(request)
     return {"view_settings": view_settings_payload(request.user)}
@@ -487,7 +487,7 @@ def _view_delete(request, data):
 def _preferences(request, data):
     bad = prefs.invalid_keys(data)
     if bad:
-        raise ApiError(422, "invalid", "Invalid preference: " + ", ".join(sorted(bad)))  # R19.8
+        raise ApiError(422, "invalid", "Invalid preference: " + ", ".join(sorted(bad)))
     user = request.user
     user.preferences = {**(user.preferences or {}), **data}
     user.save(update_fields=["preferences"])
@@ -498,7 +498,7 @@ def _preferences(request, data):
 view_settings_view = endpoint(PUT=_view_put, DELETE=_view_delete)
 preferences_view = endpoint(PATCH=_preferences)
 
-# ------------------------------------------------------------------ OPML (item 15)
+# ------------------------------------------------------------------ OPML
 
 
 def _opml_import(request, data):
@@ -585,7 +585,7 @@ def _log_rows(feed_id: int, log_type: str) -> list:
 
 
 def _statistics(request, data, feed_id):
-    """R18.5: reads stored values only."""
+    """Reads stored values only."""
     sub = _require_subscription(request.user, feed_id)
     feed = sub.feed
     counts: dict[str, dict[str, int]] = {"month": {}, "weekday": {}, "hour": {}}
@@ -598,7 +598,7 @@ def _statistics(request, data, feed_id):
         offset = 0
     hours = [0] * 24
     for key, count in counts["hour"].items():
-        hours[(int(key) + offset) % 24] = count  # R18.2
+        hours[(int(key) + offset) % 24] = count  # UTC hours shifted to the user's time zone
     push = PushSubscription.objects.filter(feed_id=feed_id, removing=False).first()
     reason = ""
     if feed.errors_since_good > 0:
@@ -664,7 +664,7 @@ feed_settings_view = endpoint(GET=_settings_get, PATCH=_settings_patch)
 icon_view = endpoint(GET=_icon)
 statistics_view = endpoint(GET=_statistics)
 
-# ------------------------------------------------------------------ the application shell (R20.8)
+# ------------------------------------------------------------------ the application shell
 
 
 @ensure_csrf_cookie

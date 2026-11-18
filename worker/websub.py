@@ -1,4 +1,4 @@
-"""WebSub hub requests of the worker (worker/websub.py), R4.1-R4.4, R4.9-R4.11. The callback routes
+"""WebSub hub requests of the worker (worker/websub.py). The callback routes
 live in the web process (api/push.py)."""
 import logging
 import secrets
@@ -19,7 +19,7 @@ RENEWAL_RETRY_SECONDS = 3600
 
 
 def detach(push: PushSubscription, ts: int) -> dict:
-    """Turn a subscription into a pending unsubscribe (R4.10). Runs in the caller's transaction."""
+    """Turn a subscription into a pending unsubscribe. Runs in the caller's transaction."""
     feed_id = push.feed_id
     info = {"id": push.id, "hub": push.hub, "topic": push.topic, "token": push.callback_token,
             "secret": push.secret, "base": push.callback_base, "feed_id": None}  # fmt: skip
@@ -31,7 +31,7 @@ def detach(push: PushSubscription, ts: int) -> dict:
 
 
 def lease_nearly_over(push: PushSubscription, ts: int) -> bool:
-    """R4.9: less than a third of the lease, or 7 days, whichever is shorter."""
+    """When to renew: less than a third of the lease, or 7 days, whichever is shorter."""
     if not push.lease_expires:
         return False
     return push.lease_expires - ts < min(push.lease_seconds / 3 if push.lease_seconds else WEEK, WEEK)
@@ -48,7 +48,7 @@ def plan(feed_id: int, hub: str | None, topic: str | None, force: bool) -> dict:
             return {"action": None}
         base = Setting.get("public_base_url")
         if not base:
-            return {"action": None}  # R4.4: postponed until the public address is known
+            return {"action": None}  # postponed until the public address is known
         topic = topic or ""
         if push is not None and push.hub == hub and push.topic == topic and push.callback_base == base and not force:
             if push.verified and not lease_nearly_over(push, ts):
@@ -68,7 +68,7 @@ def plan(feed_id: int, hub: str | None, topic: str | None, force: bool) -> dict:
 
 
 def renewals_due() -> list[dict]:
-    """R4.9. A renewal is asked for at most once per RENEWAL_RETRY_SECONDS: the hub confirms it
+    """Subscriptions whose lease needs renewing. A renewal is asked for at most once per RENEWAL_RETRY_SECONDS: the hub confirms it
     later through the callback, and until then the lease still looks nearly over."""
     ts = now()
     due = []
@@ -110,7 +110,7 @@ def _log_failure(feed_id: int | None, message: str) -> None:
 
 
 async def send(coordinator, request: dict) -> None:
-    """POST a subscribe or unsubscribe request to the hub (R4.3)."""
+    """POST a subscribe or unsubscribe request to the hub."""
     mode = request["action"]
     data = {
         "hub.mode": mode,
@@ -135,7 +135,7 @@ async def send(coordinator, request: dict) -> None:
 
 
 async def check(coordinator, feed_id: int, hub: str | None, topic: str | None, force: bool = False) -> None:
-    """Subscribe, renew or unsubscribe a feed according to its hub link (R4.2, R4.10)."""
+    """Subscribe, renew or unsubscribe a feed according to its hub link."""
     request = await coordinator.db(plan, feed_id, hub, topic, force)
     if request["action"]:
         await send(coordinator, request)

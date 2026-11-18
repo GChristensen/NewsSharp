@@ -1,5 +1,5 @@
 <!-- The sidebar (frontend/src/components/Sidebar.vue): header, special rows, the feed tree with
-     drag and drop (R7.6), fetch progress (R17.9) and the left taskbar (R20.2). -->
+     drag and drop, fetch progress and the left taskbar. -->
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, provide, reactive, ref } from 'vue'
 import {
@@ -59,7 +59,7 @@ defineExpose({
   },
 })
 
-// ------------------------------------------------------------------ rename (R7.9)
+// ------------------------------------------------------------------ rename
 
 const renaming = reactive({ key: null as string | null, value: '' })
 
@@ -86,7 +86,7 @@ async function commitRename() {
   }
 }
 
-// ------------------------------------------------------------------ drag and drop (R7.6, R7.7)
+// ------------------------------------------------------------------ drag and drop
 
 interface DropTarget {
   parentId: number | null
@@ -251,7 +251,7 @@ function pointerUp() {
 
 onBeforeUnmount(endDrag)
 
-// ------------------------------------------------------------------ rows and menus (R7.8)
+// ------------------------------------------------------------------ rows and menus
 
 function clickFeed(feed: Feed) {
   if (!suppressClick) openFeed(feed)

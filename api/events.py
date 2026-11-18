@@ -1,4 +1,4 @@
-"""Live updates (api/events.py), item 21: an in-process bus with one bounded queue per connection,
+"""Live updates (api/events.py): an in-process bus with one bounded queue per connection,
 a ring buffer of the last 200 events per user, and the Server-Sent Events view."""
 import asyncio
 import json
@@ -10,10 +10,10 @@ from django.http import StreamingHttpResponse
 
 from .http import error_response
 
-RING_SIZE = 200  # R21.5
-QUEUE_SIZE = 256  # R21.8
-MAX_CONNECTIONS = 6  # R21.9
-KEEP_ALIVE = 25  # R21.6
+RING_SIZE = 200  # events kept per user for replay after a reconnect
+QUEUE_SIZE = 256  # events waiting per connection before it is dropped
+MAX_CONNECTIONS = 6  # open streams per user
+KEEP_ALIVE = 25  # seconds between keep-alive comments
 
 
 class Connection:
@@ -28,7 +28,7 @@ class Connection:
         try:
             self.queue.put_nowait(item)
         except asyncio.QueueFull:
-            self.closed = True  # R21.8: a slow client is disconnected and resynchronizes
+            self.closed = True  # a slow client is disconnected and resynchronizes
 
     def close(self) -> None:
         self.closed = True
@@ -44,7 +44,7 @@ class Bus:
         self.connections: dict[int, list[Connection]] = {}
         self.rings: dict[int, deque] = {}
         # Ids keep increasing across restarts of the web process, so a stale Last-Event-ID is
-        # recognized and answered with `resync` (R21.5).
+        # recognized and answered with `resync`.
         self.boot_id = int(time.time() * 1000)
         self.next_id = self.boot_id + 1
 
@@ -108,7 +108,7 @@ def _format(item) -> str:
 
 
 async def events_view(request):
-    """GET /api/events (R21.1)."""
+    """GET /api/events."""
     user = await request.auser()
     if not user.is_authenticated:
         return error_response(401, "unauthenticated", "Log in to continue.")
