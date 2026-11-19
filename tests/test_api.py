@@ -24,8 +24,13 @@ def post(client, path, data=None):
     return client.post(path, data=json.dumps(data or {}), content_type="application/json")
 
 
+def unread_only(counts: dict) -> dict:
+    """A counts map without the hidden counts: {feed id: unread}."""
+    return {feed_id: value["unread"] for feed_id, value in counts.items()}
+
+
 def counts(client):
-    return client.get("/api/counts").json()["feeds"]
+    return unread_only(client.get("/api/counts").json()["feeds"])
 
 
 # ------------------------------------------------------------------ session
@@ -82,7 +87,7 @@ def test_unread_counts_and_marking(api, user, make_feed, make_story, subscribe):
     stories = [make_story(feed, age_days=5 - i) for i in range(5)]  # oldest first
     assert counts(api) == {str(feed.id): 5}
     response = post(api, "/api/read", {"story_ids": [stories[0].id, stories[1].id]})
-    assert response.json()["counts"] == {str(feed.id): 3}
+    assert unread_only(response.json()["counts"]) == {str(feed.id): 3}
     post(api, "/api/read", {"story_ids": [stories[0].id]})  # idempotent
     assert counts(api) == {str(feed.id): 3}
     post(api, "/api/mark-read", {"scope": f"feed:{feed.id}"})
@@ -98,7 +103,7 @@ def test_mark_unread_moves_the_read_date(api, user, make_feed, make_story, subsc
     subscribe(user, feed)
     stories = [make_story(feed, age_days=5 - i) for i in range(5)]
     post(api, "/api/mark-read", {"scope": f"feed:{feed.id}"})
-    assert post(api, "/api/unread", {"story_id": stories[2].id}).json()["counts"] == {str(feed.id): 1}
+    assert unread_only(post(api, "/api/unread", {"story_id": stories[2].id}).json()["counts"]) == {str(feed.id): 1}
     listed = api.get(f"/api/stories?scope=feed:{feed.id}&filter=unread").json()["stories"]
     assert [s["id"] for s in listed] == [stories[2].id]
 
@@ -130,7 +135,7 @@ def test_undo_mark_feed_read(api, user, make_feed, make_story, subscribe):
     token = post(api, "/api/mark-read", {"scope": f"feed:{feed.id}"}).json()["undo_token"]
     assert counts(api) == {str(feed.id): 0}
     response = post(api, "/api/mark-read/undo", {"undo_token": token}).json()
-    assert response["counts"] == {str(feed.id): 4}
+    assert unread_only(response["counts"]) == {str(feed.id): 4}
     assert sorted(response["story_ids"]) == sorted(s.id for s in stories[1:])
     assert Subscription.objects.get(user=user, feed=feed).mark_read_date == before
     assert post(api, "/api/mark-read/undo", {"undo_token": token}).status_code == 410  # already undone
@@ -177,7 +182,8 @@ def test_users_do_not_share_read_state(api, user, other_user, make_feed, make_st
     post(api, "/api/read", {"story_ids": [story.id]})
     from reading.unread import unread_counts
 
-    assert unread_counts(user) == {feed.id: 0} and unread_counts(other_user) == {feed.id: 1}
+    assert unread_counts(user) == {feed.id: {"unread": 0, "hidden": 0}}
+    assert unread_counts(other_user) == {feed.id: {"unread": 1, "hidden": 0}}
 
 
 # ------------------------------------------------------------------ tree
@@ -598,7 +604,7 @@ def test_events_are_per_user_and_replayable(api, user, other_user, make_feed, ma
     post(api, "/api/read", {"story_ids": [story.id]})
     events = [(name, json.loads(data)) for _, name, data in bus.rings[user.id] if _ >= start]
     assert ("stories:read", {"ids": [story.id]}) in events
-    assert ("counts", {"feeds": {str(feed.id): 0}}) in events
+    assert ("counts", {"feeds": {str(feed.id): {"unread": 0, "hidden": 0}}}) in events
     assert not [item for item in bus.rings.get(other_user.id, []) if item[0] >= start]
     _, backlog = bus.register(user.id, _FakeLoop(), start - 1)
     assert [name for _, name, _ in backlog][:2] == ["stories:read", "counts"]

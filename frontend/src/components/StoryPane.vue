@@ -87,7 +87,7 @@ watch(
         </button>
         <StoryDetail
           v-for="story in stories.stories" :key="story.key" :story="story" :view="detailView(story)"
-          :show-feed-strip="stories.multiFeed" :bare="bare" @click="clickStory(story)"
+          :class="{ 'story-hidden': story.hidden }" :show-feed-strip="stories.multiFeed" :bare="bare" @click="clickStory(story)"
         />
         <ListFooter />
       </template>

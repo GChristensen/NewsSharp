@@ -4,7 +4,7 @@ import pytest
 from accounts.models import User
 from feeds import store
 from feeds.models import Feed, Story
-from feeds.util import guid_hash, now
+from feeds.util import guid_hash, now, story_summary
 from reading import tree
 
 
@@ -39,7 +39,7 @@ def make_story(db):
         guid = fields.pop("guid", f"guid-{counter['n']}")
         story = Story.objects.create(
             feed=feed, guid=guid, guid_hash=guid_hash(guid), title=title or f"Story {counter['n']}",
-            content=content, permalink=f"https://example.com/{counter['n']}",
+            content=content, summary=story_summary(content), permalink=f"https://example.com/{counter['n']}",
             story_date=fields.pop("story_date", now() - int(age_days * 86400)), fetched_at=now(), updated_at=now(),
             **fields,
         )  # fmt: skip

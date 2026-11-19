@@ -8,6 +8,11 @@ export interface Folder {
   collapsed: boolean
 }
 
+export type FilterKind = 'promote' | 'demote' | 'hide'
+
+/** Story filters: one case-insensitive regular expression per line, matched against title, author and summary. */
+export type FeedFilters = Record<FilterKind, string[]>
+
 export interface Feed {
   id: number
   title: string
@@ -17,6 +22,10 @@ export interface Feed {
   folder_id: number | null
   position: number
   unread: number
+  /** Unread stories the Hide filter hides; they are not part of `unread`. */
+  hidden: number
+  /** The feed's own story filters; the global ones (Prefs.filter_*) are appended to them. */
+  filters: FeedFilters
   /** Left out of All Site Stories, folders and their counts; opened by itself it lists as usual. */
   muted: boolean
   favicon_color: string
@@ -31,6 +40,12 @@ export interface Feed {
   exception_message: string
   errors_since_good: number
   last_update: number // UTC seconds of the latest fetch attempt; 0 before the first
+}
+
+/** The counts of one feed in every `counts` map: visible unread stories and hidden unread ones. */
+export interface FeedCounts {
+  unread: number
+  hidden: number
 }
 
 export interface SavedCounts {
@@ -62,6 +77,8 @@ export interface Story {
   saved_at?: number
   read: boolean
   saved: boolean
+  /** Matched by the Hide filter; such stories are listed only while hidden stories are shown. */
+  hidden: boolean
   user_tags: string[]
   preview: string
   key: string // client side: "s<id>" or "v<saved id>"
@@ -69,13 +86,13 @@ export interface Story {
 
 /** POST /api/mark-read; `undo_token` is present for a whole feed or folder (null when nothing moved). */
 export interface MarkReadResult {
-  counts: Record<string, number>
+  counts: Record<string, FeedCounts>
   undo_token?: string | null
 }
 
 /** POST /api/mark-read/undo */
 export interface MarkReadUndoResult {
-  counts: Record<string, number>
+  counts: Record<string, FeedCounts>
   story_ids: number[]
 }
 
@@ -147,6 +164,10 @@ export interface Prefs {
   feedxcavator_url: string
   feedxcavator_newspaper_url: string
   share_services: string[]
+  /** Story filters: one case-insensitive regular expression per line, matched against title, author and summary. */
+  filter_promote: string[]
+  filter_demote: string[]
+  filter_hide: string[]
 }
 
 export interface Bootstrap {

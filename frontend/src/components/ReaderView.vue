@@ -15,6 +15,7 @@ import { handleKey } from '../utils/shortcuts'
 import ContentArea from './ContentArea.vue'
 import ContextMenu from './ContextMenu.vue'
 import AddDialog from './dialogs/AddDialog.vue'
+import FeedFiltersDialog from './dialogs/FeedFiltersDialog.vue'
 import FeedSettingsDialog from './dialogs/FeedSettingsDialog.vue'
 import PreferencesDialog from './dialogs/PreferencesDialog.vue'
 import SimpleDialogs from './dialogs/SimpleDialogs.vue'
@@ -70,6 +71,8 @@ function sync() {
     }
   }
   const query = typeof route.query.q === 'string' ? route.query.q : ''
+  // Hidden stories are shown only in a single feed.
+  const showHidden = route.query.hidden === '1' && scope !== null && scope.startsWith('feed:')
   const storyId = route.params.storyId ? Number(route.params.storyId) : null
   if (!scope) {
     stories.close()
@@ -77,7 +80,7 @@ function sync() {
   }
   if (scope !== stories.scope) {
     if (!query) rememberScope(scope)
-    stories.open(scope, { storyId, query }).then(() => {
+    stories.open(scope, { storyId, query, showHidden }).then(() => {
       // `newest` selects the first story when a scope opens in Split layout.
       const first = stories.stories[0]
       const auto = settings.prefs.open_feed_action === 'newest' && effectiveLayout() === 'split' && !stories.isSaved
@@ -86,6 +89,7 @@ function sync() {
     return
   }
   if (query !== stories.query) stories.setQuery(query)
+  stories.setShowHidden(showHidden)
   if (storyId && stories.selected?.id !== storyId) stories.selectById(storyId)
 }
 watch(() => route.fullPath, sync, { immediate: true })
@@ -157,6 +161,7 @@ function dragSidebar(event: PointerEvent) {
       <AddDialog v-if="ui.dialog.name === 'add'" :url="ui.dialog.props.url" :folder-id="ui.dialog.props.folderId" />
       <PreferencesDialog v-else-if="ui.dialog.name === 'preferences'" :initial-tab="ui.dialog.props.tab" />
       <FeedSettingsDialog v-else-if="ui.dialog.name === 'feed-settings'" :key="ui.dialog.props.feedId" :feed-id="ui.dialog.props.feedId" />
+      <FeedFiltersDialog v-else-if="ui.dialog.name === 'feed-filters'" :key="ui.dialog.props.feedId" :feed-id="ui.dialog.props.feedId" />
       <StatisticsDialog v-else-if="ui.dialog.name === 'statistics'" :key="ui.dialog.props.feedId" :feed-id="ui.dialog.props.feedId" />
       <SimpleDialogs v-else :key="ui.dialog.name" :name="ui.dialog.name" :options="ui.dialog.props" />
     </template>

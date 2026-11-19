@@ -80,6 +80,8 @@ class Story(models.Model):
     author = models.CharField(max_length=255, blank=True, default="")
     permalink = models.TextField(blank=True, default="")
     content = models.TextField(blank=True, default="")
+    # Plain text of the content (feeds.util.story_summary), matched by the story filters.
+    summary = models.TextField(blank=True, default="")
     tags = models.JSONField(default=list)
     image_urls = models.JSONField(default=list)
     story_date = models.IntegerField()

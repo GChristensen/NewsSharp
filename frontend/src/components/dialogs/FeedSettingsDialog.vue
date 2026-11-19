@@ -224,6 +224,7 @@ onMounted(load)
       <FetchHistory v-else :entries="details.fetch_history" />
     </template>
     <template #footer>
+      <button class="btn accent-outline" @click="ui.openDialog('feed-filters', { feedId })">Filters</button>
       <button class="btn outline" @click="ui.openDialog('statistics', { feedId })">Statistics</button>
       <button class="btn outline" @click="refreshFeed(feedId)">Refresh now</button>
       <button class="btn primary" @click="ui.closeDialog()">Close</button>

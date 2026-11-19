@@ -15,7 +15,7 @@ from feeds import store
 from feeds.models import Feed, FeedFetchLog, FeedStoryCount, PushSubscription, Story
 from feeds.parsing import build_stories, link_header_rels, looks_like_html, parse_feed
 from feeds.sanitize import extract_image_urls, sanitize
-from feeds.util import InvalidUrl, chunks, guid_hash, normalize_url, now
+from feeds.util import InvalidUrl, chunks, guid_hash, normalize_url, now, story_summary
 from reading.models import ReadStory, Subscription
 from worker import scheduling
 from worker.models import WorkerEvent
@@ -129,8 +129,8 @@ def store_stories(feed: Feed, parsed: dict, ts: int) -> dict:
                             story = Story.objects.create(
                                 feed_id=feed.id, guid=e["guid"], guid_hash=e["guid_hash"], title=e["title"],
                                 author=e["author"], permalink=e["permalink"], content=e["content"],
-                                tags=e["tags"], image_urls=e["image_urls"], story_date=e["story_date"],
-                                fetched_at=ts, updated_at=ts,
+                                summary=story_summary(e["content"]), tags=e["tags"], image_urls=e["image_urls"],
+                                story_date=e["story_date"], fetched_at=ts, updated_at=ts,
                             )  # fmt: skip
                     except IntegrityError:
                         continue
@@ -140,8 +140,9 @@ def store_stories(feed: Feed, parsed: dict, ts: int) -> dict:
                     # story_date never changes; the story id stays, so read state is kept.
                     Story.objects.filter(pk=existing.pk).update(
                         guid=e["guid"], guid_hash=e["guid_hash"], title=e["title"], author=e["author"],
-                        permalink=e["permalink"], content=e["content"], tags=e["tags"],
-                        image_urls=e["image_urls"], updated_at=ts, original_text=None, original_text_at=None,
+                        permalink=e["permalink"], content=e["content"], summary=story_summary(e["content"]),
+                        tags=e["tags"], image_urls=e["image_urls"], updated_at=ts, original_text=None,
+                        original_text_at=None,
                     )  # fmt: skip
                     store.index_story(existing.pk, e["title"], e["content"], e["author"], e["tags"])
                     updated += 1

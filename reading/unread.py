@@ -6,6 +6,7 @@ from django.db.models import Max
 from feeds.models import Story
 from feeds.util import chunks, now
 
+from . import filters
 from .models import ReadStory, Subscription
 
 MARK_READ_UNDO_SALT = "newssharp.mark-read-undo"
@@ -21,15 +22,17 @@ def unread_cutoff(user, ts: int | None = None) -> int:
     return (ts or now()) - user.days_of_unread * 86400
 
 
-def unread_counts(user, feed_ids=None) -> dict[int, int]:
-    """Unread count per subscribed feed."""
+def unread_counts(user, feed_ids=None) -> dict[int, dict[str, int]]:
+    """Unread stories per subscribed feed: {"unread": visible ones, "hidden": ones the Hide filter hides}."""
+    hidden, hidden_params = filters.hidden_sql(filters.rules_for(user))
     sql = (
-        "SELECT sub.feed_id, COUNT(s.id) FROM reading_subscription sub "
+        f"SELECT sub.feed_id, COUNT(s.id), COALESCE(SUM(CASE WHEN s.id IS NOT NULL AND {hidden} THEN 1 ELSE 0 END), 0) "
+        "FROM reading_subscription sub "
         "LEFT JOIN feeds_story s ON s.feed_id = sub.feed_id AND s.story_date > MAX(sub.mark_read_date, %s) "
         "AND NOT EXISTS (SELECT 1 FROM reading_readstory r WHERE r.user_id = %s AND r.story_id = s.id) "
         "WHERE sub.user_id = %s AND sub.deleted_at IS NULL"
     )
-    params = [unread_cutoff(user), user.id, user.id]
+    params = [*hidden_params, unread_cutoff(user), user.id, user.id]
     if feed_ids is not None:
         ids = [int(i) for i in feed_ids]
         if not ids:
@@ -37,7 +40,8 @@ def unread_counts(user, feed_ids=None) -> dict[int, int]:
         sql += f" AND sub.feed_id IN ({','.join(map(str, ids))})"
     with connection.cursor() as cur:
         cur.execute(sql + " GROUP BY sub.feed_id", params)
-        return {feed_id: count for feed_id, count in cur.fetchall()}
+        return {feed_id: {"unread": total - hidden_count, "hidden": hidden_count}
+                for feed_id, total, hidden_count in cur.fetchall()}  # fmt: skip
 
 
 def _subscribed_feed_ids(user) -> set[int]:

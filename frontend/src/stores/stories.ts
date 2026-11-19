@@ -2,7 +2,7 @@
 // request cancellation, optimistic read state with a batched upload queue, saved stories.
 import { defineStore } from 'pinia'
 import { api, ApiError, errorMessage, isAbort } from '../api'
-import type { MarkReadResult, MarkReadUndoResult, SavedCounts, Story } from '../types'
+import type { FeedCounts, MarkReadResult, MarkReadUndoResult, SavedCounts, Story } from '../types'
 import { useSettings } from './settings'
 import { useTree } from './tree'
 import { useUi } from './ui'
@@ -37,6 +37,8 @@ export const useStories = defineStore('stories', {
     error: '',
     selected: null as Story | null,
     query: '',
+    /** Hidden stories (the Hide filter) are listed, dimmed: `?hidden=1` on a feed's route. */
+    showHidden: false,
     terms: [] as string[],
     newCount: 0,
     history: [] as string[],
@@ -71,7 +73,7 @@ export const useStories = defineStore('stories', {
       return useSettings().effective(this.scope, 'order')
     },
     /** Open a scope: abort requests of the previous one and load the first page. */
-    open(scope: string, options: { storyId?: number | null; query?: string } = {}): Promise<void> {
+    open(scope: string, options: { storyId?: number | null; query?: string; showHidden?: boolean } = {}): Promise<void> {
       this.generation++
       controller?.abort()
       controller = new AbortController()
@@ -85,6 +87,7 @@ export const useStories = defineStore('stories', {
       this.newCount = 0
       this.terms = []
       if (options.query !== undefined) this.query = options.query
+      this.showHidden = !!options.showHidden
       const match = scope.match(/^feed:(\d+)$/)
       useTree().openFeedId = match ? Number(match[1]) : null
       loaded = (async () => {
@@ -112,6 +115,7 @@ export const useStories = defineStore('stories', {
         limit: String(PAGE_SIZE),
       })
       if (this.query.trim().length >= 2) params.set('q', this.query.trim())
+      if (this.showHidden) params.set('hidden', '1')
       if (this.cursor) params.set('cursor', this.cursor)
       this.loading = true
       this.error = ''
@@ -156,6 +160,11 @@ export const useStories = defineStore('stories', {
         const again = this.stories.find((s) => s.key === selected.key)
         this.selected = again ?? selected
       }
+    },
+    setShowHidden(showHidden: boolean) {
+      if (showHidden === this.showHidden) return
+      this.showHidden = showHidden
+      if (this.scope) this.reload()
     },
     setQuery(query: string) {
       if (query === this.query) return
@@ -205,7 +214,7 @@ export const useStories = defineStore('stories', {
     markRead(story: Story) {
       if (story.read || story.id === null || this.isSaved) return
       story.read = true
-      useTree().adjustUnread(story.feed_id, -1)
+      useTree().adjustUnread(story.feed_id, -1, story.hidden)
       this.readQueue.push(story.id)
       if (flushTimer === undefined) flushTimer = window.setTimeout(() => this.flushRead(), READ_FLUSH_MS)
     },
@@ -216,7 +225,7 @@ export const useStories = defineStore('stories', {
       if (!this.readQueue.length) return
       const ids = this.readQueue.splice(0)
       try {
-        const result = await api<{ counts: Record<string, number> }>('POST', '/api/read', { story_ids: ids })
+        const result = await api<{ counts: Record<string, FeedCounts> }>('POST', '/api/read', { story_ids: ids })
         retryDelay = 1000
         if (!this.readQueue.length) useTree().applyCounts(result.counts)
       } catch (error) {
@@ -230,7 +239,7 @@ export const useStories = defineStore('stories', {
     async markUnread(story: Story) {
       if (story.id === null || !story.read) return
       try {
-        const result = await api<{ counts: Record<string, number> }>('POST', '/api/unread', { story_id: story.id })
+        const result = await api<{ counts: Record<string, FeedCounts> }>('POST', '/api/unread', { story_id: story.id })
         story.read = false
         useTree().applyCounts(result.counts)
       } catch (error) {
@@ -246,7 +255,7 @@ export const useStories = defineStore('stories', {
       if (!this.scope || this.isSaved) return
       await this.flushRead()
       try {
-        const result = await api<{ counts: Record<string, number> }>('POST', '/api/mark-read', {
+        const result = await api<{ counts: Record<string, FeedCounts> }>('POST', '/api/mark-read', {
           scope: this.scope, cutoff: story.story_date, direction,
         })
         for (const other of this.stories) {

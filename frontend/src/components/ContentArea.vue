@@ -4,7 +4,8 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  effectiveLayout, effectiveView, LAYOUTS, markScopeRead, scopeTitle, setView, stepStory, viewAvailable, VIEWS,
+  closeHiddenStories, effectiveLayout, effectiveView, LAYOUTS, markScopeRead, scopeTitle, setView, stepStory, viewAvailable,
+  VIEWS,
 } from '../actions'
 import { useSettings } from '../stores/settings'
 import { useStories } from '../stores/stories'
@@ -193,6 +194,12 @@ function dragDivider(event: PointerEvent) {
           <button v-if="search" class="btn icon-only clear" title="Clear" @click="clearSearch"><Icon name="x" /></button>
         </div>
       </template>
+    </div>
+
+    <div v-if="scope && stories.showHidden" class="hidden-bar">
+      <Icon name="eye" />
+      <span>Showing the stories your filters hide, dimmed.</span>
+      <button class="btn outline" @click="closeHiddenStories()">Hide them again</button>
     </div>
 
     <div class="content-body">

@@ -24,7 +24,7 @@ const thumbClass = computed(() => (thumbSetting.value.startsWith('large') ? 'lar
 <template>
   <div
     class="story-row"
-    :class="{ read: item.dimmed.value, selected, 'list-row': list, 'thumb-right': thumbSetting.endsWith('right'), 'one-line': list && !item.previewHtml.value }"
+    :class="{ read: item.dimmed.value, 'story-hidden': story.hidden, selected, 'list-row': list, 'thumb-right': thumbSetting.endsWith('right'), 'one-line': list && !item.previewHtml.value }"
     :data-key="story.key" :data-unread="!story.read && !stories.isSaved ? '1' : undefined"
   >
     <span class="strip" :class="{ hidden: !stories.multiFeed }" :style="stories.multiFeed ? item.stripStyle.value : {}" />

@@ -224,13 +224,22 @@ def _sub_patch(request, data, feed_id):
         if not isinstance(data["muted"], bool):
             raise ApiError(422, "invalid", "'muted' must be true or false.")
         fields["muted"] = data["muted"]
+    if "filters" in data:
+        if not prefs.valid_feed_filters(data["filters"]):
+            raise ApiError(422, "invalid", "'filters' must hold lists of valid regular expressions.")
+        fields["filters"] = {kind: lines for kind, lines in data["filters"].items() if lines}
     if not fields:
         raise ApiError(422, "invalid", "Nothing to change.")
     updated = tree.live_subs(request.user).filter(feed_id=feed_id).update(**fields)
     if not updated:
         raise ApiError(404, "not_found", "Subscription not found.")
     publish_tree(request)
-    return {"ok": True}
+    if "filters" not in fields:
+        return {"ok": True}
+    # The feed's filters decide which of its stories are hidden.
+    counts = _counts_for(request.user, [feed_id])
+    publish(request, "counts", {"feeds": counts})
+    return {"ok": True, "counts": counts}
 
 
 def _sub_delete(request, data, feed_id):
@@ -397,7 +406,7 @@ def _stories(request, data):
     try:
         return stories.list_stories(
             request.user, q.get("scope", ""), q.get("filter", "all"), q.get("order", "newest"), q.get("q", ""),
-            q.get("cursor"), int(q.get("limit") or 30), q.get("content", "1") != "0",
+            q.get("cursor"), int(q.get("limit") or 30), q.get("content", "1") != "0", q.get("hidden") == "1",
         )  # fmt: skip
     except stories.ScopeError as e:
         raise ApiError(404, "not_found", str(e)) from None

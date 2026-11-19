@@ -2,7 +2,7 @@
 // optimistic moves and deletes with undo.
 import { defineStore } from 'pinia'
 import { api, errorMessage } from '../api'
-import type { Feed, Folder, SavedCounts, TreePayload } from '../types'
+import type { Feed, FeedCounts, Folder, SavedCounts, TreePayload } from '../types'
 import { useSettings } from './settings'
 import { useUi } from './ui'
 
@@ -118,19 +118,25 @@ export const useTree = defineStore('tree', {
       this.setTree(await api<TreePayload>('GET', '/api/tree'))
     },
     async reloadCounts() {
-      const counts = await api<{ feeds: Record<string, number>; saved: SavedCounts }>('GET', '/api/counts')
+      const counts = await api<{ feeds: Record<string, FeedCounts>; saved: SavedCounts }>('GET', '/api/counts')
       this.applyCounts(counts.feeds)
       this.saved = counts.saved
     },
-    applyCounts(counts: Record<string, number>) {
-      for (const [id, unread] of Object.entries(counts)) {
+    applyCounts(counts: Record<string, FeedCounts>) {
+      for (const [id, value] of Object.entries(counts)) {
         const feed = this.feedById.get(Number(id))
-        if (feed) feed.unread = unread
+        if (feed) {
+          feed.unread = value.unread
+          feed.hidden = value.hidden
+        }
       }
     },
-    adjustUnread(feedId: number, delta: number) {
+    /** Change a feed's count at once, before the server's counts arrive; `hidden` picks the hidden count. */
+    adjustUnread(feedId: number, delta: number, hidden = false) {
       const feed = this.feedById.get(feedId)
-      if (feed) feed.unread = Math.max(0, feed.unread + delta)
+      if (!feed) return
+      if (hidden) feed.hidden = Math.max(0, feed.hidden + delta)
+      else feed.unread = Math.max(0, feed.unread + delta)
     },
     children(parent: number | null): TreeItem[] {
       return this.childMap.get(parent) ?? []

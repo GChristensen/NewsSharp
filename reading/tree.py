@@ -3,6 +3,7 @@ container and shared by feeds and folders."""
 from django.core import signing
 from django.db import transaction
 
+from accounts.prefs import FILTER_KINDS
 from feeds.models import FeedFetchLog, FeedIcon
 from feeds.util import now
 
@@ -192,8 +193,10 @@ def tree_payload(user) -> dict:
                 "feed_link": feed.feed_link,
                 "folder_id": sub.folder_id,
                 "position": sub.position,
-                "unread": counts.get(feed.id, 0),
+                "unread": counts.get(feed.id, {}).get("unread", 0),
+                "hidden": counts.get(feed.id, {}).get("hidden", 0),
                 "muted": sub.muted,
+                "filters": {kind: sub.filters.get(kind, []) for kind in FILTER_KINDS},
                 "favicon_color": feed.favicon_color,
                 "has_icon": feed.id in icons,
                 "icon_version": icons.get(feed.id, 0),

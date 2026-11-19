@@ -1,6 +1,7 @@
 <!-- One container of the feed tree, recursive (frontend/src/components/TreeNode.vue). -->
 <script setup lang="ts">
 import { inject } from 'vue'
+import { openHiddenStories } from '../actions'
 import { useSettings } from '../stores/settings'
 import { useStories } from '../stores/stories'
 import { useTree, type TreeItem } from '../stores/tree'
@@ -90,6 +91,11 @@ const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select()) }
       <span v-if="!item.feed.fetched_once && !item.feed.has_exception" class="spinner" title="Fetching…" />
       <span v-else-if="item.feed.has_exception" class="feed-state" :title="errorTitle(item.feed)"><Icon name="alert" /></span>
       <span v-if="item.feed.is_push" class="dim" title="Real-time updates"><Icon name="zap" style="width: 11px; height: 11px" /></span>
+      <button
+        v-if="settings.prefs.sidebar_mode !== 'saved' && !item.feed.muted && item.feed.hidden > 0" class="count hidden-count"
+        :title="`${item.feed.hidden} hidden by your filters — show them`"
+        @click.stop="openHiddenStories(item.feed)" @dblclick.stop @pointerdown.stop
+      >{{ item.feed.hidden }}</button>
       <span v-if="settings.prefs.sidebar_mode === 'saved'" class="count saved static">{{ tree.feedCount(item.feed) }}</span>
       <span
         v-else-if="item.feed.muted" class="mute-state"

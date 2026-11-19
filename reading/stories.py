@@ -9,14 +9,13 @@ from django.db.utils import DatabaseError
 from feeds import store
 from feeds.models import Feed, Setting, Story
 from feeds.sanitize import media_urls
-from feeds.util import image_signature, now, plain_text
+from feeds.util import PREVIEW_CHARS, image_signature, now, plain_text
 
-from . import tree
+from . import filters, tree
 from .models import SavedStory, Subscription
 from .search import build_match, plain_match
 from .unread import unread_cutoff
 
-PREVIEW_CHARS = 1500
 _image_secret = None
 
 
@@ -62,16 +61,17 @@ def parse_scope(user, scope: str) -> dict:
     raise ScopeError("invalid scope")
 
 
-def _encode_cursor(date: int, row_id: int) -> str:
-    return f"{date}.{row_id}"
+def _encode_cursor(rank: int, date: int, row_id: int) -> str:
+    return f"{rank}.{date}.{row_id}"
 
 
-def _decode_cursor(cursor: str | None) -> tuple[int, int] | None:
+def _decode_cursor(cursor: str | None) -> tuple[int, int, int] | None:
+    """(rank, date, id) of the last story of the previous page."""
     if not cursor:
         return None
     try:
-        date, row_id = cursor.split(".")
-        return int(date), int(row_id)
+        rank, date, row_id = cursor.split(".")
+        return int(rank), int(date), int(row_id)
     except ValueError:
         return None
 
@@ -117,6 +117,7 @@ def story_json(row: dict, with_content: bool = True, terms: list[str] | None = N
         "story_date": row["story_date"],
         "read": not row.get("unread", False),
         "saved": row.get("saved_id") is not None,
+        "hidden": bool(row.get("hidden")),
         "user_tags": _loads(row.get("user_tags"), []),
         "preview": _preview(content, terms or []),
     }
@@ -136,20 +137,24 @@ def _rows(sql: str, params: list) -> list[dict]:
         return [dict(zip(columns, row)) for row in cur.fetchall()]
 
 
-_LIVE_SELECT = (
+# Each query is its column list, then any extra columns, then the FROM part. The live column list takes
+# the unread cutoff as its one parameter; the live FROM part takes the user id three times.
+_LIVE_COLUMNS = (
     "SELECT s.id, s.feed_id, s.title, s.author, s.permalink, s.content, s.tags, s.image_urls, s.story_date, "
-    "(s.story_date > MAX(sub.mark_read_date, %s) AND r.id IS NULL) AS unread, sv.id AS saved_id, sv.user_tags "
-    "FROM feeds_story s "
+    "(s.story_date > MAX(sub.mark_read_date, %s) AND r.id IS NULL) AS unread, sv.id AS saved_id, sv.user_tags"
+)
+_LIVE_FROM = (
+    " FROM feeds_story s "
     "JOIN reading_subscription sub ON sub.feed_id = s.feed_id AND sub.user_id = %s AND sub.deleted_at IS NULL "
     "LEFT JOIN reading_readstory r ON r.user_id = %s AND r.story_id = s.id "
     "LEFT JOIN reading_savedstory sv ON sv.user_id = %s AND sv.feed_id = s.feed_id AND sv.guid_hash = s.guid_hash "
 )
-_SAVED_SELECT = (
+_SAVED_COLUMNS = (
     "SELECT s.id AS id, sv.id AS saved_id, sv.feed_id, sv.feed_title, sv.title, sv.author, sv.permalink, "
-    "sv.content, sv.tags, sv.image_urls, sv.story_date, sv.saved_at, sv.user_tags, 0 AS unread "
-    "FROM reading_savedstory sv "
-    "LEFT JOIN feeds_story s ON s.feed_id = sv.feed_id AND s.guid_hash = sv.guid_hash "
+    "sv.content, sv.tags, sv.image_urls, sv.story_date, sv.saved_at, sv.user_tags, 0 AS unread"
 )
+_SAVED_FROM = " FROM reading_savedstory sv LEFT JOIN feeds_story s ON s.feed_id = sv.feed_id AND s.guid_hash = sv.guid_hash "
+_SAVED_SELECT = _SAVED_COLUMNS + _SAVED_FROM
 
 
 def _in_list(ids: list[int]) -> str:
@@ -157,7 +162,9 @@ def _in_list(ids: list[int]) -> str:
 
 
 def list_stories(user, scope: str, read_filter: str, order: str, query: str, cursor: str | None, limit: int,
-                 with_content: bool = True) -> dict:  # fmt: skip
+                 with_content: bool = True, show_hidden: bool = False) -> dict:  # fmt: skip
+    """A page of stories. In live scopes the story filters apply unless searching: hidden stories are left
+    out (or, with show_hidden, listed with "hidden" set) and promoted stories come first, demoted last."""
     resolved = parse_scope(user, scope)
     limit = max(1, min(int(limit or 30), 100))
     newest = order != "oldest"
@@ -168,9 +175,12 @@ def list_stories(user, scope: str, read_filter: str, order: str, query: str, cur
         return {"stories": [], "next_cursor": None, "terms": terms}
 
     def run(match_expression):
-        where, params = [], []
+        # Parameters in the order of their placeholders: column list, extra columns, FROM part, WHERE.
+        head_params, from_params, where, params = [], [], [], []
+        rank, rank_params = str(filters.RANK_NORMAL), []
+        hidden, hidden_params = "0", []
         if saved:
-            sql = _SAVED_SELECT
+            head, from_part = _SAVED_COLUMNS, _SAVED_FROM
             where.append("sv.user_id = %s")
             params.append(user.id)
             date_column, id_column, fts = "sv.saved_at", "sv.id", "saved_fts"
@@ -180,10 +190,18 @@ def list_stories(user, scope: str, read_filter: str, order: str, query: str, cur
                 where.append("EXISTS (SELECT 1 FROM json_each(sv.user_tags) WHERE value = %s)")
                 params.append(resolved["tag"])
         else:
-            sql = _LIVE_SELECT
+            head, from_part = _LIVE_COLUMNS, _LIVE_FROM
             cutoff = unread_cutoff(user)
-            params.extend([cutoff, user.id, user.id, user.id])
+            head_params, from_params = [cutoff], [user.id, user.id, user.id]
             date_column, id_column, fts = "s.story_date", "s.id", "stories_fts"
+            if not match_expression:  # a search lists every match in date order
+                rules = filters.rules_for(user)
+                rank, rank_params = filters.rank_sql(rules)
+                hidden, hidden_params = filters.hidden_sql(rules)
+                if not show_hidden and hidden_params:
+                    where.append(f"NOT {hidden}")
+                    params.extend(hidden_params)
+                    hidden, hidden_params = "0", []  # none of the listed stories is hidden
             if resolved["feed_ids"] is not None:
                 where.append(f"s.feed_id IN ({_in_list(resolved['feed_ids'])})")
             if not scope.startswith("feed:"):
@@ -195,13 +213,17 @@ def list_stories(user, scope: str, read_filter: str, order: str, query: str, cur
             where.append(f"{id_column} IN (SELECT rowid FROM {fts} WHERE {fts} MATCH %s)")
             params.append(match_expression)
         if position:
-            where.append(f"({date_column}, {id_column}) {'<' if newest else '>'} (%s, %s)")
-            params.extend(position)
-        direction = "DESC" if newest else "ASC"
+            where.append(
+                f"({rank} > %s OR ({rank} = %s AND ({date_column}, {id_column}) {'<' if newest else '>'} (%s, %s)))"
+            )
+            params.extend([*rank_params, position[0], *rank_params, position[0], *position[1:]])
+        # The rank is a column so the next cursor can carry it; "hidden" marks the stories the Hide filter
+        # matched when they are listed.
+        sql = f"{head}, {rank} AS rank, {hidden} AS hidden{from_part}"
         sql += (" WHERE " + " AND ".join(where) if where else "")
-        sql += f" ORDER BY {date_column} {direction}, {id_column} {direction} LIMIT %s"
-        params.append(limit + 1)
-        return _rows(sql, params)
+        direction = "DESC" if newest else "ASC"
+        sql += f" ORDER BY rank ASC, {date_column} {direction}, {id_column} {direction} LIMIT %s"
+        return _rows(sql, [*head_params, *rank_params, *hidden_params, *from_params, *params, limit + 1])
 
     try:
         rows = run(match)
@@ -215,7 +237,10 @@ def list_stories(user, scope: str, read_filter: str, order: str, query: str, cur
     next_cursor = None
     if more and rows:
         last = rows[-1]
-        next_cursor = _encode_cursor(last["saved_at"], last["saved_id"]) if saved else _encode_cursor(last["story_date"], last["id"])
+        if saved:
+            next_cursor = _encode_cursor(last["rank"], last["saved_at"], last["saved_id"])
+        else:
+            next_cursor = _encode_cursor(last["rank"], last["story_date"], last["id"])
     return {
         "stories": [story_json(row, with_content, terms) for row in rows],
         "next_cursor": next_cursor,
@@ -225,7 +250,11 @@ def list_stories(user, scope: str, read_filter: str, order: str, query: str, cur
 
 def get_story(user, story_id: int) -> dict | None:
     cutoff = unread_cutoff(user)
-    rows = _rows(_LIVE_SELECT + " WHERE s.id = %s", [cutoff, user.id, user.id, user.id, story_id])
+    hidden, hidden_params = filters.hidden_sql(filters.rules_for(user))
+    rows = _rows(
+        f"{_LIVE_COLUMNS}, {hidden} AS hidden{_LIVE_FROM} WHERE s.id = %s",
+        [cutoff, *hidden_params, user.id, user.id, user.id, story_id],
+    )
     return story_json(rows[0]) if rows else None
 
 

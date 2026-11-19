@@ -1,4 +1,5 @@
 """Preference catalog (accounts/prefs.py): names, validators and defaults of every preference."""
+import re
 from zoneinfo import ZoneInfo
 
 
@@ -31,6 +32,44 @@ def _summary_width(v):
 
 def _url_or_empty(v):
     return isinstance(v, str) and len(v) <= 500 and (v == "" or v.startswith(("http://", "https://")))
+
+
+# Story filters (filter_promote, filter_demote, filter_hide): one regular expression per line, matched
+# without regard to case against a story's title, author and summary (reading/filters.py).
+FILTER_LINES_MAX = 200
+FILTER_LINE_CHARS = 500
+
+
+def combined_pattern(lines: list[str]) -> str | None:
+    """One case-insensitive regular expression matching any of the lines; None for no lines."""
+    if not lines:
+        return None
+    return "(?i)" + "|".join(f"(?:{line})" for line in lines)
+
+
+def valid_patterns(v) -> bool:
+    """A list of filter lines: each a regular expression, also valid when combined with the others."""
+    if not isinstance(v, list) or len(v) > FILTER_LINES_MAX:
+        return False
+    for line in v:
+        if not isinstance(line, str) or not line.strip() or line != line.strip() or len(line) > FILTER_LINE_CHARS:
+            return False
+    try:
+        for line in v:
+            re.compile(line, re.IGNORECASE)
+        if v:
+            re.compile(combined_pattern(v))  # a global flag such as (?i) is valid alone but not mid-pattern
+    except (re.error, RecursionError, OverflowError):
+        return False
+    return True
+
+
+FILTER_KINDS = ("promote", "demote", "hide")
+
+
+def valid_feed_filters(v) -> bool:
+    """The filters of one subscription: {kind: lines} for some of FILTER_KINDS."""
+    return isinstance(v, dict) and all(kind in FILTER_KINDS and valid_patterns(lines) for kind, lines in v.items())
 
 
 # Story sharing services, in the order of the share menu (frontend/src/utils/share.ts). NewsBlur's
@@ -154,6 +193,9 @@ CATALOG = {
     "feedxcavator_url": (_url_or_empty, ""),
     "feedxcavator_newspaper_url": (_url_or_empty, ""),
     "share_services": (_share_services, []),
+    "filter_promote": (valid_patterns, []),
+    "filter_demote": (valid_patterns, []),
+    "filter_hide": (valid_patterns, []),
 }
 
 VIEW_SETTING_KEYS = {

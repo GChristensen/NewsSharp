@@ -90,6 +90,15 @@ def plain_text(value: str, limit: int | None = None, breaks: bool = False) -> st
     return text[:limit] if limit else text
 
 
+# Length of the plain-text summary of a story: the list preview, and the text story filters match.
+PREVIEW_CHARS = 1500
+
+
+def story_summary(content: str) -> str:
+    """The stored plain-text summary of a story's HTML content (Story.summary)."""
+    return plain_text(content, limit=PREVIEW_CHARS)
+
+
 def image_signature(url: str, secret: str) -> str:
     """The image proxy signature: HMAC-SHA256(image_secret, url), base64url, first 22 characters."""
     digest = hmac.new(secret.encode("ascii"), url.encode("utf-8", "replace"), hashlib.sha256).digest()

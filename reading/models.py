@@ -24,6 +24,9 @@ class Subscription(models.Model):
     mark_read_date = models.IntegerField(default=0)
     # A muted feed stays in the tree but is left out of All Site Stories, folders and their counts.
     muted = models.BooleanField(default=False)
+    # Story filters of this feed alone: {"promote": [...], "demote": [...], "hide": [...]}, each a list of
+    # regular expressions (accounts/prefs.py). The user's global filters are appended to them.
+    filters = models.JSONField(default=dict, blank=True)
     created_at = models.IntegerField(default=0)
     deleted_at = models.IntegerField(null=True, blank=True)
 

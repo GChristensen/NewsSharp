@@ -22,7 +22,7 @@ const hovered = ref(false)
 
 <template>
   <div
-    :class="[magazine ? 'mag-card' : 'card', { read: item.dimmed.value, selected }]"
+    :class="[magazine ? 'mag-card' : 'card', { read: item.dimmed.value, 'story-hidden': story.hidden, selected }]"
     :data-key="story.key" :data-unread="!story.read && !stories.isSaved ? '1' : undefined"
   >
     <span v-if="magazine" class="strip" :style="stories.multiFeed ? item.stripStyle.value : { background: 'transparent' }" />

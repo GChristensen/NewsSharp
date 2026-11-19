@@ -3,6 +3,8 @@ import { defineStore } from 'pinia'
 import { api, errorMessage } from '../api'
 import type { Layout, Prefs, ThemeChoice, View, ViewKey } from '../types'
 import { THEME_COLOR_PROPERTIES, themeColorProperties } from '../utils/themeColors'
+import { useStories } from './stories'
+import { useTree } from './tree'
 import { useUi } from './ui'
 
 const DEFAULT_KEYS: Record<ViewKey, keyof Prefs> = {
@@ -16,6 +18,15 @@ const DEFAULT_KEYS: Record<ViewKey, keyof Prefs> = {
   story_display: 'story_display',
   headline_indent: 'headline_indent',
   summary_width: 'summary_max_width',
+}
+
+/** The story filters: a change alters the unread counts and the order of the open list. */
+const FILTER_KEYS = ['filter_promote', 'filter_demote', 'filter_hide'] as const
+
+/** Fetch the counts and the open list again after the story filters changed. */
+function applyFilters() {
+  useTree().reloadCounts().catch(() => {})
+  useStories().reload()
 }
 
 let saveTimer: number | undefined
@@ -85,13 +96,16 @@ export const useSettings = defineStore('settings', {
       if (!Object.keys(changes).length) return
       try {
         await api('PATCH', '/api/preferences', changes)
+        if (FILTER_KEYS.some((key) => key in changes)) applyFilters()
       } catch (error) {
         useUi().error(`Settings were not saved: ${errorMessage(error)}`)
       }
     },
     /** Preferences announced by another tab. Local unsaved changes win. */
     applyRemote(prefs: Prefs, viewSettings?: Record<string, Record<string, string>>) {
+      const filtersChanged = FILTER_KEYS.some((key) => JSON.stringify(this.prefs[key]) !== JSON.stringify(prefs[key]))
       this.prefs = { ...prefs, ...pending }
+      if (filtersChanged) applyFilters()
       if (viewSettings) this.viewSettings = viewSettings
       this.applyTheme()
     },

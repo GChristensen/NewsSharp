@@ -29,6 +29,17 @@ export function openFeed(feed: Feed | { id: number }) {
   return openScope(feedScope(feed.id))
 }
 
+/** Open a feed with the stories its Hide filter hides listed too. */
+export function openHiddenStories(feed: Feed) {
+  return router.push({ path: scopePath(`feed:${feed.id}`), query: { hidden: '1' } })
+}
+
+/** Leave the listing of hidden stories, staying in the feed and on the selected story. */
+export function closeHiddenStories() {
+  const { hidden: _, ...query } = router.currentRoute.value.query
+  return router.push({ path: router.currentRoute.value.path, query })
+}
+
 export function openFolder(folder: Folder) {
   return openScope(savedMode() ? `saved:folder:${folder.id}` : `folder:${folder.id}`)
 }

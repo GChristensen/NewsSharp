@@ -1,15 +1,17 @@
 <!-- Preferences dialog (frontend/src/components/dialogs/PreferencesDialog.vue): the settings page
-     with its General, Reading, Appearance, Theme, Sharing and Keyboard sections. -->
+     with its General, Reading, Filters, Appearance, Theme, Sharing and Keyboard sections. -->
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { api, errorMessage } from '../../api'
 import { useSession } from '../../stores/session'
 import { useSettings } from '../../stores/settings'
 import { useStories } from '../../stores/stories'
+import { useTree } from '../../stores/tree'
 import { useUi } from '../../stores/ui'
-import type { Prefs, ThemeChoice, ThemeColorKey, ViewKey } from '../../types'
+import type { FeedFilters, FilterKind, Prefs, ThemeChoice, ThemeColorKey, ViewKey } from '../../types'
 import { SHARE_SERVICES } from '../../utils/share'
 import { ADJUSTMENTS, type Adjustment, GREY_ACCENT, sliderValue, withAdjustment, withoutAdjustment } from '../../utils/themeColors'
+import FilterLists from '../FilterLists.vue'
 import Icon from '../Icon.vue'
 import Modal from '../Modal.vue'
 import ThemePreview from '../ThemePreview.vue'
@@ -53,6 +55,8 @@ const TABS: Record<string, Field[]> = {
     { key: 'mark_read_river_confirm', label: 'Confirm marking All Site Stories read', type: 'bool' },
     { key: 'new_window', label: 'Open story links in a new tab', type: 'bool' },
   ],
+  // No field rows: the Promote, Demote and Hide pattern lists are in the template.
+  Filters: [],
   Appearance: [
     { key: 'feed_size', label: 'Feed list and title size', type: 'select', options: SIZES },
     { key: 'show_content_preview', label: 'Default content preview', type: 'select', options: [['title', 'Title only'], ['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']] },
@@ -85,6 +89,8 @@ const props = defineProps<{ initialTab?: string }>()
 const settings = useSettings()
 const session = useSession()
 const ui = useUi()
+const stories = useStories()
+const tree = useTree()
 const tab = ref(props.initialTab && props.initialTab in TABS ? props.initialTab : 'General')
 const instance = ref<{ public_base_url: string; manual: boolean; current_origin: string } | null>(null)
 const publicUrl = ref('')
@@ -185,6 +191,17 @@ function toggleShare(key: string, on: boolean) {
   settings.set('share_services', SHARE_SERVICES.map((service) => service.key).filter((k) => chosen.has(k)))
 }
 
+/** The global story filters, in the shape FilterLists edits. */
+const globalFilters = computed<FeedFilters>(() => ({
+  promote: settings.prefs.filter_promote, demote: settings.prefs.filter_demote, hide: settings.prefs.filter_hide,
+}))
+
+function updateFilter(kind: FilterKind, lines: string[]) {
+  settings.set(`filter_${kind}`, lines)
+}
+
+/** The feed open in the reader, whose own filters the button below the lists leads to. */
+const openFeed = computed(() => (stories.feedId === null ? undefined : tree.feedById.get(stories.feedId)))
 /** Reset a per-scope setting for all scopes. */
 async function reset(key: ViewKey, label: string) {
   try {
@@ -279,6 +296,25 @@ onMounted(async () => {
       </div>
       <ThemePreview />
     </div>
+
+    <template v-if="tab === 'Filters'">
+      <p class="dim filter-help">
+        Each line is a regular expression, matched without regard to case against a story's title, author and
+        summary. <code>apple</code> also matches “pineapple”; write <code>\bapple\b</code> for the whole word.
+        <code>|</code> means “or” (<code>rust|golang</code>) and <code>.*</code> any text (<code>sponsored.*post</code>);
+        put <code>\</code> before <code>. ( ) [ ] ? * + | \</code> to match the character itself.
+        Hide wins over Promote and Demote, Promote over Demote. Search and Saved for Later ignore filters.
+        A feed can have filters of its own; these global ones are added after them.
+      </p>
+      <FilterLists id-prefix="pref-filter" :values="globalFilters" @update="updateFilter" />
+      <div class="filter-switch">
+        <button
+          class="btn accent-outline" :disabled="!openFeed"
+          @click="ui.openDialog('feed-filters', { feedId: openFeed!.id })"
+        ><Icon name="prefs-sliders" /><span class="btn-label">{{ openFeed ? `Filters of ${openFeed.title}…` : 'Filters of one feed…' }}</span></button>
+        <span class="dim">{{ openFeed ? 'Lines of its own, checked before these.' : 'Open a feed to give it filters of its own.' }}</span>
+      </div>
+    </template>
 
     <template v-if="tab === 'Reading'">
       <h3 class="section">Per-feed settings</h3>
