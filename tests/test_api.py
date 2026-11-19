@@ -182,8 +182,8 @@ def test_users_do_not_share_read_state(api, user, other_user, make_feed, make_st
     post(api, "/api/read", {"story_ids": [story.id]})
     from reading.unread import unread_counts
 
-    assert unread_counts(user) == {feed.id: {"unread": 0, "hidden": 0}}
-    assert unread_counts(other_user) == {feed.id: {"unread": 1, "hidden": 0}}
+    assert unread_counts(user) == {feed.id: {"unread": 0, "hidden": 0, "hidden_all": 0}}
+    assert unread_counts(other_user) == {feed.id: {"unread": 1, "hidden": 0, "hidden_all": 0}}
 
 
 # ------------------------------------------------------------------ tree
@@ -604,7 +604,7 @@ def test_events_are_per_user_and_replayable(api, user, other_user, make_feed, ma
     post(api, "/api/read", {"story_ids": [story.id]})
     events = [(name, json.loads(data)) for _, name, data in bus.rings[user.id] if _ >= start]
     assert ("stories:read", {"ids": [story.id]}) in events
-    assert ("counts", {"feeds": {str(feed.id): {"unread": 0, "hidden": 0}}}) in events
+    assert ("counts", {"feeds": {str(feed.id): {"unread": 0, "hidden": 0, "hidden_all": 0}}}) in events
     assert not [item for item in bus.rings.get(other_user.id, []) if item[0] >= start]
     _, backlog = bus.register(user.id, _FakeLoop(), start - 1)
     assert [name for _, name, _ in backlog][:2] == ["stories:read", "counts"]

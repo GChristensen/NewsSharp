@@ -195,6 +195,7 @@ def tree_payload(user) -> dict:
                 "position": sub.position,
                 "unread": counts.get(feed.id, {}).get("unread", 0),
                 "hidden": counts.get(feed.id, {}).get("hidden", 0),
+                "hidden_all": counts.get(feed.id, {}).get("hidden_all", 0),
                 "muted": sub.muted,
                 "filters": {kind: sub.filters.get(kind, []) for kind in FILTER_KINDS},
                 "favicon_color": feed.favicon_color,

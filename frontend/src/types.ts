@@ -22,8 +22,11 @@ export interface Feed {
   folder_id: number | null
   position: number
   unread: number
-  /** Unread stories the Hide filter hides; they are not part of `unread`. */
+  /** Unread stories the Hide filter hides among the visible unread ones (no older than the oldest of
+      them); they are not part of `unread`. Shown while the feed lists unread stories. */
   hidden: number
+  /** Every stored story of the feed the Hide filter hides, read or not. Shown while the feed lists all stories. */
+  hidden_all: number
   /** The feed's own story filters; the global ones (Prefs.filter_*) are appended to them. */
   filters: FeedFilters
   /** Left out of All Site Stories, folders and their counts; opened by itself it lists as usual. */
@@ -42,10 +45,11 @@ export interface Feed {
   last_update: number // UTC seconds of the latest fetch attempt; 0 before the first
 }
 
-/** The counts of one feed in every `counts` map: visible unread stories and hidden unread ones. */
+/** The counts of one feed in every `counts` map (see Feed). */
 export interface FeedCounts {
   unread: number
   hidden: number
+  hidden_all: number
 }
 
 export interface SavedCounts {

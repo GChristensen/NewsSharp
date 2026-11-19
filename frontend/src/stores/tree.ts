@@ -128,6 +128,7 @@ export const useTree = defineStore('tree', {
         if (feed) {
           feed.unread = value.unread
           feed.hidden = value.hidden
+          feed.hidden_all = value.hidden_all
         }
       }
     },
@@ -140,6 +141,10 @@ export const useTree = defineStore('tree', {
     },
     children(parent: number | null): TreeItem[] {
       return this.childMap.get(parent) ?? []
+    },
+    /** The hidden count beside a feed: among its unread stories, or all of them when it lists all stories. */
+    hiddenCount(feed: Feed): number {
+      return useSettings().effective(`feed:${feed.id}`, 'read_filter') === 'unread' ? feed.hidden : feed.hidden_all
     },
     folderFeedIds(folderId: number): number[] {
       const ids: number[] = []

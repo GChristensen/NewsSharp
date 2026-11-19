@@ -40,7 +40,7 @@ def test_hidden_stories_leave_lists_and_counts(api, user, make_feed, make_story,
     make_story(feed, title="Ordinary story", age_days=4)
     set_filters(user, hide=[r"\bad bot\b", "sponsored", "^weekly"])
 
-    assert unread_counts(user) == {feed.id: {"unread": 1, "hidden": 3}}
+    assert unread_counts(user) == {feed.id: {"unread": 1, "hidden": 3, "hidden_all": 3}}
     assert api.get("/api/tree").json()["feeds"][0]["hidden"] == 3
     assert titles(api, f"feed:{feed.id}") == ["Ordinary story"]
     assert titles(api, "all") == ["Ordinary story"]
@@ -55,7 +55,7 @@ def test_hidden_stories_leave_lists_and_counts(api, user, make_feed, make_story,
     # A search lists every match; marking a hidden story read lowers the hidden count.
     assert titles(api, f"feed:{feed.id}", q="weekly") == ["Weekly digest"]
     api.post("/api/read", data=json.dumps({"story_ids": [listed[0]["id"]]}), content_type="application/json")
-    assert unread_counts(user)[feed.id] == {"unread": 1, "hidden": 2}
+    assert unread_counts(user)[feed.id] == {"unread": 1, "hidden": 2, "hidden_all": 3}
 
 
 def test_promoted_first_demoted_last_across_pages(api, user, make_feed, make_story, subscribe):
@@ -104,8 +104,8 @@ def test_feed_filters_come_before_the_global_ones(api, user, make_feed, make_sto
 
     assert patch_feed(api, first.id, {"hide": ["(unclosed"]}).status_code == 422
     response = patch_feed(api, first.id, {"hide": ["rust"], "promote": [], "demote": []}).json()
-    assert response["counts"] == {str(first.id): {"unread": 1, "hidden": 2}}  # its own line plus the global one
-    assert unread_counts(user)[second.id] == {"unread": 2, "hidden": 1}  # the global line alone
+    assert response["counts"] == {str(first.id): {"unread": 1, "hidden": 2, "hidden_all": 2}}  # own line + global
+    assert unread_counts(user)[second.id] == {"unread": 2, "hidden": 1, "hidden_all": 1}  # the global line alone
 
     feeds = {f["id"]: f for f in api.get("/api/tree").json()["feeds"]}
     assert feeds[first.id]["filters"] == {"promote": [], "demote": [], "hide": ["rust"]}
@@ -118,3 +118,28 @@ def test_feed_filters_come_before_the_global_ones(api, user, make_feed, make_sto
     assert titles(api, f"feed:{second.id}") == [f"python news {second.id}", f"rust news {second.id}"]
     patch_feed(api, second.id, {"promote": ["rust"]})
     assert titles(api, "all") == [f"rust news {second.id}", f"python news {second.id}", f"python news {first.id}"]
+
+
+def test_hidden_count_covers_only_the_unread_stories_shown(api, user, make_feed, make_story, subscribe):
+    feed = make_feed()
+    subscribe(user, feed)
+    make_story(feed, title="ad old", age_days=5)
+    old = make_story(feed, title="old news", age_days=4)
+    make_story(feed, title="ad mid", age_days=3)
+    make_story(feed, title="new news", age_days=1)
+    make_story(feed, title="ad new", age_days=0.5)
+    set_filters(user, hide=[r"^ad\b"])
+    # "ad old" is older than every visible unread story, so it is not among them.
+    assert unread_counts(user)[feed.id] == {"unread": 2, "hidden": 2, "hidden_all": 3}
+
+    # Reading past a hidden story takes it out of the count, though it was never opened.
+    api.post("/api/read", data=json.dumps({"story_ids": [old.id]}), content_type="application/json")
+    assert unread_counts(user)[feed.id] == {"unread": 1, "hidden": 1, "hidden_all": 3}
+    assert titles(api, f"feed:{feed.id}", hidden=1, filter="unread") == ["ad new", "new news"]
+    assert titles(api, f"feed:{feed.id}", hidden=1, filter="all") == ["ad new", "new news", "ad mid", "old news", "ad old"]
+
+    # Nothing visible left unread: no hidden story counts or is listed under Unread.
+    visible = [story["id"] for story in api.get(f"/api/stories?scope=feed:{feed.id}").json()["stories"]]
+    api.post("/api/read", data=json.dumps({"story_ids": visible}), content_type="application/json")
+    assert unread_counts(user)[feed.id] == {"unread": 0, "hidden": 0, "hidden_all": 3}
+    assert titles(api, f"feed:{feed.id}", hidden=1, filter="unread") == []

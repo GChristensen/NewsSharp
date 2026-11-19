@@ -22,26 +22,70 @@ def unread_cutoff(user, ts: int | None = None) -> int:
     return (ts or now()) - user.days_of_unread * 86400
 
 
+def _feed_filter(column: str, feed_ids) -> str | None:
+    """An SQL condition limiting `column` to feed_ids ("" for all feeds), or None for an empty list."""
+    if feed_ids is None:
+        return ""
+    ids = [int(i) for i in feed_ids]
+    return f" AND {column} IN ({','.join(map(str, ids))})" if ids else None
+
+
 def unread_counts(user, feed_ids=None) -> dict[int, dict[str, int]]:
-    """Unread stories per subscribed feed: {"unread": visible ones, "hidden": ones the Hide filter hides}."""
+    """Counts per subscribed feed:
+    - "unread": unread stories the Hide filter leaves in the list;
+    - "hidden": hidden unread stories among them, that is no older than the oldest of those unread stories
+      (hidden stories the user has read past are not counted, nor any when nothing visible is unread);
+    - "hidden_all": every stored story of the feed the Hide filter hides, read or not."""
+    limit = _feed_filter("sub.feed_id", feed_ids)
+    if limit is None:
+        return {}
     hidden, hidden_params = filters.hidden_sql(filters.rules_for(user))
+    # u: the unread stories of each feed (one row with NULLs for a feed without any), flagged when hidden;
+    # floor: the date of the oldest unread story of each feed that is not hidden.
     sql = (
-        f"SELECT sub.feed_id, COUNT(s.id), COALESCE(SUM(CASE WHEN s.id IS NOT NULL AND {hidden} THEN 1 ELSE 0 END), 0) "
-        "FROM reading_subscription sub "
-        "LEFT JOIN feeds_story s ON s.feed_id = sub.feed_id AND s.story_date > MAX(sub.mark_read_date, %s) "
-        "AND NOT EXISTS (SELECT 1 FROM reading_readstory r WHERE r.user_id = %s AND r.story_id = s.id) "
-        "WHERE sub.user_id = %s AND sub.deleted_at IS NULL"
+        "WITH u AS MATERIALIZED ("
+        f"  SELECT sub.feed_id, s.id AS story_id, s.story_date, COALESCE({hidden}, 0) AS hidden "
+        "  FROM reading_subscription sub "
+        "  LEFT JOIN feeds_story s ON s.feed_id = sub.feed_id AND s.story_date > MAX(sub.mark_read_date, %s) "
+        "  AND NOT EXISTS (SELECT 1 FROM reading_readstory r WHERE r.user_id = %s AND r.story_id = s.id) "
+        f"  WHERE sub.user_id = %s AND sub.deleted_at IS NULL{limit}"
+        "), floor AS ("
+        "  SELECT feed_id, MIN(story_date) AS date FROM u WHERE story_id IS NOT NULL AND NOT hidden GROUP BY feed_id"
+        ") "
+        "SELECT u.feed_id, "
+        "  COALESCE(SUM(CASE WHEN u.story_id IS NOT NULL AND NOT u.hidden THEN 1 ELSE 0 END), 0), "
+        "  COALESCE(SUM(CASE WHEN u.story_id IS NOT NULL AND u.hidden AND u.story_date >= floor.date THEN 1 ELSE 0 END), 0) "
+        "FROM u LEFT JOIN floor ON floor.feed_id = u.feed_id GROUP BY u.feed_id"
     )
-    params = [*hidden_params, unread_cutoff(user), user.id, user.id]
-    if feed_ids is not None:
-        ids = [int(i) for i in feed_ids]
-        if not ids:
-            return {}
-        sql += f" AND sub.feed_id IN ({','.join(map(str, ids))})"
+    counts = {}
     with connection.cursor() as cur:
-        cur.execute(sql + " GROUP BY sub.feed_id", params)
-        return {feed_id: {"unread": total - hidden_count, "hidden": hidden_count}
-                for feed_id, total, hidden_count in cur.fetchall()}  # fmt: skip
+        cur.execute(sql, [*hidden_params, unread_cutoff(user), user.id, user.id])
+        for feed_id, unread, hidden_count in cur.fetchall():
+            counts[feed_id] = {"unread": unread, "hidden": hidden_count, "hidden_all": 0}
+        if hidden_params and counts:
+            cur.execute(
+                f"SELECT s.feed_id, COUNT(*) FROM feeds_story s WHERE {hidden}"
+                f"{_feed_filter('s.feed_id', counts)} GROUP BY s.feed_id",
+                hidden_params,
+            )
+            for feed_id, total in cur.fetchall():
+                counts[feed_id]["hidden_all"] = total
+    return counts
+
+
+def oldest_visible_unread(user, feed_id: int) -> int | None:
+    """The date of the oldest unread story of a feed that the Hide filter leaves in the list."""
+    hidden, hidden_params = filters.hidden_sql(filters.rules_for(user))
+    with connection.cursor() as cur:
+        cur.execute(
+            "SELECT MIN(s.story_date) FROM feeds_story s "
+            "JOIN reading_subscription sub ON sub.feed_id = s.feed_id AND sub.user_id = %s AND sub.deleted_at IS NULL "
+            "WHERE s.feed_id = %s AND s.story_date > MAX(sub.mark_read_date, %s) "
+            "AND NOT EXISTS (SELECT 1 FROM reading_readstory r WHERE r.user_id = %s AND r.story_id = s.id) "
+            f"AND NOT {hidden}",
+            [user.id, feed_id, unread_cutoff(user), user.id, *hidden_params],
+        )
+        return cur.fetchone()[0]
 
 
 def _subscribed_feed_ids(user) -> set[int]:

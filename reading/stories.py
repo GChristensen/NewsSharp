@@ -14,7 +14,7 @@ from feeds.util import PREVIEW_CHARS, image_signature, now, plain_text
 from . import filters, tree
 from .models import SavedStory, Subscription
 from .search import build_match, plain_match
-from .unread import unread_cutoff
+from .unread import oldest_visible_unread, unread_cutoff
 
 _image_secret = None
 
@@ -173,6 +173,12 @@ def list_stories(user, scope: str, read_filter: str, order: str, query: str, cur
     saved = resolved["kind"] == "saved"
     if resolved["feed_ids"] is not None and not resolved["feed_ids"]:
         return {"stories": [], "next_cursor": None, "terms": terms}
+    show_hidden = show_hidden and scope.startswith("feed:")  # hidden stories are shown in a single feed only
+    # Unread only: the hidden stories listed are those among the visible unread ones, no older than the
+    # oldest of them (the "hidden" count of reading.unread.unread_counts).
+    hidden_floor = None
+    if show_hidden and read_filter == "unread" and not match:
+        hidden_floor = oldest_visible_unread(user, resolved["feed_ids"][0])
 
     def run(match_expression):
         # Parameters in the order of their placeholders: column list, extra columns, FROM part, WHERE.
@@ -209,6 +215,9 @@ def list_stories(user, scope: str, read_filter: str, order: str, query: str, cur
             if read_filter == "unread" and not match_expression:  # the filter is ignored while searching
                 where.append("s.story_date > MAX(sub.mark_read_date, %s) AND r.id IS NULL")
                 params.append(cutoff)
+                if show_hidden and hidden_params:
+                    where.append(f"(NOT {hidden} OR s.story_date >= %s)")  # NULL floor: no hidden story
+                    params.extend([*hidden_params, hidden_floor])
         if match_expression:
             where.append(f"{id_column} IN (SELECT rowid FROM {fts} WHERE {fts} MATCH %s)")
             params.append(match_expression)

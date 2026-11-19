@@ -1,7 +1,7 @@
 """Story filters (reading/filters.py): the Promote, Demote and Hide patterns of a user as SQL fragments.
 
 Each list holds regular expressions; a story matches when one of them is found in its title, author or
-summary, without regard to case. Hide wins over Promote and Demote, Promote over Demote. A feed can have
+summary, without regard to case. Hide wins over Promote and Demote, Promote wins over Demote. A feed can have
 filters of its own (Subscription.filters); the user's global filters are appended to them, so a feed
 without its own lines follows the global ones alone. The fragments use SQLite's REGEXP operator, which
 Django registers on its SQLite connections, and expect the story table under the alias `s`."""
