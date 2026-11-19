@@ -13,6 +13,7 @@
   --accent-fill: #3567d4;
   --accent-ink: #ffffff;
   --glow: rgba(76, 141, 255, .12);
+  --strike: #ff9a6b;   /* crossed-out services in the "not installing" section */
   /* interface preview */
   --app-bg: #0f1115;
   --app-pane: #151920;
@@ -319,6 +320,21 @@ button.m-count:hover { background: var(--app-unread); color: #fff; }
 #feedxcavator .cta { margin-top: 32px; }
 .feat h3 { margin: 14px 0 6px; font-size: 1.05rem; }
 .feat p { color: var(--muted); font-size: .95rem; }
+.section.lean { padding-top: 0; }   /* follows "What's inside" directly */
+/* a service logo with a slash through it */
+.lean .nope { position: relative; display: inline-block; }
+.lean .logo { width: 36px; height: 36px; fill: var(--muted); stroke: none; }
+.lean .nope::after { content: ""; position: absolute; left: -4px; right: -4px; top: 50%; height: 3px; border-radius: 2px;
+  background: var(--strike); box-shadow: 0 0 0 2px var(--panel); transform: rotate(-35deg); }
+.lean h3 { text-decoration: line-through; text-decoration-color: var(--strike); text-decoration-thickness: 2px; }
+/* the "Also not needed" row of smaller crossed-out services */
+.also { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin-top: 28px; }
+.also li { display: inline-flex; align-items: center; gap: 8px; padding: .35em .9em; border: 1px solid var(--line);
+  border-radius: 99px; background: var(--panel); color: var(--muted); font-size: .95rem; }
+.also .also-label { padding-inline: 0; border: 0; background: none; }
+.also s { text-decoration-color: var(--strike); text-decoration-thickness: 2px; }
+.also .instead { color: var(--muted); opacity: .8; }
+.logo-sm { width: 16px; height: 16px; fill: var(--muted); }
 
 .band { background: var(--bg-2); border-block: 1px solid var(--line); }
 .code-card { border: 1px solid var(--line); border-radius: 12px; background: var(--app-bg); overflow: hidden; min-width: 0; }
