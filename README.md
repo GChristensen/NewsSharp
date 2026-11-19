@@ -8,13 +8,18 @@ One SQLite file, two Python processes, no Docker, Redis, Celery, MongoDB, Elasti
 
 ## Installation
 
-NewsSharp needs Python 3.12 or later. The built frontend is included in `frontend/dist`, so Node.js is
-only needed to change the frontend. From the installation directory:
+NewsSharp needs Python 3.12 or later and Git. The built frontend is included in `frontend/dist`, so Node.js
+is only needed to change the frontend. Clone the repository and run the installer and the launcher in it:
 
 ```sh
+git clone https://github.com/GChristensen/NewsSharp
+cd NewsSharp
 python3 install.py          # Windows: python install.py
 ./newssharp.sh              # Windows: newssharp.cmd
 ```
+
+The clone is the installation directory: the database and `config.yaml` are kept there. To update, run
+`git pull` in it, then `install.py` again (see below).
 
 `install.py` creates `.venv` with the dependency versions pinned in `uv.lock` and creates `config.yaml` from
 `config.example.yaml` when there is none. When [uv](https://docs.astral.sh/uv/) is on PATH it is used, and it
