@@ -91,7 +91,8 @@ if (plain) {
     if (/\bdefer\b/.test(pre + post)) { deferred.push(tagOut); return ""; }
     return tagOut;
   });
-  if (deferred.length) html = html.replace("</body>", deferred.join("") + "</body>");
+  // A function replacement, so that "$$" and "$&" in the scripts are not taken as replacement patterns.
+  if (deferred.length) html = html.replace("</body>", () => deferred.join("") + "</body>");
 
   // 3. svgs: minify them all, inline the small ones that are used as images, write the rest
   // svgo's structural plugins don't understand animation: removeHiddenElems deletes elements that are
