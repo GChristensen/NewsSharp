@@ -5,12 +5,18 @@
 #   just build-landing [--plain] [--out dir]   build the landing page into the root index.html (GitHub Pages)
 #   just test                           backend and frontend tests
 #   just lock                           update uv.lock and requirements*.txt after a dependency change
-#   just deploy                         copy the code to the server
+#   just deploy                         copy the code to the server, then restart it over ssh (ctl restart)
+#   just restart                        only restart the server over ssh
 #   just pull-data                      replace local data/ with the server's
 #   just remote='\\host\share\dir' deploy   use another installation directory
 
 set windows-shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
 set dotenv-load
+
+# Restart: ssh with key authentication to NEWSSHARP_SSH (default: the host of the remote path) and run
+# ./ctl restart in NEWSSHARP_SSH_DIR (default ~/newssharp, the Linux path of the same installation).
+ssh_host := env("NEWSSHARP_SSH", "")
+ssh_dir := env("NEWSSHARP_SSH_DIR", "~/newssharp")
 
 # The installation directory on the server (holds the code, data/, config.yaml and .venv).
 # Set NEWSSHARP_REMOTE in the environment or in .env next to this file.
@@ -55,7 +61,12 @@ deploy:
     foreach ($d in 'config', 'accounts', 'feeds', 'reading', 'api', 'worker', 'deploy') { robocopy $d "{{remote}}\$d" /MIR /XD __pycache__ {{rc}}; if ($LASTEXITCODE -ge 8) { exit 1 } }; exit 0
     robocopy frontend\dist '{{remote}}\frontend\dist' /MIR {{rc}}{{ok}}
     robocopy . '{{remote}}' manage.py pyproject.toml uv.lock requirements.txt requirements-dev.txt install.py README.md config.example.yaml newssharp.sh newssharp.cmd ctl {{rc}}{{ok}}
-    @echo 'Deployed. If dependencies changed, run python3 install.py there first. Then restart the server (it applies migrations).'
+    @echo 'Deployed. If dependencies changed, run python3 install.py there first.'
+    just restart
+
+# Restart the server on the Linux host through ssh and ./ctl restart (it applies migrations).
+restart:
+    $h = '{{ssh_host}}'; if (-not $h) { $h = ('{{remote}}' -split '\\' | Where-Object { $_ })[0] }; ssh $h 'cd {{ssh_dir}} && ./ctl restart'; if ($LASTEXITCODE) { exit 1 }
 
 # Update uv.lock from pyproject.toml and export the pinned versions for the pip path of install.py.
 lock:

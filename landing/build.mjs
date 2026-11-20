@@ -24,6 +24,7 @@ const outDir = outIdx >= 0 ? path.resolve(args[outIdx + 1]) : path.resolve(here,
 
 const INLINE_LIMIT = 4096;            // inline svg icons up to this many bytes (after minification) as data: URIs
 const SVG_DIR = "media/landing";      // where the remaining minified svgs go, relative to the output root
+const FONT_DIR = `${SVG_DIR}/fonts`;  // where the self-hosted fonts go in the aggressive build
 
 // relative paths only: absolute URLs, root-absolute paths (/images/...) and #anchors are left alone
 const isLocal = (url) => !/^([a-z][a-z0-9+.-]*:|\/|#)/i.test(url);
@@ -51,9 +52,9 @@ if (plain) {
   await writeFile(path.join(outDir, "index.html"), html, "utf8");
   // a custom --out has no landing/ next to it: bring the assets along
   if (path.resolve(outDir, "landing") !== here) {
-    for (const f of ["styles.css", "main.js", "img"])
+    for (const f of ["styles.css", "main.js", "img", "fonts"])
       await cp(path.join(here, f), path.join(outDir, "landing", f), { recursive: true });
-    log.push(`  + landing/{styles.css,main.js,img/} copied to ${path.join(outDir, "landing")}`);
+    log.push(`  + landing/{styles.css,main.js,img/,fonts/} copied to ${path.join(outDir, "landing")}`);
   }
 } else {
   // ---------------------------------------------------------------- aggressive
@@ -65,8 +66,9 @@ if (plain) {
   const styles = new Map();
   for (const [, url] of html.matchAll(linkRe)) {
     if (!isLocal(url) || styles.has(url)) continue;
-    const css = await read(url);
-    if (/url\(\s*['"]?(?![a-z]+:|#)/i.test(css))
+    // the stylesheet ends up inside the root index.html, so its font urls are re-based to FONT_DIR
+    const css = (await read(url)).replace(/url\(fonts\//g, `url(${FONT_DIR}/`);
+    if (/url\(\s*['"]?(?![a-z]+:|#|media\/landing\/fonts\/)/i.test(css))
       throw new Error(`${url}: relative url() references are not supported by the inliner`);
     styles.set(url, css);
     before += bytes(css);
@@ -158,6 +160,8 @@ if (plain) {
     after += bytes(data);
     log.push(`  + ${SVG_DIR}/${path.basename(url)}  ${bytes(await read(url))} -> ${bytes(data)} bytes`);
   }
+  await cp(path.join(here, "fonts"), path.join(outDir, FONT_DIR), { recursive: true });
+  log.push(`  + ${FONT_DIR}/ copied`);
   log.push(`  ${svgs.size - written.size} small svgs inlined as data: URIs`);
 }
 
