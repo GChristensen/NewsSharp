@@ -337,6 +337,14 @@
         render_tree();
         break;
       }
+      case "popover": {
+        var panel = $("[data-popover-panel=" + action.getAttribute("data-popover") + "]");
+        var opening = panel.hidden;
+        close_popovers();
+        panel.hidden = !opening;
+        action.classList.toggle("active", opening);
+        break;
+      }
       case "collapse":
         app.classList.add("collapsed");
         $("[data-action=expand]").hidden = false;
@@ -346,6 +354,18 @@
         action.hidden = true;
         break;
     }
+  });
+
+  // The style popovers only open and close; as in the app, a press outside or Escape closes them.
+  function close_popovers() {
+    $$("[data-popover-panel]").forEach(function (panel) { panel.hidden = true; });
+    $$("[data-action=popover]").forEach(function (button) { button.classList.remove("active"); });
+  }
+  document.addEventListener("pointerdown", function (event) {
+    if (!event.target.closest("[data-popover-panel], [data-action=popover]")) close_popovers();
+  }, true);
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") close_popovers();
   });
 
   $("[data-filter-input]").addEventListener("input", render_tree);

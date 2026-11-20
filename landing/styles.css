@@ -59,7 +59,6 @@ body {
   font: 16px/1.6 var(--body);
   -webkit-font-smoothing: antialiased;
 }
-main, .site-footer { position: relative; }   /* above the backdrop */
 img, svg { display: block; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -71,9 +70,12 @@ ul, ol { padding: 0; list-style: none; }
 .wrap { width: min(1120px, 100% - 32px); margin-inline: auto; }
 
 /* ---------- backdrop ---------- */
-/* A wall of story-card shapes (a picture and two text lines each) behind the top of the page, blurred into
-   soft patches of color, with a veil over it. Its blurred lower edge fades into the ground. */
-.backdrop { position: absolute; top: 0; left: 0; right: 0; height: 1600px; overflow: hidden; pointer-events: none; }
+/* A wall of story-card shapes (a picture and two text lines each) behind the hero and the pillars, blurred
+   into soft patches of color, with a veil over it. It reaches up behind the nav (58px plus its border) and
+   ends where the band below the pillars begins. */
+.top { position: relative; }
+.top > section { position: relative; }   /* above the backdrop */
+.backdrop { position: absolute; top: -59px; bottom: 0; left: 0; right: 0; overflow: hidden; pointer-events: none; }
 .backdrop::after { content: ""; position: absolute; inset: 0; background: var(--wall-veil); }
 .wall {
   position: absolute; top: -120px; left: -140px; right: -140px;
@@ -127,6 +129,7 @@ h1 {
   font-weight: 700;
   letter-spacing: -.025em;
 }
+.h1-sub { display: block; margin-top: .12em; font-size: .62em; line-height: 1.1; }
 .lead { max-width: 640px; margin: 22px auto 0; color: var(--muted); font-size: 1.19rem; line-height: 1.55; }
 .cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 30px; }
 
@@ -179,6 +182,31 @@ h1 {
 .m-seg .m-btn { height: 25px; border: 0; border-radius: 0; }
 .m-seg .m-btn + .m-btn { border-left: 1px solid var(--app-border-strong); }
 .m-seg .m-btn.active { background: var(--app-segment); }
+/* style popovers: a still picture of the app's, so the sliders take no input */
+.m-pop-anchor { position: relative; display: inline-flex; flex: none; }
+.m-pop {
+  position: absolute; left: 50%; bottom: calc(100% + 6px); z-index: 50; transform: translateX(-50%);
+  width: 340px; max-height: 540px; overflow-y: auto; padding: 8px 12px 12px;
+  background: var(--app-bar); border: 1px solid var(--app-border); border-radius: 6px; box-shadow: var(--shadow-card), 0 8px 24px rgba(0, 0, 0, .45);
+}
+.m-pop.m-below { bottom: auto; top: calc(100% + 6px); }
+.m-pop-title { margin: 6px 0 4px; color: var(--app-dim); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.m-pop-title:not(:first-child) { margin-top: 12px; }
+.m-pop-row { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0; }
+.m-pop-icon { margin-top: 5px; color: var(--app-dim); }
+.m-pop-row .m-seg { flex: 1; min-width: 0; }
+.m-pop-row .m-seg .m-btn { flex: 1 0 auto; padding: 0 8px; gap: 5px; }
+.m-seg.m-vertical { flex-direction: column; }
+.m-pop-row .m-seg.m-vertical .m-btn { flex: none; justify-content: flex-start; padding: 0 10px; }
+.m-seg.m-vertical .m-btn + .m-btn { border-left: 0; border-top: 1px solid var(--app-border-strong); }
+.m-range { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 26px; }
+.m-range input { flex: 1; min-width: 0; margin: 0; accent-color: var(--app-unread); pointer-events: none; }
+.m-range-value { flex: none; width: 58px; text-align: right; color: var(--app-dim); font-variant-numeric: tabular-nums; }
+/* rows that the app shows only in some layouts */
+.m-for-wide, .m-for-split, .m-for-grid, .m-for-full { display: none; }
+.app[data-layout="list"] .m-for-wide, .app[data-layout="magazine"] .m-for-wide { display: flex; }
+.app[data-layout="split"] .m-for-split, .app[data-layout="grid"] .m-for-grid { display: block; }
+.app[data-layout="split"] .m-pop-row.m-for-split, .app[data-layout="full"] .m-for-full { display: flex; }
 .m-input {
   width: 100%; height: 27px; min-width: 0; padding: 0 8px 0 26px;
   border: 1px solid var(--app-border-strong); border-radius: 6px;
@@ -320,7 +348,7 @@ button.m-count:hover { background: var(--app-unread); color: #fff; }
 .title { font-size: clamp(1.7rem, 3.6vw, 2.5rem); line-height: 1.15; letter-spacing: -.015em; text-align: center; }
 .sub { max-width: 640px; margin: 14px auto 0; color: var(--muted); text-align: center; font-size: 1.05rem; }
 
-.pillars { padding: 56px 0 8px; }
+.pillars { padding: 56px 0 88px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .card { padding: 26px 28px; border-radius: 14px; background: var(--panel); box-shadow: var(--shadow-card); }
 .card h2 { margin: 0 0 8px; font-size: 1.375rem; }

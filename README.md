@@ -1,6 +1,6 @@
 # NewsSharp
 
-A personal, self-hosted RSS reader, a lightweight reimplementation of [NewsBlur](https://github.com/samuelclay/NewsBlur).
+[NewsSharp](https://gchristensen.github.io/NewsSharp/) is personal, self-hosted RSS reader, a lightweight reimplementation of [NewsBlur](https://github.com/samuelclay/NewsBlur).
 Three panes, a feed/folder tree with drag and drop, feed icon colors, five story layouts, four story
 views, unread tracking, Saved for Later, full-text search, text extraction, WebSub push and live updates.
 
