@@ -338,7 +338,11 @@
      as a theme's own reproduce it, and on a grey theme the same sliders add a color. A black surface
      stays black.
    - Text: OKLCH lightness moves towards more contrast with the ground (or less).
-   The unread badge and the placeholder feed icon are neutral in every theme and are not adjusted. */
+   - Background lightness (dark tints only): the black point is raised, l becomes lift + l * (1 - lift), on
+     every surface and border, and twice as far on text and the link and accent colors. Black turns grey,
+     the steps between surfaces are kept and text brightens. At the maximum (0.25 for surfaces) Graphite's
+     page is at L 0.36 with read text at 6.7:1; the solid accent fill keeps its lightness for the text on it.
+   The unread badge and the placeholder feed icon are neutral in every theme; only the lift changes them. */
 :root {
   --k-accent-vividness: var(--dark-accent-vividness, 100);
   --k-accent-hue: var(--dark-accent-hue, 0);
@@ -346,6 +350,7 @@
   --k-bg-hue: var(--dark-bg-hue, 0);
   --k-bg-strength: var(--dark-bg-strength, 0);
   --k-text-contrast: var(--dark-text-contrast, 0);
+  --k-bg-lift: var(--dark-bg-lift, 0);
   --bg: var(--base-bg);
   --bg-pane: var(--base-bg-pane);
   --bg-bar: var(--base-bg-bar);
@@ -379,6 +384,7 @@
   --k-bg-hue: var(--light-bg-hue, 0);
   --k-bg-strength: var(--light-bg-strength, 0);
   --k-text-contrast: var(--light-text-contrast, 0);
+  --k-bg-lift: 0;
 }
 
 @supports (color: oklch(from red l c h)) {
@@ -390,43 +396,58 @@
     --adj-bg-chroma: calc(var(--k-bg-strength) * 0.0035);
     /* A contrast of ±50 moves the lightness by ±0.2. */
     --adj-text-l: calc(var(--k-text-contrast) * 0.004 * var(--contrast-direction));
-    --bg: oklch(from var(--base-bg) l
+    /* The raised black point: 0.25 at the maximum lift. */
+    --adj-lift: calc(var(--k-bg-lift) * 0.0025);
+    /* Text and links rise twice as far, so that their contrast holds on the lighter surfaces. */
+    --adj-text-lift: calc(var(--adj-lift) * 2);
+    --bg: oklch(from var(--base-bg) calc(var(--adj-lift) + l * (1 - var(--adj-lift)))
       calc(c + var(--k-bg-set) * (var(--adj-bg-chroma) * (var(--adj-ground) + var(--contrast-direction) * l) - c))
       calc(h + var(--k-bg-set) * (var(--k-bg-hue) - h)));
-    --bg-pane: oklch(from var(--base-bg-pane) l
+    --bg-pane: oklch(from var(--base-bg-pane) calc(var(--adj-lift) + l * (1 - var(--adj-lift)))
       calc(c + var(--k-bg-set) * (var(--adj-bg-chroma) * (var(--adj-ground) + var(--contrast-direction) * l) - c))
       calc(h + var(--k-bg-set) * (var(--k-bg-hue) - h)));
-    --bg-bar: oklch(from var(--base-bg-bar) l
+    --bg-bar: oklch(from var(--base-bg-bar) calc(var(--adj-lift) + l * (1 - var(--adj-lift)))
       calc(c + var(--k-bg-set) * (var(--adj-bg-chroma) * (var(--adj-ground) + var(--contrast-direction) * l) - c))
       calc(h + var(--k-bg-set) * (var(--k-bg-hue) - h)));
-    --bg-hover: oklch(from var(--base-bg-hover) l
+    --bg-hover: oklch(from var(--base-bg-hover) calc(var(--adj-lift) + l * (1 - var(--adj-lift)))
       calc(c + var(--k-bg-set) * (var(--adj-bg-chroma) * (var(--adj-ground) + var(--contrast-direction) * l) - c))
       calc(h + var(--k-bg-set) * (var(--k-bg-hue) - h)));
-    --border: oklch(from var(--base-border) l
+    --border: oklch(from var(--base-border) calc(var(--adj-lift) + l * (1 - var(--adj-lift)))
       calc(c + var(--k-bg-set) * (var(--adj-bg-chroma) * (var(--adj-ground) + var(--contrast-direction) * l) - c))
       calc(h + var(--k-bg-set) * (var(--k-bg-hue) - h)));
-    --border-subtle: oklch(from var(--base-border-subtle) l
+    --border-subtle: oklch(from var(--base-border-subtle) calc(var(--adj-lift) + l * (1 - var(--adj-lift)))
       calc(c + var(--k-bg-set) * (var(--adj-bg-chroma) * (var(--adj-ground) + var(--contrast-direction) * l) - c))
       calc(h + var(--k-bg-set) * (var(--k-bg-hue) - h)));
-    --scrollbar-thumb: oklch(from var(--base-scrollbar-thumb) l
+    --scrollbar-thumb: oklch(from var(--base-scrollbar-thumb) calc(var(--adj-lift) + l * (1 - var(--adj-lift)))
       calc(c + var(--k-bg-set) * (var(--adj-bg-chroma) * (var(--adj-ground) + var(--contrast-direction) * l) - c))
       calc(h + var(--k-bg-set) * (var(--k-bg-hue) - h)));
-    --border-strong: oklch(from var(--base-border-strong) l
+    --border-strong: oklch(from var(--base-border-strong) calc(var(--adj-lift) + l * (1 - var(--adj-lift)))
       calc(c + var(--k-bg-set) * (var(--adj-bg-chroma) * (var(--adj-ground) + var(--contrast-direction) * l) - c))
       calc(h + var(--k-bg-set) * (var(--k-bg-hue) - h)));
-    --link: oklch(from var(--base-link) l calc(c * var(--adj-accent-chroma)) calc(h + var(--k-accent-hue)));
-    --accent: oklch(from var(--base-accent) l calc(c * var(--adj-accent-chroma)) calc(h + var(--k-accent-hue)));
+    --unread-badge-bg: oklch(from var(--base-unread-badge-bg) calc(var(--adj-lift) + l * (1 - var(--adj-lift))) c h);
+    --neutral-feed: oklch(from var(--base-neutral-feed) calc(var(--adj-lift) + l * (1 - var(--adj-lift))) c h);
+    --link: oklch(from var(--base-link) calc(var(--adj-text-lift) + l * (1 - var(--adj-text-lift)))
+      calc(c * var(--adj-accent-chroma)) calc(h + var(--k-accent-hue)));
+    --accent: oklch(from var(--base-accent) calc(var(--adj-text-lift) + l * (1 - var(--adj-text-lift)))
+      calc(c * var(--adj-accent-chroma)) calc(h + var(--k-accent-hue)));
     --accent-fill: oklch(from var(--base-accent-fill) l calc(c * var(--adj-accent-chroma)) calc(h + var(--k-accent-hue)));
-    --bg-selected: oklch(from var(--base-bg-selected) l calc(c * var(--adj-accent-chroma)) calc(h + var(--k-accent-hue)));
-    --bg-segment-active: oklch(from var(--base-bg-segment-active) l calc(c * var(--adj-accent-chroma)) calc(h + var(--k-accent-hue)));
-    --text: oklch(from var(--base-text) clamp(0, l + var(--adj-text-l), 1) c h);
-    --text-dim: oklch(from var(--base-text-dim) clamp(0, l + var(--adj-text-l), 1) c h);
-    --text-read: oklch(from var(--base-text-read) clamp(0, l + var(--adj-text-l), 1) c h);
+    --bg-selected: oklch(from var(--base-bg-selected) calc(var(--adj-lift) + l * (1 - var(--adj-lift)))
+      calc(c * var(--adj-accent-chroma)) calc(h + var(--k-accent-hue)));
+    --bg-segment-active: oklch(from var(--base-bg-segment-active) calc(var(--adj-lift) + l * (1 - var(--adj-lift)))
+      calc(c * var(--adj-accent-chroma)) calc(h + var(--k-accent-hue)));
+    --text: oklch(from var(--base-text)
+      calc(var(--adj-text-lift) + clamp(0, l + var(--adj-text-l), 1) * (1 - var(--adj-text-lift))) c h);
+    --text-dim: oklch(from var(--base-text-dim)
+      calc(var(--adj-text-lift) + clamp(0, l + var(--adj-text-l), 1) * (1 - var(--adj-text-lift))) c h);
+    --text-read: oklch(from var(--base-text-read)
+      calc(var(--adj-text-lift) + clamp(0, l + var(--adj-text-l), 1) * (1 - var(--adj-text-lift))) c h);
     /* Story summaries under a headline: a step below dim text (OKLCH L 0.70 on the dark themes, about
        7.5:1 on Graphite; 0.46 on the light theme), so that the headline leads; with --summary-size it
        follows NewsBlur's lists. */
-    --text-summary: oklch(from var(--base-text-dim) clamp(0, l + var(--adj-text-l) - var(--summary-step) * var(--contrast-direction), 1) c h);
-    --unread-badge-text: oklch(from var(--base-unread-badge-text) clamp(0, l + var(--adj-text-l), 1) c h);
+    --text-summary: oklch(from var(--base-text-dim) calc(var(--adj-text-lift) + clamp(0, l + var(--adj-text-l)
+      - var(--summary-step) * var(--contrast-direction), 1) * (1 - var(--adj-text-lift))) c h);
+    --unread-badge-text: oklch(from var(--base-unread-badge-text)
+      calc(var(--adj-text-lift) + clamp(0, l + var(--adj-text-l), 1) * (1 - var(--adj-text-lift))) c h);
   }
 }
 

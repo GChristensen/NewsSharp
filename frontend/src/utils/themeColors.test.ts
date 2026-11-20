@@ -1,7 +1,7 @@
 // Tests of the theme color adjustments (frontend/src/utils/themeColors.test.ts).
 import { describe, expect, it } from 'vitest'
 import type { ThemeChoice } from '../types'
-import { THEME_CASTS, themeColorProperties, withAdjustment, withoutAdjustment } from './themeColors'
+import { NO_BG_LIFT, sliderValue, THEME_CASTS, themeColorProperties, withAdjustment, withoutAdjustment } from './themeColors'
 
 /** The background tokens the background sliders replace (styles.css, the color adjustment block). */
 const BACKGROUND = ['bg', 'bg-pane', 'bg-bar', 'bg-hover', 'border', 'border-subtle', 'scrollbar-thumb', 'border-strong']
@@ -63,6 +63,12 @@ describe('theme color adjustments', () => {
     expect(moved).toEqual({ text_contrast: 5, bg_strength: 30, bg_hue: THEME_CASTS.oled.hue })
     expect(withoutAdjustment(moved, 'bg_hue')).toEqual({ text_contrast: 5 })
     expect(withoutAdjustment({ accent_hue: 4 }, 'accent_hue')).toBeUndefined()
+  })
+  it('start the background lightness at the theme itself', () => {
+    expect(sliderValue('dim', undefined, 'bg_lift')).toBe(0)
+    expect(withAdjustment('dim', undefined, 'bg_lift', 40)).toEqual({ bg_lift: 40 })
+    expect(themeColorProperties({ dim: { bg_lift: 40 } }, 'dim')).toEqual({ '--dark-bg-lift': '40' })
+    expect(NO_BG_LIFT).toEqual(['light', 'oled'])
   })
   it('become the --light-* and --dark-* properties', () => {
     const properties = themeColorProperties({ light: { accent_hue: -4 }, moss: { bg_hue: 120, bg_strength: 20 }, navy: { text_contrast: 9 } }, 'moss')

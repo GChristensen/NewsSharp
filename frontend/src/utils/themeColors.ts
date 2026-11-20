@@ -19,12 +19,19 @@ export const ADJUSTMENTS: Adjustment[] = [
   { key: 'accent_hue', label: 'Highlight hue', min: -30, max: 30, unit: '°', hint: 'Turns the accent towards a neighbouring color' },
   { key: 'bg_strength', label: 'Background color', min: 0, max: 100, unit: '', hint: 'Of backgrounds and borders; 0 is pure grey' },
   { key: 'bg_hue', label: 'Background hue', min: 0, max: 359, unit: '°', hint: 'Shows once the background color is above 0', hue: true },
+  { key: 'bg_lift', label: 'Background lightness', min: 0, max: 100, unit: '', hint: 'Raises the backgrounds from black towards grey' },
   { key: 'text_contrast', label: 'Text contrast', min: -50, max: 50, unit: '', hint: 'All text: softer to crisper' },
 ]
 
-/** The value a slider shows while the theme has none stored: the accent sliders and the text are neutral,
-    the background sliders show the theme's own cast. */
-const NEUTRAL: Record<'accent_vividness' | 'accent_hue' | 'text_contrast', number> = { accent_vividness: 100, accent_hue: 0, text_contrast: 0 }
+/** Themes without the background lightness slider: the light theme is already light and OLED is black
+    by design (NO_BG_LIFT in accounts/prefs.py). */
+export const NO_BG_LIFT: ThemeChoice[] = ['light', 'oled']
+
+/** The value a slider shows while the theme has none stored: the accent sliders, the lift and the text are
+    neutral, the background color sliders show the theme's own cast. */
+const NEUTRAL: Record<'accent_vividness' | 'accent_hue' | 'text_contrast' | 'bg_lift', number> = {
+  accent_vividness: 100, accent_hue: 0, text_contrast: 0, bg_lift: 0,
+}
 
 /** The background cast of each theme as the hue and strength of the background sliders: a least-squares
     fit of the background and border colors of its block in styles.css (checked by utils.test.ts).

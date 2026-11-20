@@ -1,20 +1,34 @@
 /* landing/styles.css: styles for landing/index.html (dark only). */
 
 :root {
-  /* the page follows the dark theme of the NewsSharp app (frontend/src/styles.css) */
-  --bg: #0f1115;
-  --bg-2: #131720;
-  --panel: #151920;
-  --panel-2: #1b2029;
-  --line: #262c37;
-  --text: #e6e9ef;
-  --muted: #a4adbb;
-  --accent: #7ab4ff;
-  --accent-fill: #3567d4;
-  --accent-ink: #ffffff;
-  --glow: rgba(76, 141, 255, .12);
+  /* the page: a dusk plum ground with solid, darker panels on it */
+  --bg: #3b2340;
+  --bg-2: #331d38;
+  --panel: #1b0e26;
+  --panel-2: #2b1d30;
+  --line: #553b5b;
+  --text: #f7ecf5;
+  --muted: #dcc8da;
+  --panel-muted: #cdb9cb;   /* secondary text on panels */
+  --accent: #f2bba5;
+  --accent-fill: #f2bba5;
+  --accent-ink: #2a1730;
   --strike: #ff9a6b;   /* crossed-out services in the "not installing" section */
-  /* interface preview */
+  --shadow-window: 0 2px 8px rgba(0, 0, 0, .35), 0 40px 100px -30px rgba(0, 0, 0, .7);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, .3);
+  /* the blurred backdrop: card color, line color, the veil over the blur and the eight picture colors */
+  --wall-tile: #52335a;
+  --wall-line: #6b4a72;
+  --wall-veil: rgba(42, 24, 48, .35);
+  --wall-1: #8a4f86;
+  --wall-2: #c27fa8;
+  --wall-3: #5f3a6a;
+  --wall-4: #e3a07f;
+  --wall-5: #a27bc7;
+  --wall-6: #6d2f5c;
+  --wall-7: #d5b3cf;
+  --wall-8: #4b2a58;
+  /* interface preview: the dark theme of the NewsSharp app (frontend/src/styles.css) */
   --app-bg: #0f1115;
   --app-pane: #151920;
   --app-bar: #1b2029;
@@ -30,8 +44,9 @@
   --app-badge: #454d5b;
   --app-unread: #4c8dff;
   --app-neutral: #4a5261;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --serif: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;   /* the preview */
+  --body: Inter, var(--sans);
+  --display: "Bricolage Grotesque", Inter, var(--sans);   /* headings */
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 
@@ -41,9 +56,10 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 16px/1.6 var(--sans);
+  font: 16px/1.6 var(--body);
   -webkit-font-smoothing: antialiased;
 }
+main, .site-footer { position: relative; }   /* above the backdrop */
 img, svg { display: block; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -54,11 +70,26 @@ ul, ol { padding: 0; list-style: none; }
 
 .wrap { width: min(1120px, 100% - 32px); margin-inline: auto; }
 
+/* ---------- backdrop ---------- */
+/* A wall of story-card shapes (a picture and two text lines each) behind the top of the page, blurred into
+   soft patches of color, with a veil over it. Its blurred lower edge fades into the ground. */
+.backdrop { position: absolute; top: 0; left: 0; right: 0; height: 1600px; overflow: hidden; pointer-events: none; }
+.backdrop::after { content: ""; position: absolute; inset: 0; background: var(--wall-veil); }
+.wall {
+  position: absolute; top: -120px; left: -140px; right: -140px;
+  display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 22px;
+  filter: blur(28px) saturate(1.15);
+}
+.wall i { display: flex; flex-direction: column; height: var(--h); border-radius: 14px; overflow: hidden; background: var(--wall-tile); }
+.wall b { height: 14px; margin: 14px 14px 0; border-radius: 7px; background: var(--wall-line); }
+.wall b:first-child { height: 62%; margin: 0; border-radius: 0; background: var(--c); }
+.wall b:last-child { height: 10px; margin: 10px 40px 0 14px; border-radius: 5px; }
+
 /* ---------- buttons ---------- */
 .btn {
   display: inline-block;
-  padding: .75em 1.4em;
-  border-radius: 8px;
+  padding: .8em 1.5em;
+  border-radius: 10px;
   background: var(--accent-fill);
   color: var(--accent-ink);
   font-weight: 600;
@@ -66,17 +97,17 @@ ul, ol { padding: 0; list-style: none; }
   transition: filter .15s;
 }
 .btn:hover { filter: brightness(1.1); text-decoration: none; }
-.btn-ghost { background: transparent; color: var(--text); border-color: #3a4250; }
-.btn-ghost:hover { border-color: var(--accent); filter: none; }
-.btn-small { padding: .35em .9em; font-size: .9rem; }
+.btn-ghost { background: var(--panel); color: var(--text); border-color: var(--panel); }
+.btn-ghost:hover { filter: brightness(1.4); }
+.btn-small { padding: .35em .9em; border-radius: 8px; font-size: .9rem; }
 
 /* ---------- nav ---------- */
 .nav {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(15, 17, 21, .85);
-  backdrop-filter: blur(10px);
+  background: rgba(59, 35, 64, .72);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
 }
 .nav-in { display: flex; align-items: center; justify-content: space-between; height: 58px; }
@@ -87,26 +118,17 @@ ul, ol { padding: 0; list-style: none; }
 .links a:not(.btn):hover { color: var(--text); text-decoration: none; }
 
 /* ---------- hero ---------- */
-.hero {
-  padding-top: 72px;
-  background:
-    radial-gradient(60% 50% at 50% 0%, rgba(76, 141, 255, .14), transparent 70%),
-    var(--bg);
-}
+.hero { padding-top: 64px; }
 .hero .wrap:first-child { text-align: center; }
-.eyebrow { color: var(--accent); font-size: .85rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+h1, h2, h3 { font-family: var(--display); }
 h1 {
-  margin-top: 16px;
-  font-size: clamp(2.3rem, 6vw, 4.1rem);
-  line-height: 1.08;
-  letter-spacing: -.02em;
+  font-size: clamp(2.4rem, 6vw, 4.25rem);
+  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: -.025em;
 }
-h1 em { font-style: normal; font-size: .78em; color: var(--accent); }
-.tagline { margin-top: 14px; color: var(--text); font-size: clamp(1.1rem, 2.2vw, 1.35rem); font-weight: 600; }
-.lead { max-width: 660px; margin: 18px auto 0; color: var(--muted); font-size: 1.15rem; }
+.lead { max-width: 640px; margin: 22px auto 0; color: var(--muted); font-size: 1.19rem; line-height: 1.55; }
 .cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 30px; }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 26px; }
-.chips li { padding: .2em .8em; border: 1px solid var(--line); border-radius: 99px; color: var(--muted); font-size: .85rem; }
 
 /* ---------- interface preview ---------- */
 /* A copy of the NewsSharp window. The m-* rules mirror frontend/src/styles.css (dark theme, default sizes). */
@@ -116,12 +138,8 @@ h1 em { font-style: normal; font-size: .78em; color: var(--accent); }
   border-radius: 12px;
   overflow: hidden;
   background: var(--app-bg);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, .6), 0 0 120px var(--glow);
+  box-shadow: var(--shadow-window);
 }
-.chrome { display: flex; align-items: center; gap: 14px; height: 36px; padding: 0 14px; background: var(--app-bar); border-bottom: 1px solid var(--app-border); }
-.lights { display: flex; gap: 7px; }
-.lights i { width: 11px; height: 11px; border-radius: 50%; background: var(--app-border); }
-.address { flex: 1; max-width: 340px; margin-inline: auto; padding: 2px 12px; border-radius: 6px; background: var(--app-bg); color: var(--muted); font-size: 12px; text-align: center; }
 
 .app {
   display: flex;
@@ -302,24 +320,25 @@ button.m-count:hover { background: var(--app-unread); color: #fff; }
 .title { font-size: clamp(1.7rem, 3.6vw, 2.5rem); line-height: 1.15; letter-spacing: -.015em; text-align: center; }
 .sub { max-width: 640px; margin: 14px auto 0; color: var(--muted); text-align: center; font-size: 1.05rem; }
 
-.pillars { padding: 72px 0 8px; }
-.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-.card { padding: 28px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
-.card h2 { margin: 16px 0 10px; font-size: 1.3rem; letter-spacing: -.01em; }
-.card p { color: var(--muted); }
+.pillars { padding: 56px 0 8px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.card { padding: 26px 28px; border-radius: 14px; background: var(--panel); box-shadow: var(--shadow-card); }
+.card h2 { margin: 0 0 8px; font-size: 1.375rem; }
+.card p { color: var(--panel-muted); font-size: .97rem; line-height: 1.55; }
+.fx .card .ico { margin-bottom: 16px; }
 
 .ico { width: 30px; height: 30px; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .ico use { pointer-events: none; }
 
 .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 44px; }
-.feat { padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.feat { padding: 22px; border-radius: 12px; background: var(--panel); box-shadow: var(--shadow-card); }
 .feat .ico { width: 26px; height: 26px; }
 .ico-lg { width: 44px; height: 44px; margin: 0 auto 14px; }
 .fx { margin-top: 40px; }
-.fx .card h3 { margin: 16px 0 10px; font-size: 1.15rem; }
+.fx .card h3 { margin: 0 0 8px; font-size: 1.2rem; }
 #feedxcavator .cta { margin-top: 32px; }
-.feat h3 { margin: 14px 0 6px; font-size: 1.05rem; }
-.feat p { color: var(--muted); font-size: .95rem; }
+.feat h3 { margin: 14px 0 6px; font-size: 1.1rem; }
+.feat p { color: var(--panel-muted); font-size: .95rem; }
 .section.lean { padding-top: 0; }   /* follows "What's inside" directly */
 /* a service logo with a slash through it */
 .lean .nope { position: relative; display: inline-block; }

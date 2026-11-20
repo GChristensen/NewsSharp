@@ -21,6 +21,23 @@
     }
   }
 
+  // ---- blurred backdrop ----
+  // Fills the wall with forty story-card shapes in eight columns: a picture in one of the eight --wall-N
+  // colors and two text lines. Heights and colors repeat in a fixed pattern; styles.css blurs them.
+  var wall = document.querySelector("[data-wall]");
+  if (wall) {
+    var tile_heights = [210, 260, 180, 240, 300, 200, 250, 220];
+    for (var t = 0; t < 40; t++) {
+      var tile = document.createElement("i");
+      tile.style.setProperty("--h", tile_heights[(t * 3) % 8] + "px");
+      tile.style.setProperty("--c", "var(--wall-" + ((t * 5 + Math.floor(t / 8)) % 8 + 1) + ")");
+      tile.appendChild(document.createElement("b"));
+      tile.appendChild(document.createElement("b"));
+      tile.appendChild(document.createElement("b"));
+      wall.appendChild(tile);
+    }
+  }
+
   // ---- interactive preview ----
   var app = document.getElementById("app");
   if (!app) return;

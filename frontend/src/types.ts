@@ -109,8 +109,9 @@ export type DarkTint = 'graphite' | 'oled' | 'ink' | 'navy' | 'warm' | 'moss' | 
 /** A theme with its own color adjustments: the light theme or a tint of the dark theme. */
 export type ThemeChoice = 'light' | DarkTint
 /** The color adjustments of one theme (THEME_COLOR_RANGES in accounts/prefs.py); a missing one keeps the
-    theme's own color, and bg_hue and bg_strength are set together. */
-export type ThemeColorKey = 'accent_vividness' | 'accent_hue' | 'bg_hue' | 'bg_strength' | 'text_contrast'
+    theme's own color, and bg_hue and bg_strength are set together. bg_lift exists for the dark tints
+    except OLED. */
+export type ThemeColorKey = 'accent_vividness' | 'accent_hue' | 'bg_hue' | 'bg_strength' | 'text_contrast' | 'bg_lift'
 export type ThemeColors = Partial<Record<ThemeColorKey, number>>
 
 export interface Prefs {

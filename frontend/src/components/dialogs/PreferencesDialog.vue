@@ -10,7 +10,7 @@ import { useTree } from '../../stores/tree'
 import { useUi } from '../../stores/ui'
 import type { FeedFilters, FilterKind, Prefs, ThemeChoice, ThemeColorKey, ViewKey } from '../../types'
 import { SHARE_SERVICES } from '../../utils/share'
-import { ADJUSTMENTS, type Adjustment, GREY_ACCENT, sliderValue, withAdjustment, withoutAdjustment } from '../../utils/themeColors'
+import { ADJUSTMENTS, type Adjustment, GREY_ACCENT, NO_BG_LIFT, sliderValue, withAdjustment, withoutAdjustment } from '../../utils/themeColors'
 import FilterLists from '../FilterLists.vue'
 import Icon from '../Icon.vue'
 import Modal from '../Modal.vue'
@@ -275,7 +275,8 @@ onMounted(async () => {
         <h3 class="section">Colors of {{ editedName }}</h3>
         <div class="dim" style="font-size: 11px">Each theme keeps its own adjustments. Double-click a slider to return it to the theme's own color.</div>
         <template v-for="adjustment in ADJUSTMENTS" :key="adjustment.key">
-          <div class="form-row" :class="{ 'adjust-off': greyAccent && adjustment.key.startsWith('accent') }">
+          <div
+            v-if="adjustment.key !== 'bg_lift' || !NO_BG_LIFT.includes(edited)" class="form-row" :class="{ 'adjust-off': greyAccent && adjustment.key.startsWith('accent') }">
             <label :for="`pref-${adjustment.key}`">
               {{ adjustment.label }}<span v-if="isAdjusted(adjustment.key)" class="adjust-mark" title="Changed from the theme's own color">●</span>
               <span class="dim" style="display: block; font-size: 11px">{{ adjustment.hint }}</span>

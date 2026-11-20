@@ -112,15 +112,19 @@ HEADLINE_INDENTS = tuple(str(v) for v in range(HEADLINE_INDENT_MAX + 1))
 # Color adjustments of each theme (preference theme_colors): theme -> {name: value}; a missing name keeps
 # the theme's own color. Ranges: vividness is a percentage of the accent chroma, accent_hue a turn in
 # degrees, bg_hue and bg_strength the hue and amount of the background color (set together; they replace
-# the theme's own cast), text_contrast a lightness shift towards more (+) or less (-) contrast.
+# the theme's own cast), text_contrast a lightness shift towards more (+) or less (-) contrast, bg_lift
+# how far the surfaces of a dark tint are raised from black towards grey.
 THEME_COLOR_RANGES = {
     "accent_vividness": (30, 170),
     "accent_hue": (-30, 30),
     "bg_hue": (0, 359),
     "bg_strength": (0, 100),
     "text_contrast": (-50, 50),
+    "bg_lift": (0, 100),
 }
 THEMES = ("light", *DARK_TINTS)
+# Themes without the background lift: the light theme is already light, and OLED is black by design.
+NO_BG_LIFT = ("light", "oled")
 
 
 def _theme_colors(v):
@@ -130,6 +134,8 @@ def _theme_colors(v):
         if theme not in THEMES or not isinstance(values, dict) or not values:
             return False
         if ("bg_hue" in values) != ("bg_strength" in values):
+            return False
+        if "bg_lift" in values and theme in NO_BG_LIFT:
             return False
         for key, value in values.items():
             limits = THEME_COLOR_RANGES.get(key)

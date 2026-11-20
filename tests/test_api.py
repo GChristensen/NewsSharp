@@ -746,8 +746,14 @@ def test_index_carries_the_theme_colors(api, settings, tmp_path):
     assert api.patch("/api/preferences", data=json.dumps(changes), content_type="application/json").status_code == 200
     html = api.get("/").content.decode()
     assert 'style="--light-text-contrast: -10; --dark-bg-hue: 150; --dark-bg-strength: 40; --dark-bg-set: 1"' in html
+    changes = {"dark_tint": "dim", "theme_colors": {"dim": {"bg_lift": 60}}}
+    assert api.patch("/api/preferences", data=json.dumps(changes), content_type="application/json").status_code == 200
+    assert 'style="--dark-bg-lift: 60"' in api.get("/").content.decode()
     for bad in (
         {"oled": {"bg_hue": 150}},  # hue without strength
+        {"oled": {"bg_lift": 10}},  # OLED stays black
+        {"light": {"bg_lift": 10}},
+        {"dim": {"bg_lift": 101}},
         {"oled": {"accent_hue": 31}},
         {"oled": {"bg_hue": 10, "bg_strength": 2.5}},
         {"oled": {"glow": 1}},
