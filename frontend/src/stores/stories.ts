@@ -104,7 +104,8 @@ export const useStories = defineStore('stories', {
       this.selected = null
       this.newCount = 0
     },
-    async fetchPage() {
+    /** Load the next page; with `replace` the first page takes the place of the list when it arrives. */
+    async fetchPage(replace = false) {
       if (!this.scope || this.loading || this.ended) return
       const generation = this.generation
       const settings = useSettings()
@@ -122,11 +123,13 @@ export const useStories = defineStore('stories', {
       try {
         const page = await api<Page>('GET', `/api/stories?${params}`, undefined, { signal: controller?.signal })
         if (generation !== this.generation) return // the scope is no longer open
-        const known = new Set(this.stories.map((s) => s.key))
+        const list = replace ? [] : this.stories
+        const known = new Set(list.map((s) => s.key))
         for (const story of page.stories) {
           story.key = storyKey(story, this.isSaved)
-          if (!known.has(story.key)) this.stories.push(story)
+          if (!known.has(story.key)) list.push(story)
         }
+        if (replace) this.stories = list
         this.cursor = page.next_cursor
         this.ended = page.next_cursor === null
         this.terms = page.terms
@@ -140,22 +143,33 @@ export const useStories = defineStore('stories', {
     loadMore(): Promise<void> {
       return this.fetchPage()
     },
-    /** Reload from the start, keeping the selected story selected. */
-    async reload() {
+    /**
+     * Reload from the start, keeping the selected story selected. A quiet reload leaves the current
+     * list on screen until the fresh first page replaces it, so the list does not blink.
+     */
+    async reload(quiet = false) {
       if (!this.scope) return
       const selected = this.selected
       this.generation++
       controller?.abort()
       controller = new AbortController()
+      const oldCursor = this.cursor
+      const oldEnded = this.ended
       this.cursor = null
       this.ended = false
       this.loading = false
       this.newCount = 0
       const previous = this.stories
-      this.stories = []
-      loaded = this.fetchPage()
+      if (!quiet) this.stories = []
+      loaded = this.fetchPage(quiet)
       await loaded
-      if (this.error) this.stories = previous
+      if (this.error) {
+        this.stories = previous
+        if (quiet) {
+          this.cursor = oldCursor
+          this.ended = oldEnded
+        }
+      }
       if (selected) {
         const again = this.stories.find((s) => s.key === selected.key)
         this.selected = again ?? selected

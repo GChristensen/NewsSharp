@@ -88,7 +88,7 @@ export const useEvents = defineStore('events', {
         tree.applyFetched(feed_id, fields)
         if (stories.pendingRefresh === feed_id) {
           stories.pendingRefresh = null
-          stories.reload() // the list reloads after a fetch
+          stories.reload(true) // the list reloads after a fetch
         } else if (stories.scope === `feed:${feed_id}` && !stories.stories.length && !stories.loading) {
           stories.reload()
         }
@@ -105,7 +105,7 @@ export const useEvents = defineStore('events', {
       on('worker', (data) => (useSession().worker = data))
       on('resync', () => {
         tree.reload().catch(() => {})
-        if (stories.scope) stories.reload()
+        if (stories.scope) stories.reload(true) // quiet: the list stays on screen while it refreshes
       })
     },
     /** Without an event stream: poll the counts every 60 s, 10 s while feeds are unfetched. */
