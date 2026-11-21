@@ -20,6 +20,7 @@ export interface TreeContext {
   commitRename(): void
   cancelRename(): void
   markRead(feed: Feed): void
+  markFolderRead(folder: Folder): void
   openSite(feed: Feed): void
 }
 
@@ -64,8 +65,13 @@ const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select()) }
           @click.stop @pointerdown.stop @keydown.enter.stop="ctx.commitRename()" @keydown.esc.stop="ctx.cancelRename()" @blur="ctx.commitRename()"
         />
         <span v-else class="title">{{ item.folder.title }}</span>
+        <button
+          v-if="item.folder.collapsed && settings.prefs.sidebar_mode !== 'saved' && tree.folderCount(item.folder.id) > 0"
+          class="count" title="Mark as read"
+          @click.stop="ctx.markFolderRead(item.folder)" @dblclick.stop @pointerdown.stop
+        >{{ tree.folderCount(item.folder.id) }}</button>
         <span
-          v-if="(settings.prefs.folder_counts || item.folder.collapsed) && tree.folderCount(item.folder.id) > 0"
+          v-else-if="(settings.prefs.folder_counts || item.folder.collapsed) && tree.folderCount(item.folder.id) > 0"
           class="count static" :class="{ saved: settings.prefs.sidebar_mode === 'saved' }"
         >{{ tree.folderCount(item.folder.id) }}</span>
       </div>

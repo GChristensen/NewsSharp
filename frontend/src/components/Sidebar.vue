@@ -310,6 +310,7 @@ const context: TreeContext = {
   commitRename,
   cancelRename: () => (renaming.key = null),
   markRead: (feed) => markFeedRead(feed.id),
+  markFolderRead: (folder) => markScopeRead(0, `folder:${folder.id}`),
   openSite: (feed) => openInNewTab(feed.feed_link || feed.feed_address),
 }
 provide('tree', context)
