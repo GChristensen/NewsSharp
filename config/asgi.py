@@ -23,4 +23,7 @@ async def application(scope, receive, send):
                 await send({"type": "lifespan.shutdown.complete"})
                 return
     else:
-        await django_app(scope, receive, send)
+        try:
+            await django_app(scope, receive, send)
+        except asyncio.CancelledError:
+            pass  # Graceful Shutdown
