@@ -1,5 +1,6 @@
 """ASGI entry point of the web process (config/asgi.py). Wraps Django's handler to run the web
 process's background loop (worker_events reader) inside the server's event loop."""
+import asyncio
 import os
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
@@ -23,4 +24,7 @@ async def application(scope, receive, send):
                 await send({"type": "lifespan.shutdown.complete"})
                 return
     else:
-        await django_app(scope, receive, send)
+        try:
+            await django_app(scope, receive, send)
+        except asyncio.CancelledError:
+            pass  # Graceful Shutdown

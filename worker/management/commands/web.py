@@ -27,7 +27,7 @@ class Command(BaseCommand):
             lifespan="on",
             log_config=None,
             access_log=False,
-            timeout_graceful_shutdown=3,
+            timeout_graceful_shutdown=5,
             proxy_headers=False,
             server_header=False,
         )
